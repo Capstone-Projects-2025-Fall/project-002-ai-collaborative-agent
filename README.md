@@ -44,6 +44,6 @@ Discuss what you need to develop this project. This includes background informat
 
 <div align="center">
 
-Thomas Ignacio Ishida, Reza Khoshnabish, Abdoul F. Djedje, Jaeden Lee, Natanim Abebe, Junrong Chen, Morgan Butler
+Thomas Ignacio Ishida, Reza Khoshnabish, Abdoul F. Djedje, Jaeden Lee, Natanim Abebe, Junrong Chen, Morgan Butler, Zachary Ngo
 
 </div>
