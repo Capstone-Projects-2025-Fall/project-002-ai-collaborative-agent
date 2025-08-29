@@ -36,6 +36,6 @@ Discuss what you need to develop this project. This includes background informat
 
 <div align="center">
 
-Thomas Ignacio Ishida, Reza Khoshnabish, Abdoul F. Djedje, Zachary Ngo
+Thomas Ignacio Ishida, Reza Khoshnabish, Abdoul F. Djedje, Zachary Ngo, Jaeden Lee, Natanim Abebe
 
 </div>
