@@ -10,19 +10,23 @@
 
 ## Keywords
 
-Section #, as well as any words that quickly give your peers insights into the application like programming language, development platform, type of application, etc.
+AI, Agent, Project Organization, Collaborative Coding
 
 ## Project Abstract
 
-This document proposes a novel application of a text message (SMS or Email) read-out and hands-free call interacted between an Android Smartphone and an infotainment platform (headunit) in a car environment. When a phone receives an SMS or Email, the text message is transferred from the phone to the headunit through a Bluetooth connection. On the headunit, user can control which and when the received SMS or E-mail to be read out through the in-vehicle audio system. The user may press one button on the headunit to activate the hands-free feature to call back the SMS sender.
+This document proposes a Collaborative AI Agent that is able to organize and delegate teams that are working on a coding project. According to the team member's skills.
 
 ## High Level Requirement
 
-Describe the requirements – i.e., what the product does and how it does it from a user point of view – at a high level.
+-Create Teams for problems
+-Agent Allocate work to team member
+-Students can write code simultaneously
+-Agent provide real tiem feedback based on teammates code
+-Agent will provice a solution to programmers based on the teammate's feedback
 
 ## Conceptual Design
 
-Describe the initial design concept: Hardware/software architecture, programming language, operating system, etc.
+Web page that accepts login system and team delegation
 
 ## Background
 
