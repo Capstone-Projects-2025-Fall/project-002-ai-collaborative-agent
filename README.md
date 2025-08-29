@@ -36,6 +36,6 @@ Discuss what you need to develop this project. This includes background informat
 
 <div align="center">
 
-Thomas Ignacio Ishida
+Thomas Ignacio Ishida, Reza Khoshnabish
 
 </div>
