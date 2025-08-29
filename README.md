@@ -19,9 +19,13 @@ This document proposes a Collaborative AI Agent that is able to organize and del
 ## High Level Requirement
 
 -Create Teams for problems
+
 -Agent Allocate work to team member
+
 -Students can write code simultaneously
+
 -Agent provide real tiem feedback based on teammates code
+
 -Agent will provice a solution to programmers based on the teammate's feedback
 
 ## Conceptual Design
