@@ -1,0 +1,27 @@
+Users Data - Generated on 2025-09-12 14:33:30
+============================================================
+
+User 1:
+Name: John
+Skills: Mobile Development
+Programming Languages: Kotlin, Java, Swift
+Willing to work on: Front end for the application
+
+----------------------------------------
+
+User 2:
+Name: Thomas
+Skills: Machine Learning, Data Analysis
+Programming Languages: Python, C++
+Willing to work on: the AI engineering for the application
+
+----------------------------------------
+
+User 3:
+Name: Chelsea
+Skills: Databases
+Programming Languages: MySQL, Java
+Willing to work on: The backend connection for the app
+
+----------------------------------------
+

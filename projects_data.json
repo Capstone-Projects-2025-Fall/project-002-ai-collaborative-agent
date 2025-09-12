@@ -1,0 +1,29 @@
+[
+  {
+    "name": "ElderLink",
+    "description": "ElderLink is a mobile application designed to empower older adults to maintain their independence and well-being while providing peace of mind to their family caregivers. It serves as a central hub for health management, safety, and social connection. The app is designed with a simple, intuitive, and highly accessible user interface, making it easy for seniors with varying levels of technological proficiency to use. It also has a companion mode for caregivers, allowing them to remotely monitor and assist their loved ones.",
+    "goals": "Enhance Independence and Quality of Life for Seniors: To provide tools that help older adults manage their daily routines, health, and social connections without constant reliance on others.\n\nProvide Peace of Mind and Streamline Caregiving: To offer a reliable platform for caregivers to stay informed about their loved one's well-being and coordinate care effectively, reducing stress and ensuring timely intervention when needed.\n\nImprove Health Management and Safety: To help seniors stay on track with their medical care and provide a quick and reliable way to get help in an emergency.\n\nPromote Social Connection and Combat Loneliness: To facilitate easy communication with family and friends, reducing social isolation, which is a significant health risk for the elderly.",
+    "requirements": "Medication Management:\n\n    Reminders: Timely push notifications with medication name, dosage, and a picture of the pill.\n\n    Tracking: A log for confirming when a dose has been taken.\n\n    Caregiver Alerts: Automated notifications to a caregiver if a dose is missed.\n\nEmergency Assistance:\n\n    One-Tap SOS Button: A prominent, easy-to-locate button that sends an immediate alert to a predefined list of emergency contacts with the user's GPS location.\n\n    Fall Detection (optional): Integration with phone sensors or external wearables to automatically detect falls and send an alert.\n\nHealth and Wellness Monitoring:\n\n    Vitals Tracking: Integration with Bluetooth-enabled devices (like blood pressure cuffs or glucose meters) and wearables (like smartwatches) to track and log vital signs.\n\n        Activity Log: A simple way to log daily activities like walks, meals, or mood.\n\n        Remote Monitoring Dashboard: A secure dashboard for caregivers and healthcare professionals to view health data and trends.\n\n    Care Coordination and Communication:\n\n        Shared Calendar: A co-managed calendar for both the senior and caregiver to track appointments, events, and tasks.\n\n        Secure Messaging: A simple and secure messaging and video call feature for one-tap communication with family members.\n\n        Shared Tasks: The ability for caregivers to create and assign tasks (e.g., \"take out the trash,\" \"water the plants\") that appear on the senior's to-do list.\n\n3. Technical and Security Requirements:\n\n    Cross-Platform Compatibility: The app should be available on both iOS and Android platforms.\n\nData Security: All user data, especially health information, must be encrypted in transit and at rest.\n\nPrivacy Compliance: The app must adhere to relevant privacy laws such as HIPAA (in the US) or GDPR (in Europe).\n\nReliability: The app must be highly reliable, especially for critical functions like emergency alerts and medication reminders.\n\nBattery Efficiency: The app should be optimized to minimize battery drain, especially when using background location services or sensors.",
+    "selected_users": [
+      {
+        "name": "John",
+        "skills": "Mobile Development",
+        "programming_languages": "Kotlin, Java, Swift",
+        "willing_to_work_on": "Front end for the application"
+      },
+      {
+        "name": "Thomas",
+        "skills": "Machine Learning, Data Analysis",
+        "programming_languages": "Python, C++",
+        "willing_to_work_on": "the AI engineering for the application"
+      },
+      {
+        "name": "Chelsea",
+        "skills": "Databases",
+        "programming_languages": "MySQL, Java",
+        "willing_to_work_on": "The backend connection for the app"
+      }
+    ],
+    "created_date": "2025-09-12 14:35:19"
+  }
+]

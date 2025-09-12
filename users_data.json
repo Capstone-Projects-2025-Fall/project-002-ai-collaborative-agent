@@ -1,0 +1,20 @@
+[
+  {
+    "name": "John",
+    "skills": "Mobile Development",
+    "programming_languages": "Kotlin, Java, Swift",
+    "willing_to_work_on": "Front end for the application"
+  },
+  {
+    "name": "Thomas",
+    "skills": "Machine Learning, Data Analysis",
+    "programming_languages": "Python, C++",
+    "willing_to_work_on": "the AI engineering for the application"
+  },
+  {
+    "name": "Chelsea",
+    "skills": "Databases",
+    "programming_languages": "MySQL, Java",
+    "willing_to_work_on": "The backend connection for the app"
+  }
+]
