@@ -4,30 +4,116 @@ import json
 import os
 import hashlib
 import requests
+import webbrowser
+import urllib.parse
 from datetime import datetime
+import threading
+from http.server import HTTPServer, BaseHTTPRequestHandler
+import secrets
+import base64
+
+class GitHubOAuthHandler(BaseHTTPRequestHandler):
+    """HTTP handler for GitHub OAuth callback"""
+    
+    def do_GET(self):
+        """Handle GET request from GitHub OAuth callback"""
+        if self.path.startswith('/callback'):
+            # Parse the authorization code from the callback URL
+            query = urllib.parse.urlparse(self.path).query
+            params = urllib.parse.parse_qs(query)
+            
+            if 'code' in params:
+                auth_code = params['code'][0]
+                state = params.get('state', [None])[0]
+                
+                # Store the code for the main thread to process
+                self.server.auth_code = auth_code
+                self.server.auth_state = state
+                
+                # Send success response
+                self.send_response(200)
+                self.send_header('Content-type', 'text/html')
+                self.end_headers()
+                
+                success_html = """
+                <html>
+                    <head><title>GitHub Authentication Success</title></head>
+                    <body style="font-family: Arial, sans-serif; text-align: center; margin-top: 100px;">
+                        <h2>🎉 Authentication Successful!</h2>
+                        <p>You can now close this window and return to the application.</p>
+                        <script>
+                            setTimeout(function() {
+                                window.close();
+                            }, 3000);
+                        </script>
+                    </body>
+                </html>
+                """
+                self.wfile.write(success_html.encode())
+            else:
+                # Handle error
+                error = params.get('error', ['Unknown error'])[0]
+                self.server.auth_error = error
+                
+                self.send_response(400)
+                self.send_header('Content-type', 'text/html')
+                self.end_headers()
+                
+                error_html = f"""
+                <html>
+                    <head><title>GitHub Authentication Error</title></head>
+                    <body style="font-family: Arial, sans-serif; text-align: center; margin-top: 100px;">
+                        <h2>❌ Authentication Failed</h2>
+                        <p>Error: {error}</p>
+                        <p>Please close this window and try again.</p>
+                    </body>
+                </html>
+                """
+                self.wfile.write(error_html.encode())
+        
+        # Signal that we've received a response
+        self.server.callback_received = True
+    
+    def log_message(self, format, *args):
+        """Suppress log messages"""
+        pass
 
 class AuthUser:
     """Class to store authenticated user login information"""
-    def __init__(self, username, password_hash, full_name="", email=""):
+    def __init__(self, username, github_id=None, full_name="", email="", avatar_url="", auth_type="local"):
         self.username = username
-        self.password_hash = password_hash
+        self.github_id = github_id
         self.full_name = full_name
         self.email = email
+        self.avatar_url = avatar_url
+        self.auth_type = auth_type  # "local" or "github"
         self.created_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.password_hash = None  # Only for local accounts
     
     def to_dict(self):
         return {
             'username': self.username,
-            'password_hash': self.password_hash,
+            'github_id': self.github_id,
             'full_name': self.full_name,
             'email': self.email,
-            'created_date': self.created_date
+            'avatar_url': self.avatar_url,
+            'auth_type': self.auth_type,
+            'created_date': self.created_date,
+            'password_hash': self.password_hash
         }
     
     @classmethod
     def from_dict(cls, data):
-        user = cls(data['username'], data['password_hash'], data.get('full_name', ''), data.get('email', ''))
+        user = cls(
+            data['username'], 
+            data.get('github_id'), 
+            data.get('full_name', ''), 
+            data.get('email', ''), 
+            data.get('avatar_url', ''),
+            data.get('auth_type', 'local')
+        )
         user.created_date = data.get('created_date', datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        user.password_hash = data.get('password_hash')
         return user
 
 class User:
@@ -84,17 +170,60 @@ class Project:
         users_str = ", ".join([user.name for user in self.selected_users])
         return f"Project: {self.name}\nDescription: {self.description}\nGoals: {self.goals}\nRequirements: {self.requirements}\nTeam Members: {users_str}\nCreated: {self.created_date}"
 
+class GitHubAuthConfig:
+    """GitHub OAuth configuration"""
+    def __init__(self):
+        self.client_id = ""
+        self.client_secret = ""
+        self.redirect_uri = "http://localhost:8000/callback"
+        self.scope = "read:user user:email"
+        
+        # Load from config file if exists
+        self.load_config()
+    
+    def load_config(self):
+        """Load GitHub OAuth config from file"""
+        try:
+            if os.path.exists("github_config.json"):
+                with open("github_config.json", 'r') as f:
+                    config = json.load(f)
+                    self.client_id = config.get('client_id', '')
+                    self.client_secret = config.get('client_secret', '')
+                    self.redirect_uri = config.get('redirect_uri', self.redirect_uri)
+                    self.scope = config.get('scope', self.scope)
+        except Exception as e:
+            print(f"Error loading GitHub config: {e}")
+    
+    def save_config(self):
+        """Save GitHub OAuth config to file"""
+        try:
+            config = {
+                'client_id': self.client_id,
+                'client_secret': self.client_secret,
+                'redirect_uri': self.redirect_uri,
+                'scope': self.scope
+            }
+            with open("github_config.json", 'w') as f:
+                json.dump(config, f, indent=2)
+        except Exception as e:
+            print(f"Error saving GitHub config: {e}")
+
 class LoginWindow:
-    """Login window class"""
+    """Login window class with GitHub OAuth support"""
     def __init__(self, parent_app):
         self.parent_app = parent_app
+        self.github_config = GitHubAuthConfig()
+        
         self.window = tk.Toplevel()
         self.window.title("Login / Register")
-        self.window.geometry("400x350")
+        self.window.geometry("500x400")
         self.window.grab_set()  # Make modal
         self.window.protocol("WM_DELETE_WINDOW", self.on_close)
         
         self.current_user = None
+        self.oauth_state = None
+        self.oauth_server = None
+        
         self.setup_ui()
     
     def setup_ui(self):
@@ -102,58 +231,366 @@ class LoginWindow:
         main_frame.pack(expand=True, fill='both')
         
         # Title
-        title_label = ttk.Label(main_frame, text="User Authentication", font=('Arial', 16, 'bold'))
+        title_label = ttk.Label(main_frame, text="Team Collaboration Platform", font=('Arial', 16, 'bold'))
         title_label.pack(pady=(0, 20))
         
+        # GitHub Login Section
+        github_frame = ttk.LabelFrame(main_frame, text="GitHub Authentication", padding="15")
+        github_frame.pack(fill='x', pady=(0, 20))
+        
+        # GitHub login button
+        github_btn_frame = ttk.Frame(github_frame)
+        github_btn_frame.pack(fill='x')
+        
+        self.github_login_btn = ttk.Button(
+            github_btn_frame, 
+            text="🐙 Sign in with GitHub", 
+            command=self.github_login,
+            width=30
+        )
+        self.github_login_btn.pack(pady=10)
+        
+        # GitHub config button
+        ttk.Button(
+            github_btn_frame, 
+            text="⚙️ Configure GitHub OAuth", 
+            command=self.show_github_config,
+            width=30
+        ).pack(pady=5)
+        
+        # Status label for GitHub
+        self.github_status = ttk.Label(github_frame, text="", foreground='blue')
+        self.github_status.pack()
+        
+        # Separator
+        separator = ttk.Separator(main_frame, orient='horizontal')
+        separator.pack(fill='x', pady=20)
+        
+        # Local Account Section
+        local_frame = ttk.LabelFrame(main_frame, text="Local Account (Fallback)", padding="15")
+        local_frame.pack(fill='x')
+        
         # Notebook for login/register tabs
-        notebook = ttk.Notebook(main_frame)
+        notebook = ttk.Notebook(local_frame)
         notebook.pack(expand=True, fill='both')
         
         # Login tab
         login_frame = ttk.Frame(notebook, padding="10")
         notebook.add(login_frame, text="Login")
         
-        ttk.Label(login_frame, text="Username:").pack(anchor='w', pady=5)
+        ttk.Label(login_frame, text="Username:").pack(anchor='w', pady=2)
         self.login_username = tk.StringVar()
-        ttk.Entry(login_frame, textvariable=self.login_username, width=30).pack(pady=5)
+        ttk.Entry(login_frame, textvariable=self.login_username, width=30).pack(pady=2)
         
-        ttk.Label(login_frame, text="Password:").pack(anchor='w', pady=5)
+        ttk.Label(login_frame, text="Password:").pack(anchor='w', pady=2)
         self.login_password = tk.StringVar()
-        ttk.Entry(login_frame, textvariable=self.login_password, show="*", width=30).pack(pady=5)
+        ttk.Entry(login_frame, textvariable=self.login_password, show="*", width=30).pack(pady=2)
         
-        ttk.Button(login_frame, text="Login", command=self.login).pack(pady=20)
+        ttk.Button(login_frame, text="Login", command=self.local_login).pack(pady=10)
         
         # Register tab
         register_frame = ttk.Frame(notebook, padding="10")
         notebook.add(register_frame, text="Register")
         
-        ttk.Label(register_frame, text="Username:").pack(anchor='w', pady=2)
+        ttk.Label(register_frame, text="Username:").pack(anchor='w', pady=1)
         self.reg_username = tk.StringVar()
-        ttk.Entry(register_frame, textvariable=self.reg_username, width=30).pack(pady=2)
+        ttk.Entry(register_frame, textvariable=self.reg_username, width=30).pack(pady=1)
         
-        ttk.Label(register_frame, text="Password:").pack(anchor='w', pady=2)
+        ttk.Label(register_frame, text="Password:").pack(anchor='w', pady=1)
         self.reg_password = tk.StringVar()
-        ttk.Entry(register_frame, textvariable=self.reg_password, show="*", width=30).pack(pady=2)
+        ttk.Entry(register_frame, textvariable=self.reg_password, show="*", width=30).pack(pady=1)
         
-        ttk.Label(register_frame, text="Confirm Password:").pack(anchor='w', pady=2)
+        ttk.Label(register_frame, text="Confirm Password:").pack(anchor='w', pady=1)
         self.reg_confirm = tk.StringVar()
-        ttk.Entry(register_frame, textvariable=self.reg_confirm, show="*", width=30).pack(pady=2)
+        ttk.Entry(register_frame, textvariable=self.reg_confirm, show="*", width=30).pack(pady=1)
         
-        ttk.Label(register_frame, text="Full Name:").pack(anchor='w', pady=2)
+        ttk.Label(register_frame, text="Full Name:").pack(anchor='w', pady=1)
         self.reg_fullname = tk.StringVar()
-        ttk.Entry(register_frame, textvariable=self.reg_fullname, width=30).pack(pady=2)
+        ttk.Entry(register_frame, textvariable=self.reg_fullname, width=30).pack(pady=1)
         
-        ttk.Label(register_frame, text="Email:").pack(anchor='w', pady=2)
+        ttk.Label(register_frame, text="Email:").pack(anchor='w', pady=1)
         self.reg_email = tk.StringVar()
-        ttk.Entry(register_frame, textvariable=self.reg_email, width=30).pack(pady=2)
+        ttk.Entry(register_frame, textvariable=self.reg_email, width=30).pack(pady=1)
         
-        ttk.Button(register_frame, text="Register", command=self.register).pack(pady=10)
+        ttk.Button(register_frame, text="Register", command=self.local_register).pack(pady=5)
+        
+        # Update GitHub status
+        self.update_github_status()
+    
+    def update_github_status(self):
+        """Update GitHub configuration status"""
+        if self.github_config.client_id and self.github_config.client_secret:
+            self.github_status.config(text="✅ GitHub OAuth configured", foreground='green')
+        else:
+            self.github_status.config(text="⚠️ GitHub OAuth not configured", foreground='orange')
+    
+    def show_github_config(self):
+        """Show GitHub OAuth configuration dialog"""
+        config_window = tk.Toplevel(self.window)
+        config_window.title("GitHub OAuth Configuration")
+        config_window.geometry("600x400")
+        config_window.grab_set()
+        
+        main_frame = ttk.Frame(config_window, padding="20")
+        main_frame.pack(expand=True, fill='both')
+        
+        # Instructions
+        instructions = """
+GitHub OAuth Setup Instructions:
+
+1. Go to GitHub.com → Settings → Developer settings → OAuth Apps
+2. Click "New OAuth App"
+3. Fill in:
+   • Application name: Your app name
+   • Homepage URL: http://localhost:8000
+   • Authorization callback URL: http://localhost:8000/callback
+4. Click "Register application"
+5. Copy the Client ID and Client Secret below
+        """
+        
+        ttk.Label(main_frame, text=instructions, font=('Arial', 9)).pack(anchor='w', pady=(0, 20))
+        
+        # Client ID
+        ttk.Label(main_frame, text="Client ID:").pack(anchor='w')
+        client_id_var = tk.StringVar(value=self.github_config.client_id)
+        ttk.Entry(main_frame, textvariable=client_id_var, width=60).pack(fill='x', pady=5)
+        
+        # Client Secret
+        ttk.Label(main_frame, text="Client Secret:").pack(anchor='w', pady=(10, 0))
+        client_secret_var = tk.StringVar(value=self.github_config.client_secret)
+        ttk.Entry(main_frame, textvariable=client_secret_var, show="*", width=60).pack(fill='x', pady=5)
+        
+        # Redirect URI (read-only)
+        ttk.Label(main_frame, text="Redirect URI (copy this to GitHub):").pack(anchor='w', pady=(10, 0))
+        redirect_entry = ttk.Entry(main_frame, width=60)
+        redirect_entry.pack(fill='x', pady=5)
+        redirect_entry.insert(0, self.github_config.redirect_uri)
+        redirect_entry.config(state='readonly')
+        
+        # Buttons
+        button_frame = ttk.Frame(main_frame)
+        button_frame.pack(pady=20)
+        
+        def save_config():
+            self.github_config.client_id = client_id_var.get().strip()
+            self.github_config.client_secret = client_secret_var.get().strip()
+            self.github_config.save_config()
+            self.update_github_status()
+            messagebox.showinfo("Success", "GitHub OAuth configuration saved!")
+            config_window.destroy()
+        
+        def open_github():
+            webbrowser.open("https://github.com/settings/developers")
+        
+        ttk.Button(button_frame, text="Open GitHub Settings", command=open_github).pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="Save Configuration", command=save_config).pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="Cancel", command=config_window.destroy).pack(side=tk.LEFT, padx=5)
+    
+    def github_login(self):
+        """Initiate GitHub OAuth login"""
+        if not self.github_config.client_id or not self.github_config.client_secret:
+            messagebox.showerror("Configuration Error", "Please configure GitHub OAuth first")
+            return
+        
+        try:
+            # Generate state parameter for security
+            self.oauth_state = secrets.token_urlsafe(32)
+            
+            # Start local server to handle callback
+            self.start_oauth_server()
+            
+            # Build GitHub authorization URL
+            auth_params = {
+                'client_id': self.github_config.client_id,
+                'redirect_uri': self.github_config.redirect_uri,
+                'scope': self.github_config.scope,
+                'state': self.oauth_state
+            }
+            
+            auth_url = f"https://github.com/login/oauth/authorize?" + urllib.parse.urlencode(auth_params)
+            
+            # Open browser for authentication
+            self.github_status.config(text="🌐 Opening browser for authentication...", foreground='blue')
+            webbrowser.open(auth_url)
+            
+            # Start monitoring for callback
+            self.monitor_oauth_callback()
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to initiate GitHub login: {str(e)}")
+            self.github_status.config(text="❌ Login failed", foreground='red')
+    
+    def start_oauth_server(self):
+        """Start local HTTP server for OAuth callback"""
+        try:
+            self.oauth_server = HTTPServer(('localhost', 8000), GitHubOAuthHandler)
+            self.oauth_server.timeout = 1
+            self.oauth_server.callback_received = False
+            self.oauth_server.auth_code = None
+            self.oauth_server.auth_state = None
+            self.oauth_server.auth_error = None
+            
+            # Start server in a separate thread
+            def run_server():
+                while not self.oauth_server.callback_received:
+                    self.oauth_server.handle_request()
+            
+            self.server_thread = threading.Thread(target=run_server, daemon=True)
+            self.server_thread.start()
+            
+        except Exception as e:
+            raise Exception(f"Failed to start OAuth callback server: {str(e)}")
+    
+    def monitor_oauth_callback(self):
+        """Monitor for OAuth callback"""
+        if hasattr(self, 'oauth_server') and self.oauth_server:
+            if self.oauth_server.callback_received:
+                self.handle_oauth_callback()
+                return
+        
+        # Continue monitoring
+        self.window.after(1000, self.monitor_oauth_callback)
+    
+    def handle_oauth_callback(self):
+        """Handle OAuth callback and complete authentication"""
+        try:
+            if hasattr(self.oauth_server, 'auth_error') and self.oauth_server.auth_error:
+                raise Exception(f"OAuth error: {self.oauth_server.auth_error}")
+            
+            if not hasattr(self.oauth_server, 'auth_code') or not self.oauth_server.auth_code:
+                raise Exception("No authorization code received")
+            
+            # Verify state parameter
+            if hasattr(self.oauth_server, 'auth_state'):
+                if self.oauth_server.auth_state != self.oauth_state:
+                    raise Exception("Invalid state parameter - possible CSRF attack")
+            
+            # Exchange authorization code for access token
+            self.github_status.config(text="🔄 Exchanging code for access token...", foreground='blue')
+            access_token = self.exchange_code_for_token(self.oauth_server.auth_code)
+            
+            # Get user information from GitHub
+            self.github_status.config(text="👤 Fetching user information...", foreground='blue')
+            github_user = self.get_github_user_info(access_token)
+            
+            # Create or update user account
+            auth_user = self.create_or_update_github_user(github_user)
+            
+            # Complete login
+            self.current_user = auth_user.username
+            self.parent_app.current_user = auth_user.username
+            self.parent_app.setup_user_session()
+            
+            messagebox.showinfo("Success", f"Welcome, {auth_user.full_name or auth_user.username}!\nLogged in via GitHub.")
+            self.window.destroy()
+            
+        except Exception as e:
+            messagebox.showerror("GitHub Login Failed", str(e))
+            self.github_status.config(text="❌ Login failed", foreground='red')
+        finally:
+            # Clean up server
+            if hasattr(self, 'oauth_server') and self.oauth_server:
+                self.oauth_server.server_close()
+    
+    def exchange_code_for_token(self, auth_code):
+        """Exchange authorization code for access token"""
+        token_url = "https://github.com/login/oauth/access_token"
+        
+        data = {
+            'client_id': self.github_config.client_id,
+            'client_secret': self.github_config.client_secret,
+            'code': auth_code,
+            'redirect_uri': self.github_config.redirect_uri
+        }
+        
+        headers = {'Accept': 'application/json'}
+        
+        response = requests.post(token_url, data=data, headers=headers, timeout=30)
+        
+        if response.status_code != 200:
+            raise Exception(f"Token exchange failed: {response.text}")
+        
+        token_data = response.json()
+        
+        if 'error' in token_data:
+            raise Exception(f"Token exchange error: {token_data['error_description']}")
+        
+        return token_data['access_token']
+    
+    def get_github_user_info(self, access_token):
+        """Get user information from GitHub API"""
+        headers = {
+            'Authorization': f'token {access_token}',
+            'Accept': 'application/vnd.github.v3+json'
+        }
+        
+        # Get basic user info
+        user_response = requests.get('https://api.github.com/user', headers=headers, timeout=30)
+        if user_response.status_code != 200:
+            raise Exception(f"Failed to get user info: {user_response.text}")
+        
+        user_data = user_response.json()
+        
+        # Get user emails
+        email_response = requests.get('https://api.github.com/user/emails', headers=headers, timeout=30)
+        emails = []
+        if email_response.status_code == 200:
+            emails = email_response.json()
+        
+        # Find primary email
+        primary_email = ""
+        for email in emails:
+            if email.get('primary'):
+                primary_email = email['email']
+                break
+        
+        if not primary_email and emails:
+            primary_email = emails[0]['email']
+        
+        return {
+            'id': user_data['id'],
+            'login': user_data['login'],
+            'name': user_data.get('name', ''),
+            'email': primary_email or user_data.get('email', ''),
+            'avatar_url': user_data.get('avatar_url', '')
+        }
+    
+    def create_or_update_github_user(self, github_user):
+        """Create or update user account from GitHub data"""
+        # Check if user already exists
+        existing_user = None
+        for user in self.parent_app.auth_users:
+            if user.github_id == github_user['id']:
+                existing_user = user
+                break
+        
+        if existing_user:
+            # Update existing user
+            existing_user.full_name = github_user['name']
+            existing_user.email = github_user['email']
+            existing_user.avatar_url = github_user['avatar_url']
+            auth_user = existing_user
+        else:
+            # Create new user
+            auth_user = AuthUser(
+                username=github_user['login'],
+                github_id=github_user['id'],
+                full_name=github_user['name'],
+                email=github_user['email'],
+                avatar_url=github_user['avatar_url'],
+                auth_type="github"
+            )
+            self.parent_app.auth_users.append(auth_user)
+        
+        self.parent_app.save_auth_data()
+        return auth_user
     
     def hash_password(self, password):
         """Hash password using SHA-256"""
         return hashlib.sha256(password.encode()).hexdigest()
     
-    def login(self):
+    def local_login(self):
+        """Local login with username/password"""
         username = self.login_username.get().strip()
         password = self.login_password.get().strip()
         
@@ -165,7 +602,10 @@ class LoginWindow:
         
         # Check credentials
         for auth_user in self.parent_app.auth_users:
-            if auth_user.username == username and auth_user.password_hash == password_hash:
+            if (auth_user.username == username and 
+                auth_user.auth_type == "local" and 
+                auth_user.password_hash == password_hash):
+                
                 self.current_user = username
                 self.parent_app.current_user = username
                 self.parent_app.setup_user_session()
@@ -175,7 +615,8 @@ class LoginWindow:
         
         messagebox.showerror("Error", "Invalid username or password")
     
-    def register(self):
+    def local_register(self):
+        """Local registration"""
         username = self.reg_username.get().strip()
         password = self.reg_password.get().strip()
         confirm = self.reg_confirm.get().strip()
@@ -197,14 +638,20 @@ class LoginWindow:
         
         # Create new user
         password_hash = self.hash_password(password)
-        new_auth_user = AuthUser(username, password_hash, fullname, email)
+        new_auth_user = AuthUser(username, full_name=fullname, email=email, auth_type="local")
+        new_auth_user.password_hash = password_hash
+        
         self.parent_app.auth_users.append(new_auth_user)
         self.parent_app.save_auth_data()
         
         messagebox.showinfo("Success", "Account created successfully! You can now login.")
         
-        # Switch to login tab
+        # Switch to login tab and pre-fill username
         self.login_username.set(username)
+        self.clear_register_form()
+    
+    def clear_register_form(self):
+        """Clear registration form"""
         self.reg_username.set("")
         self.reg_password.set("")
         self.reg_confirm.set("")
@@ -213,6 +660,13 @@ class LoginWindow:
     
     def on_close(self):
         """Handle window close"""
+        # Clean up OAuth server if running
+        if hasattr(self, 'oauth_server') and self.oauth_server:
+            try:
+                self.oauth_server.server_close()
+            except:
+                pass
+        
         self.window.destroy()
         if not self.parent_app.current_user:
             self.parent_app.root.quit()
@@ -263,7 +717,8 @@ class UserInfoGUI:
         # Update title with current user
         auth_user = next((u for u in self.auth_users if u.username == self.current_user), None)
         user_display = auth_user.full_name if auth_user and auth_user.full_name else self.current_user
-        self.root.title(f"Team Collaboration Platform - {user_display}")
+        auth_type = "GitHub" if auth_user and auth_user.auth_type == "github" else "Local"
+        self.root.title(f"Team Collaboration Platform - {user_display} ({auth_type})")
     
     def setup_ui(self):
         # Create menu bar
@@ -310,10 +765,110 @@ class UserInfoGUI:
         file_menu.add_command(label="Logout", command=self.logout)
         file_menu.add_command(label="Exit", command=self.root.quit)
         
+        # Account menu
+        account_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Account", menu=account_menu)
+        account_menu.add_command(label="Profile", command=self.show_profile)
+        
         # Help menu
         help_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Help", menu=help_menu)
+        help_menu.add_command(label="GitHub OAuth Setup", command=self.show_github_setup_help)
         help_menu.add_command(label="About", command=self.show_about)
+    
+    def show_profile(self):
+        """Show user profile"""
+        auth_user = next((u for u in self.auth_users if u.username == self.current_user), None)
+        if not auth_user:
+            messagebox.showerror("Error", "User profile not found")
+            return
+        
+        profile_window = tk.Toplevel(self.root)
+        profile_window.title("User Profile")
+        profile_window.geometry("400x350")
+        profile_window.grab_set()
+        
+        main_frame = ttk.Frame(profile_window, padding="20")
+        main_frame.pack(expand=True, fill='both')
+        
+        ttk.Label(main_frame, text="User Profile", font=('Arial', 16, 'bold')).pack(pady=(0, 20))
+        
+        # Profile info
+        info_text = f"""Username: {auth_user.username}
+Authentication: {auth_user.auth_type.title()}
+Full Name: {auth_user.full_name or 'Not provided'}
+Email: {auth_user.email or 'Not provided'}
+Account Created: {auth_user.created_date}"""
+
+        if auth_user.auth_type == "github":
+            info_text += f"\nGitHub ID: {auth_user.github_id}"
+        
+        ttk.Label(main_frame, text=info_text, font=('Arial', 10)).pack(anchor='w')
+        
+        # Show avatar if available
+        if auth_user.auth_type == "github" and auth_user.avatar_url:
+            ttk.Label(main_frame, text=f"Avatar URL: {auth_user.avatar_url}", font=('Arial', 9)).pack(anchor='w', pady=(10, 0))
+        
+        ttk.Button(main_frame, text="Close", command=profile_window.destroy).pack(pady=20)
+    
+    def show_github_setup_help(self):
+        """Show GitHub OAuth setup help"""
+        help_window = tk.Toplevel(self.root)
+        help_window.title("GitHub OAuth Setup Help")
+        help_window.geometry("600x500")
+        
+        text_area = scrolledtext.ScrolledText(help_window, wrap=tk.WORD, padx=10, pady=10)
+        text_area.pack(expand=True, fill='both')
+        
+        help_text = """GitHub OAuth Setup Guide
+
+To enable GitHub authentication for your Team Collaboration Platform:
+
+1. CREATE GITHUB OAUTH APP:
+   • Go to https://github.com/settings/developers
+   • Click "OAuth Apps" → "New OAuth App"
+   • Fill in the application details:
+     - Application name: Team Collaboration Platform
+     - Homepage URL: http://localhost:8000
+     - Application description: (optional)
+     - Authorization callback URL: http://localhost:8000/callback
+
+2. REGISTER THE APP:
+   • Click "Register application"
+   • GitHub will generate a Client ID and Client Secret
+
+3. CONFIGURE IN APPLICATION:
+   • In the login screen, click "⚙️ Configure GitHub OAuth"
+   • Enter your Client ID and Client Secret
+   • Save the configuration
+
+4. TEST THE INTEGRATION:
+   • Click "🐙 Sign in with GitHub" to test
+   • It will open your browser for GitHub authentication
+   • Authorize the application
+   • You'll be redirected back and automatically logged in
+
+SECURITY NOTES:
+• Keep your Client Secret confidential
+• The callback server runs locally on port 8000
+• OAuth state parameter prevents CSRF attacks
+• Access tokens are used only for authentication, not stored
+
+TROUBLESHOOTING:
+• Ensure port 8000 is not blocked by firewall
+• Check that callback URL matches exactly
+• Verify Client ID and Secret are correct
+• Make sure you're using the correct GitHub account
+
+Benefits of GitHub Authentication:
+• No need to remember additional passwords
+• Profile information automatically synced
+• More secure than local passwords
+• Professional development workflow integration
+"""
+        
+        text_area.insert("1.0", help_text)
+        text_area.config(state=tk.DISABLED)
     
     def setup_my_projects_tab(self):
         """Setup tab showing user's projects"""
@@ -323,8 +878,11 @@ class UserInfoGUI:
         ttk.Label(main_frame, text="My Projects", font=('Arial', 14, 'bold')).pack(pady=(0, 10))
         
         # Projects listbox
-        self.my_projects_listbox = tk.Listbox(main_frame, height=10)
-        scrollbar = ttk.Scrollbar(main_frame, orient="vertical", command=self.my_projects_listbox.yview)
+        listbox_frame = ttk.Frame(main_frame)
+        listbox_frame.pack(expand=True, fill='both')
+        
+        self.my_projects_listbox = tk.Listbox(listbox_frame, height=10)
+        scrollbar = ttk.Scrollbar(listbox_frame, orient="vertical", command=self.my_projects_listbox.yview)
         self.my_projects_listbox.configure(yscrollcommand=scrollbar.set)
         
         self.my_projects_listbox.pack(side=tk.LEFT, expand=True, fill='both')
@@ -373,6 +931,9 @@ class UserInfoGUI:
         self.chat_input.bind('<Control-Return>', lambda e: self.send_message())
         
         self.refresh_chatbot_projects()
+        
+        # Welcome message
+        self.add_to_chat("System", "Welcome to your AI Assistant! Select a project and click 'Get My Tasks' for personalized assignments.")
     
     def setup_users_tab(self):
         """Admin-only users management tab"""
@@ -382,7 +943,7 @@ class UserInfoGUI:
         ttk.Label(main_frame, text="User Management (Admin)", font=('Arial', 14, 'bold')).pack(pady=(0, 10))
         
         # User form
-        form_frame = ttk.Frame(main_frame)
+        form_frame = ttk.LabelFrame(main_frame, text="Create User Profile", padding="10")
         form_frame.pack(fill='x', pady=(0, 20))
         
         # Link to existing auth user
@@ -406,6 +967,8 @@ class UserInfoGUI:
         self.willing_text = scrolledtext.ScrolledText(form_frame, width=50, height=4)
         self.willing_text.grid(row=4, column=1, sticky=(tk.W, tk.E), pady=5)
         
+        form_frame.columnconfigure(1, weight=1)
+        
         # Buttons
         button_frame = ttk.Frame(main_frame)
         button_frame.pack(pady=10)
@@ -419,7 +982,6 @@ class UserInfoGUI:
         self.user_status_var.set("Ready to add user profiles")
         ttk.Label(main_frame, textvariable=self.user_status_var).pack(pady=5)
         
-        form_frame.columnconfigure(1, weight=1)
         self.refresh_account_combo()
     
     def setup_projects_tab(self):
@@ -430,7 +992,7 @@ class UserInfoGUI:
         ttk.Label(main_frame, text="Project Management (Admin)", font=('Arial', 14, 'bold')).pack(pady=(0, 10))
         
         # Project form
-        form_frame = ttk.Frame(main_frame)
+        form_frame = ttk.LabelFrame(main_frame, text="Create New Project", padding="10")
         form_frame.pack(fill='x', pady=(0, 20))
         
         ttk.Label(form_frame, text="Project Name:").grid(row=0, column=0, sticky=tk.W, pady=5)
@@ -456,11 +1018,13 @@ class UserInfoGUI:
         user_select_frame.grid(row=4, column=1, sticky=(tk.W, tk.E), pady=5)
         
         self.users_listbox = tk.Listbox(user_select_frame, selectmode=tk.MULTIPLE, height=6)
-        scrollbar = ttk.Scrollbar(user_select_frame, orient="vertical", command=self.users_listbox.yview)
-        self.users_listbox.configure(yscrollcommand=scrollbar.set)
+        scrollbar2 = ttk.Scrollbar(user_select_frame, orient="vertical", command=self.users_listbox.yview)
+        self.users_listbox.configure(yscrollcommand=scrollbar2.set)
         
         self.users_listbox.pack(side=tk.LEFT, fill='both', expand=True)
-        scrollbar.pack(side=tk.RIGHT, fill='y')
+        scrollbar2.pack(side=tk.RIGHT, fill='y')
+        
+        form_frame.columnconfigure(1, weight=1)
         
         # Buttons
         button_frame = ttk.Frame(main_frame)
@@ -475,7 +1039,6 @@ class UserInfoGUI:
         self.project_status_var.set("Ready to create projects")
         ttk.Label(main_frame, textvariable=self.project_status_var).pack(pady=5)
         
-        form_frame.columnconfigure(1, weight=1)
         self.refresh_users_list()
     
     def setup_prompt_tab(self):
@@ -508,6 +1071,9 @@ class UserInfoGUI:
         ttk.Button(button_frame, text="Save to File", command=self.save_prompt).pack(side=tk.LEFT, padx=5)
         
         self.refresh_projects_combo()
+    
+    # [Rest of the methods remain the same as in the previous version]
+    # I'll continue with the key methods for the GitHub integration to work
     
     def show_api_settings(self):
         """Show API configuration window"""
@@ -550,7 +1116,16 @@ class UserInfoGUI:
     
     def show_about(self):
         """Show about dialog"""
-        messagebox.showinfo("About", "Team Collaboration Platform v2.0\nWith AI-powered task management\n\nFeatures:\n• User authentication\n• Project management\n• Personal AI assistant\n• Task assignment")
+        messagebox.showinfo("About", 
+            "Team Collaboration Platform v3.0\n"
+            "With GitHub OAuth & AI-powered task management\n\n"
+            "Features:\n"
+            "• GitHub OAuth authentication\n"
+            "• Local account fallback\n"
+            "• Project management\n"
+            "• Personal AI assistant\n"
+            "• Personalized task assignment"
+        )
     
     def logout(self):
         """Logout current user"""
@@ -560,10 +1135,13 @@ class UserInfoGUI:
             widget.destroy()
         self.show_login()
     
+    # Add all the remaining methods from the previous version
+    # (refresh methods, CRUD operations, AI integration, etc.)
+    
     def refresh_account_combo(self):
         """Refresh the account combo box for user linking"""
         if hasattr(self, 'user_account_combo'):
-            usernames = [user.username for user in self.auth_users]
+            usernames = [f"{user.username} ({user.auth_type})" for user in self.auth_users]
             self.user_account_combo['values'] = usernames
     
     def refresh_my_projects(self):
@@ -577,6 +1155,9 @@ class UserInfoGUI:
         
         for project in user_projects:
             self.my_projects_listbox.insert(tk.END, f"{project.name} - {project.description[:50]}...")
+        
+        if not user_projects:
+            self.my_projects_listbox.insert(tk.END, "No projects assigned to you yet.")
     
     def refresh_chatbot_projects(self):
         """Refresh chatbot project selection"""
@@ -604,6 +1185,10 @@ class UserInfoGUI:
         user_projects = [project for project in self.projects 
                         if any(user.username == self.current_user for user in project.selected_users)]
         
+        if not user_projects:
+            messagebox.showinfo("No Projects", "No projects assigned to you.")
+            return
+        
         if selection[0] < len(user_projects):
             project = user_projects[selection[0]]
             
@@ -630,7 +1215,9 @@ REQUIREMENTS:
 TEAM MEMBERS:
 """
             for user in project.selected_users:
-                details += f"• {user.name} ({user.username})\n"
+                auth_user = next((au for au in self.auth_users if au.username == user.username), None)
+                auth_type = f" ({auth_user.auth_type})" if auth_user else ""
+                details += f"• {user.name} ({user.username}){auth_type}\n"
             
             text_area.insert("1.0", details)
             text_area.config(state=tk.DISABLED)
@@ -734,7 +1321,7 @@ Please analyze this project and provide a detailed response SPECIFICALLY for {us
    - Resources or training they should pursue
    - How to bridge any skill gaps
 
-Give me a specific message for THIS team member ({user.name}), detailing them what they need to do RIGHT NOW and in the FUTURE. Give this user the exact things they need to work on according also to their skills.
+Give me a specific message for THIS team member ({user.name}), detailing them what they need to do RIGHT NOW and in the FUTURE. Give each user the exact things they need to work on according also to their skills.
 
 Format the response as a direct message to {user.name}, using "you" and "your" to address them personally."""
 
@@ -756,7 +1343,22 @@ Format the response as a direct message to {user.name}, using "you" and "your" t
         """Add message to chat display"""
         self.chat_display.config(state=tk.NORMAL)
         timestamp = datetime.now().strftime("%H:%M:%S")
-        self.chat_display.insert(tk.END, f"[{timestamp}] {sender}: {message}\n\n")
+        
+        # Color coding for different senders
+        if sender == "System":
+            self.chat_display.insert(tk.END, f"[{timestamp}] {sender}: ", "system")
+        elif sender == "AI Assistant":
+            self.chat_display.insert(tk.END, f"[{timestamp}] {sender}: ", "ai")
+        else:
+            self.chat_display.insert(tk.END, f"[{timestamp}] {sender}: ", "user")
+        
+        self.chat_display.insert(tk.END, f"{message}\n\n")
+        
+        # Configure text tags for colors
+        self.chat_display.tag_config("system", foreground="blue")
+        self.chat_display.tag_config("ai", foreground="green")
+        self.chat_display.tag_config("user", foreground="black")
+        
         self.chat_display.config(state=tk.DISABLED)
         self.chat_display.see(tk.END)
     
@@ -777,28 +1379,38 @@ Format the response as a direct message to {user.name}, using "you" and "your" t
                 "messages": [
                     {"role": "user", "content": message}
                 ],
-                "max_tokens": 1000,
+                "max_tokens": 1500,
                 "temperature": 0.7
             }
             
             self.add_to_chat("System", "Sending request to AI...")
             
-            response = requests.post(self.api_url, headers=headers, json=data, timeout=30)
+            # Use threading to prevent UI blocking
+            def api_call():
+                try:
+                    response = requests.post(self.api_url, headers=headers, json=data, timeout=30)
+                    
+                    if response.status_code == 200:
+                        result = response.json()
+                        ai_response = result['choices'][0]['message']['content']
+                        # Update UI in main thread
+                        self.root.after(0, lambda: self.add_to_chat("AI Assistant", ai_response))
+                    else:
+                        error_msg = f"API Error {response.status_code}: {response.text}"
+                        self.root.after(0, lambda: self.add_to_chat("System", error_msg))
+                        
+                except requests.exceptions.RequestException as e:
+                    error_msg = f"Network Error: {str(e)}"
+                    self.root.after(0, lambda: self.add_to_chat("System", error_msg))
+                except Exception as e:
+                    error_msg = f"Error: {str(e)}"
+                    self.root.after(0, lambda: self.add_to_chat("System", error_msg))
             
-            if response.status_code == 200:
-                result = response.json()
-                ai_response = result['choices'][0]['message']['content']
-                self.add_to_chat("AI Assistant", ai_response)
-            else:
-                error_msg = f"API Error {response.status_code}: {response.text}"
-                self.add_to_chat("System", error_msg)
-                
-        except requests.exceptions.RequestException as e:
-            error_msg = f"Network Error: {str(e)}"
-            self.add_to_chat("System", error_msg)
+            # Start API call in separate thread
+            threading.Thread(target=api_call, daemon=True).start()
+            
         except Exception as e:
-            error_msg = f"Error: {str(e)}"
-            self.add_to_chat("System", error_msg)
+            self.add_to_chat("System", f"Error setting up API call: {str(e)}")
     
     def add_user(self):
         """Add a new user profile (admin only)"""
@@ -806,14 +1418,21 @@ Format the response as a direct message to {user.name}, using "you" and "your" t
             messagebox.showerror("Access Denied", "Only admins can add user profiles")
             return
         
-        username = self.user_account_combo.get()
+        account_selection = self.user_account_combo.get()
+        if not account_selection:
+            messagebox.showerror("Error", "Please select an account to link")
+            return
+        
+        # Extract username from selection (format: "username (auth_type)")
+        username = account_selection.split(" (")[0]
+        
         name = self.name_var.get().strip()
         skills = self.skills_var.get().strip()
         programming_languages = self.prog_lang_var.get().strip()
         willing_to_work_on = self.willing_text.get("1.0", tk.END).strip()
         
-        if not username or not name or not skills or not programming_languages:
-            messagebox.showerror("Error", "Please fill in all required fields and select an account")
+        if not name or not skills or not programming_languages:
+            messagebox.showerror("Error", "Please fill in all required fields")
             return
         
         # Check if user profile already exists for this username
@@ -846,13 +1465,16 @@ Format the response as a direct message to {user.name}, using "you" and "your" t
         
         users_window = tk.Toplevel(self.root)
         users_window.title("All User Profiles")
-        users_window.geometry("600x500")
+        users_window.geometry("700x600")
         
         text_area = scrolledtext.ScrolledText(users_window, wrap=tk.WORD)
         text_area.pack(expand=True, fill='both', padx=10, pady=10)
         
         for i, user in enumerate(self.users, 1):
-            text_area.insert(tk.END, f"=== User Profile {i} ===\n{user}\nAccount: {user.username}\n\n")
+            auth_user = next((au for au in self.auth_users if au.username == user.username), None)
+            auth_info = f" ({auth_user.auth_type}, {auth_user.full_name})" if auth_user else " (No auth info)"
+            
+            text_area.insert(tk.END, f"=== User Profile {i} ===\n{user}\nAccount: {user.username}{auth_info}\n\n")
         
         text_area.config(state=tk.DISABLED)
     
@@ -907,7 +1529,7 @@ Format the response as a direct message to {user.name}, using "you" and "your" t
         
         projects_window = tk.Toplevel(self.root)
         projects_window.title("All Projects")
-        projects_window.geometry("700x600")
+        projects_window.geometry("800x700")
         
         text_area = scrolledtext.ScrolledText(projects_window, wrap=tk.WORD)
         text_area.pack(expand=True, fill='both', padx=10, pady=10)
@@ -922,7 +1544,9 @@ Format the response as a direct message to {user.name}, using "you" and "your" t
         if hasattr(self, 'users_listbox'):
             self.users_listbox.delete(0, tk.END)
             for user in self.users:
-                self.users_listbox.insert(tk.END, f"{user.name} ({user.username}) - {user.skills}")
+                auth_user = next((au for au in self.auth_users if au.username == user.username), None)
+                auth_type = f" ({auth_user.auth_type})" if auth_user else ""
+                self.users_listbox.insert(tk.END, f"{user.name} ({user.username}){auth_type} - {user.skills}")
     
     def refresh_projects_combo(self):
         """Refresh the projects combobox"""
@@ -982,6 +1606,7 @@ Team Size: {len(project.selected_users)} members
         for i, user in enumerate(project.selected_users, 1):
             prompt += f"""Team Member {i}:
 Name: {user.name}
+Username: {user.username}
 Skills: {user.skills}
 Programming Languages: {user.programming_languages}
 Willing to work on: {user.willing_to_work_on}
@@ -1113,6 +1738,14 @@ Give me a specific message for EACH team member, detailing them what they need t
             print(f"Error loading data: {e}")
 
 def main():
+    # Check if required packages are installed
+    try:
+        import requests
+    except ImportError:
+        print("Error: 'requests' package is required for GitHub OAuth and API integration.")
+        print("Please install it using: pip install requests")
+        return
+    
     root = tk.Tk()
     app = UserInfoGUI(root)
     root.mainloop()
