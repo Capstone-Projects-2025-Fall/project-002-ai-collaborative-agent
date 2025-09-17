@@ -1,0 +1,23 @@
+{
+  "name": "project-002-ai-collaborative-agent",
+  "version": "1.0.0",
+  "description": "<div align=\"center\">",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Capstone-Projects-2025-Fall/project-002-ai-collaborative-agent.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Capstone-Projects-2025-Fall/project-002-ai-collaborative-agent/issues"
+  },
+  "homepage": "https://github.com/Capstone-Projects-2025-Fall/project-002-ai-collaborative-agent#readme",
+  "devDependencies": {
+    "supabase": "^2.40.7"
+  }
+}

@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox, scrolledtext, filedialog
 import json
 import os
+import requests
 from datetime import datetime
 
 class User:
@@ -404,7 +405,7 @@ class UserInfoGUI:
             self.project_combo.current(0)
     
     def generate_ai_prompt(self):
-        """Generate comprehensive AI prompt for selected project"""
+        """Generate AI-powered task delegation for selected project"""
         if not self.projects:
             messagebox.showwarning("No Projects", "No projects available. Create a project first.")
             return
@@ -420,12 +421,58 @@ class UserInfoGUI:
             messagebox.showerror("Error", "Selected project not found.")
             return
         
-        # Generate comprehensive prompt
-        prompt = self.create_comprehensive_prompt(selected_project)
-        
-        # Display in text area
+        # Show loading message
         self.prompt_text.delete("1.0", tk.END)
-        self.prompt_text.insert("1.0", prompt)
+        self.prompt_text.insert("1.0", "Generating AI response... Please wait.")
+        self.root.update()
+        
+        try:
+            # Call Supabase edge function
+            response = self.call_supabase_function(selected_project)
+            
+            # Display AI response
+            self.prompt_text.delete("1.0", tk.END)
+            self.prompt_text.insert("1.0", response)
+            
+        except Exception as e:
+            self.prompt_text.delete("1.0", tk.END)
+            error_msg = f"Error generating AI response: {str(e)}\n\nFalling back to local prompt generation..."
+            self.prompt_text.insert("1.0", error_msg)
+            
+            # Fallback to original prompt generation
+            prompt = self.create_comprehensive_prompt(selected_project)
+            self.prompt_text.insert(tk.END, f"\n\n{prompt}")
+    
+    def call_supabase_function(self, project):
+        """Call the Supabase edge function for AI task delegation"""
+        # Replace with your actual Supabase project URL and anon key
+        SUPABASE_URL = "https://ptthofpfrmhhmvmbzgxx.supabase.co"
+        SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB0dGhvZnBmcm1oaG12bWJ6Z3h4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxMjIzMTUsImV4cCI6MjA3MzY5ODMxNX0.vmIQd2JlfigERJTG5tkFGpoRgqBOj0FudEvGDzNd5Ko"
+        
+        url = f"{SUPABASE_URL}/functions/v1/super-function"
+        headers = {
+            "Authorization": f"Bearer {SUPABASE_ANON_KEY}",
+            "Content-Type": "application/json"
+        }
+        
+        # Prepare data to send
+        data = {
+            "project": {
+                "name": project.name,
+                "description": project.description,
+                "goals": project.goals,
+                "requirements": project.requirements,
+                "created_date": project.created_date
+            },
+            "users": [user.to_dict() for user in project.selected_users]
+        }
+        
+        # Make the request
+        response = requests.post(url, json=data, headers=headers, timeout=30)
+        response.raise_for_status()
+        
+        result = response.json()
+        return result.get("message", "No response received from AI")
     
     def create_comprehensive_prompt(self, project):
         """Create a comprehensive AI prompt for the project"""
