@@ -7,3 +7,17 @@
 .env.development.local
 .env.test.local
 .env.production.local
+
+# Supabase keys
+.env
+.env.local
+.env.*.local
+
+# Node dependencies
+node_modules/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
