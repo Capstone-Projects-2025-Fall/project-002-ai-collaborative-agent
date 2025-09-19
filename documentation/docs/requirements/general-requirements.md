@@ -9,6 +9,7 @@ sidebar_position: 3
 * Visual Studio IDE
 * OpenAI API
 * Supabase
+* Live Server Extension
 # Code Maintenance and Documentation:
 
 * Git and Github for version control
