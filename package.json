@@ -1,4 +1,10 @@
 {
+  "name": "project-002-ai-collaborative-agent",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node src/features/supabasetest.js"
+  },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",
     "dotenv": "^17.2.2"
