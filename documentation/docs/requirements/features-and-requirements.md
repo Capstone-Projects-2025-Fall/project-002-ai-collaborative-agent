@@ -29,6 +29,9 @@ User can write/upload the project’s specifications and due date
 
 # Nonfunctional Requirements 
 
+### History of chats
+- Even if the user logs out, their chatbot history is saved
+
 ### Number of Members
 
 - Number of project members that can be delegated tasks
