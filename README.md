@@ -10,35 +10,38 @@
 
 ## Keywords
 
-AI, Agent, Project Organization, Collaborative Coding
+AI, Agent, Project Organization, Collaborative Coding, VSCode Extention
 
 ## Project Abstract
 
-This document proposes a Collaborative AI Agent that is able to organize and delegate teams that are working on a coding project. According to the team member's skills.
+This project proposes the development of a Visual Studio Code extension designed to streamline collaborative software development through AI-powered project management. The extension enables users to create and describe new projects, allowing an intelligent agent to analyze team member profiles, including their skill sets and preferred programming languages, and automatically assign tasks accordingly. By delegating responsibilities based on individual expertise, the system ensures that all team members contribute effectively toward a common objective, each focusing on distinct, specialized components. Acting as a virtual project lead, the AI agent coordinates efforts to prevent overlap, reduce development time, and minimize miscommunication. Additionally, the agent provides real-time coding suggestions and post-completion feedback, enhancing code quality and team productivity throughout the development lifecycle.
 
 ## High Level Requirement
 
--Create Teams for problems
-
--Agent Allocate work to team member
-
--Students can write code simultaneously
-
--Agent provide real tiem feedback based on teammates code
-
--Agent will provice a solution to programmers based on the teammate's feedback
+The proposed VS Code extension enables students to create teams for specific programming problems, where an AI agent automatically allocates tasks based on each member’s skills. Team members can code simultaneously, with the agent providing real-time feedback informed by their teammates' work. Additionally, the agent synthesizes team feedback to generate high-level guidance, helping align the group on overall project goals and structure.
 
 ## Conceptual Design
 
-Web page that accepts login system and team delegation
+The VS Code extension will be built using TypeScript, HTML, and CSS, with a user-friendly interface for creating projects, describing goals, and viewing assigned tasks. Users will log in via GitHub, submitting their skills and learning goals, which the AI agent, powered by OpenAI, uses to allocate work intelligently.
+
+Live Share integration will enable real-time collaborative coding, while the agent analyzes commit messages and comment threads to provide context-aware feedback and high-level project guidance. A built-in dashboard, implemented as a popup within VS Code, will display project steps, task assignments, and include a chatbot interface. All project data and user interactions will be stored securely using Supabase.
 
 ## Background
 
-The background will contain a more detailed description of the product and a comparison to existing similar projects/products. A literature search should be conducted and the results listed. Proper citation of sources is required. If there are similar open-source products, you should state whether existing source will be used and to what extent. If there are similar closed-source/proprietary products, you should state how the proposed product will be similar and different.
+As software development becomes increasingly collaborative, the ability to effectively coordinate tasks and share responsibilities among team members is critical, especially for students and early-career programmers learning to work in teams. Traditional project management tools often operate outside the development environment, causing context switching and reducing workflow efficiency. Meanwhile, students frequently face challenges in dividing responsibilities, understanding project scope, and aligning on high-level goals, especially when working remotely.
+
+With the rise of intelligent coding assistants and collaborative tools like GitHub and Live Share, there is a growing opportunity to integrate AI-driven project guidance directly into the development environment. Leveraging these technologies can bridge the gap between learning and doing, helping teams not only write code together but also collaborate strategically, receive real-time feedback, and stay aligned on project objectives.
+
+This project addresses these needs by introducing an AI-enhanced VS Code extension that helps teams create projects, distribute tasks based on skill sets, collaborate in real time, and receive feedback and high-level guidance, all within a single, familiar workspace. By embedding intelligent coordination directly into the development workflow, this tool aims to improve both the learning experience and productivity of collaborative coding teams.
 
 ## Required Resources
 
-Discuss what you need to develop this project. This includes background information you will need to acquire, hardware resources, and software resources. If these are not part of the standard Computer Science Department lab resources, these must be identified early and discussed with the instructor.
+- Visual Studio Code with extension development tools
+- TypeScript, HTML, and CSS for extension UI and logic
+- GitHub OAuth for user authentication and profile data
+- Visual Studio Live Share for real-time collaborative coding
+- OpenAI API for AI-powered task allocation and feedback
+- Supabase for backend data storage and management
 
 ## Collaborators
 
