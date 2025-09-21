@@ -52,17 +52,3 @@ This feature provides the security and user identity management for the entire p
 * (Availability): The login system must be available 99.9% of the time.
 * (Usability): The account creation and login process must be simple and straightforward for all users.
 
-# General Nonfunctional Requirements 
-
-### Number of Members
-
-- Number of project members that can be delegated tasks
-- Max Number of members
-
-### Speed
-
-- How fast the AI responds to users collaborating and alerts the other members
-
-### Accuracy
-
-- The correctness of the AI when summarizing code 
