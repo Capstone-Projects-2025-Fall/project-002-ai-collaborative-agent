@@ -6,6 +6,24 @@ const vscode = require("vscode");
 function activate(context) {
     // show a toast so we know the extension actually activated
     vscode.window.showInformationMessage('AI Collab Agent activated');
+
+    // ---- Live Share integration (host side)
+
+    const vsls = await import('vsls');
+  const liveShare = await vsls.getApi();
+
+if (liveShare && liveShare.session.role === vsls.Role.Host) {
+  const teamService = liveShare.shareService('aiCollab-team-service');
+  if (teamService) {
+      teamService.onRequest('updateTeam', async (payload) => {
+          await context.workspaceState.update('aiCollab.team', payload);
+          return true;
+      });
+      teamService.onRequest('allocateTasks', async (payload) => {
+          return mockAllocate(payload);
+      });
+  }
+}
     // ---- Debug/health command: appears as “AI Collab Agent: Hello (debug)”
     const hello = vscode.commands.registerCommand('aiCollab.debugHello', () => {
         vscode.window.showInformationMessage('Hello from AI Collab Agent!');
@@ -24,18 +42,29 @@ function activate(context) {
         // receive messages from the webview
         panel.webview.onDidReceiveMessage(async (msg) => {
             switch (msg.type) {
-                case 'createTeam': {
-                    // persist team payload in workspace storage (simple local state)
+              case 'createTeam': {
+                if (liveShare && liveShare.session.role === vsls.Role.Host) {
+                    const teamService = liveShare.shareService('aiCollab-team-service');
+                    await teamService.request('updateTeam', msg.payload);
+                    vscode.window.showInformationMessage(`Team "${msg.payload.teamName}" saved (via Live Share).`);
+                } else {
                     await context.workspaceState.update('aiCollab.team', msg.payload);
-                    vscode.window.showInformationMessage(`Team "${msg.payload.teamName}" saved.`);
-                    panel.webview.postMessage({ type: 'teamSaved' });
-                    break;
+                    vscode.window.showInformationMessage(`Team "${msg.payload.teamName}" saved (locally).`);
                 }
-                case 'allocateTasks': {
-                    const allocation = mockAllocate(msg.payload);
-                    panel.webview.postMessage({ type: 'allocation', payload: allocation });
-                    break;
+                panel.webview.postMessage({ type: 'teamSaved' });
+                break;
+            }
+            case 'allocateTasks': {
+                let allocation;
+                if (liveShare && liveShare.session.role === vsls.Role.Guest) {
+                    const teamService = await liveShare.getSharedService('aiCollab-team-service');
+                    allocation = await teamService.request('allocateTasks', msg.payload);
+                } else {
+                    allocation = mockAllocate(msg.payload);
                 }
+                panel.webview.postMessage({ type: 'allocation', payload: allocation });
+                break;
+            }
                 default:
                     // no-op
                     break;
