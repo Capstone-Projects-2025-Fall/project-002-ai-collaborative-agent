@@ -1,13 +1,40 @@
-
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "CommonJS",        // change from ES2022
-    "moduleResolution": "node",  // change from Bundler
+    "module": "CommonJS",
+    "moduleResolution": "node", // change from Bundler
     "strict": true,
     "outDir": "out",
-    "lib": ["ES2022", "DOM"],
+    "lib": ["ES2022"],
     "types": ["vscode"]
   },
   "include": ["src"]
 }
+
+// In your tsconfig.json file
+
+// {
+//   "compilerOptions": {
+//     "module": "commonjs",
+//     "target": "es2020", // <-- CHANGE THIS LINE
+//     "outDir": "out",
+//     "lib": ["es2020"],
+//     "sourceMap": true,
+//     "strict": true,
+//     "rootDir": "src"
+//   }
+// }
+
+// {
+//   "compilerOptions": {
+//     "module": "commonjs",
+//     "target": "es2020",
+//     "outDir": "out",
+//     "lib": ["es2020"],
+//     "sourceMap": true,
+//     "strict": true,
+//     "rootDir": "src"
+//     // Other options might be here
+//   }
+//   // "include" or "exclude" might be here
+// }
