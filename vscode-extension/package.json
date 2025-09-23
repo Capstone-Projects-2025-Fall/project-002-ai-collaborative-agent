@@ -13,6 +13,9 @@
     "activationEvents": [
         "onCommand:aiCollab.openPanel"        
     ],
+    "extensionDependencies": [
+        "MS-vsliveshare.vsliveshare"
+    ],
     "main": "./out/extension.js",
     "contributes": {
         "commands": [

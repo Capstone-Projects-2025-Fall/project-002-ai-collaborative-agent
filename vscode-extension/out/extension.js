@@ -3,27 +3,40 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.activate = activate;
 exports.deactivate = deactivate;
 const vscode = require("vscode");
-function activate(context) {
+async function activate(context) {
     // show a toast so we know the extension actually activated
     vscode.window.showInformationMessage('AI Collab Agent activated');
 
-    // ---- Live Share integration (host side)
-
     const vsls = await import('vsls');
-  const liveShare = await vsls.getApi();
+    const liveShare = await vsls.getApi();
 
-if (liveShare && liveShare.session.role === vsls.Role.Host) {
-  const teamService = liveShare.shareService('aiCollab-team-service');
-  if (teamService) {
-      teamService.onRequest('updateTeam', async (payload) => {
-          await context.workspaceState.update('aiCollab.team', payload);
-          return true;
-      });
-      teamService.onRequest('allocateTasks', async (payload) => {
-          return mockAllocate(payload);
-      });
+    // ---- Live Share integration (host side)
+    if (liveShare && liveShare.session.role === vsls.Role.Host) {
+      const teamService = liveShare.shareService('aiCollab-team-service');
+      if (teamService) {
+          teamService.onRequest('updateTeam', async (payload) => {
+              await context.workspaceState.update('aiCollab.team', payload);
+              return true;
+          });
+          teamService.onRequest('allocateTasks', async (payload) => {
+              return mockAllocate(payload);
+          });
+      }
+    } 
+
+    // ---- Live Share integration (guest side)
+    if (liveShare && liveShare.session.role === vsls.Role.Host) {
+      const teamService = liveShare.shareService('aiCollab-team-service');
+      if (teamService) {
+          teamService.onRequest('updateTeam', async (payload) => {
+              await context.workspaceState.update('aiCollab.team', payload);
+              return true;
+          });
+          teamService.onRequest('allocateTasks', async (payload) => {
+              return mockAllocate(payload);
+          });
+      }
   }
-}
     // ---- Debug/health command: appears as “AI Collab Agent: Hello (debug)”
     const hello = vscode.commands.registerCommand('aiCollab.debugHello', () => {
         vscode.window.showInformationMessage('Hello from AI Collab Agent!');
