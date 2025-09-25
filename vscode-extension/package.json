@@ -11,9 +11,12 @@
         "Other"
     ],
     "activationEvents": [
-        "onCommand:aiCollab.openPanel"        
+        "onCommand:aiCollab.openPanel",
+        "onCommand:aiCollab.debugHello",
+        "onStartupFinished"        
     ],
     "main": "./out/extension.js",
+    "extensionDependencies": ["MS-vsliveshare.vsliveshare"],
     "contributes": {
         "commands": [
             { "command": "aiCollab.openPanel", "title": "AI Collab Agent: Open" },

@@ -3,67 +3,113 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.activate = activate;
 exports.deactivate = deactivate;
 const vscode = require("vscode");
-function activate(context) {
-    // show a toast so we know the extension actually activated
+const vsls = require("vsls/vscode");
+async function activate(context) {
     vscode.window.showInformationMessage('AI Collab Agent activated');
-    // ---- Debug/health command: appears as “AI Collab Agent: Hello (debug)”
-    const hello = vscode.commands.registerCommand('aiCollab.debugHello', () => {
+    context.subscriptions.push(vscode.commands.registerCommand('aiCollab.debugHello', () => {
         vscode.window.showInformationMessage('Hello from AI Collab Agent!');
-    });
-    context.subscriptions.push(hello);
-    // ---- Main command: opens the webview panel
-    const open = vscode.commands.registerCommand('aiCollab.openPanel', () => {
-        const panel = vscode.window.createWebviewPanel('aiCollabPanel', // internal view type
-        'AI Collab Agent', // tab title
-        vscode.ViewColumn.Active, // where to show
-        {
-            enableScripts: true, // allow JS in webview
-            retainContextWhenHidden: true // keep state when hidden
-        });
+    }));
+    const liveShare = (await vsls.getApi());
+    liveShare?.onDidChangeSession((e) => console.log('[AI Collab] Live Share role:', e.session?.role));
+    context.subscriptions.push(vscode.commands.registerCommand('aiCollab.openPanel', async () => {
+        if (!ensureWorkspaceOpen())
+            return;
+        const panel = vscode.window.createWebviewPanel('aiCollabPanel', 'AI Collab Agent', vscode.ViewColumn.Active, { enableScripts: true, retainContextWhenHidden: true });
         panel.webview.html = getHtml(panel.webview, context);
-        // receive messages from the webview
+        let hostService = null;
+        let guestService = null;
+        if (liveShare?.session?.role === vsls.Role.Host) {
+            hostService = await liveShare.shareService('aiCollab.service');
+            if (!hostService) {
+                vscode.window.showWarningMessage('Could not share Live Share service. Start a Live Share session as Host.');
+            }
+            else {
+                hostService.onRequest('allocate', (args) => {
+                    const [payload] = args;
+                    return mockAllocate(payload);
+                });
+                hostService.onRequest('createTeam', async (args) => {
+                    const [payload] = args;
+                    await context.workspaceState.update('aiCollab.team', payload);
+                    hostService.notify('teamUpdated', payload);
+                    return { ok: true };
+                });
+            }
+        }
+        else if (liveShare?.session?.role === vsls.Role.Guest) {
+            guestService = await liveShare.getSharedService('aiCollab.service');
+            if (!guestService) {
+                vscode.window.showWarningMessage('Host service not found. Ask the host to open the panel.');
+            }
+            else {
+                guestService.onNotify('teamUpdated', (payload) => {
+                    panel.webview.postMessage({ type: 'teamSaved', payload });
+                });
+            }
+        }
+        async function pushTeamToWebview() {
+            const team = await context.workspaceState.get('aiCollab.team');
+            panel.webview.postMessage({ type: 'teamLoaded', payload: team ?? null });
+        }
+        await pushTeamToWebview();
         panel.webview.onDidReceiveMessage(async (msg) => {
             switch (msg.type) {
+                case 'init': {
+                    await pushTeamToWebview();
+                    break;
+                }
                 case 'createTeam': {
-                    // persist team payload in workspace storage (simple local state)
-                    await context.workspaceState.update('aiCollab.team', msg.payload);
-                    vscode.window.showInformationMessage(`Team "${msg.payload.teamName}" saved.`);
-                    panel.webview.postMessage({ type: 'teamSaved' });
+                    if (liveShare?.session?.role === vsls.Role.Guest && guestService) {
+                        await guestService.request('createTeam', msg.payload);
+                    }
+                    else {
+                        await context.workspaceState.update('aiCollab.team', msg.payload);
+                        hostService?.notify('teamUpdated', msg.payload);
+                        panel.webview.postMessage({ type: 'teamSaved' });
+                    }
                     break;
                 }
                 case 'allocateTasks': {
-                    const allocation = mockAllocate(msg.payload);
-                    panel.webview.postMessage({ type: 'allocation', payload: allocation });
+                    const saved = (await context.workspaceState.get('aiCollab.team'));
+                    const input = {
+                        requirements: msg.payload?.requirements ?? '',
+                        members: msg.payload?.members?.length ? msg.payload.members : (saved?.members ?? [])
+                    };
+                    if (liveShare?.session?.role === vsls.Role.Guest && guestService) {
+                        const allocation = await guestService.request('allocate', [input]);
+                        panel.webview.postMessage({ type: 'allocation', payload: allocation });
+                    }
+                    else {
+                        const allocation = mockAllocate(input);
+                        panel.webview.postMessage({ type: 'allocation', payload: allocation });
+                    }
                     break;
                 }
-                default:
-                    // no-op
-                    break;
             }
         });
-    });
-    context.subscriptions.push(open);
+    }));
 }
-function deactivate() {
-    // nothing to clean up yet
+function deactivate() { }
+function ensureWorkspaceOpen() {
+    if (!vscode.workspace.workspaceFolders?.length) {
+        vscode.window.showErrorMessage('Open a folder/workspace first.');
+        return false;
+    }
+    return true;
 }
-/**
- * Build the HTML string for the webview.
- */
 function getHtml(webview, context) {
     const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'media', 'main.js'));
     const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'media', 'main.css'));
-    // simple nonce to satisfy CSP for our inline script reference
     const nonce = String(Math.random());
     return /* html */ `
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta
-    http-equiv="Content-Security-Policy"
-    content="default-src 'none'; img-src ${webview.cspSource} https:; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';"
-  />
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'none'; img-src ${webview.cspSource} https:;
+             style-src ${webview.cspSource} 'unsafe-inline';
+             script-src 'nonce-${nonce}';"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link href="${styleUri}" rel="stylesheet" />
   <title>AI Collab Agent</title>
@@ -99,17 +145,9 @@ function getHtml(webview, context) {
 </body>
 </html>`;
 }
-/**
- * Very simple round-robin allocator used until we wire a real agent API.
- */
 function mockAllocate(input) {
-    const tasks = input.requirements
-        .split('\n')
-        .map(s => s.trim())
-        .filter(Boolean);
-    const members = (input.members && input.members.length)
-        ? input.members
-        : [{ name: 'unassigned', skills: [] }];
+    const tasks = input.requirements.split('\n').map(s => s.trim()).filter(Boolean);
+    const members = input.members?.length ? input.members : [{ name: 'unassigned', skills: [] }];
     const out = {};
     let i = 0;
     for (const t of tasks) {
@@ -119,3 +157,4 @@ function mockAllocate(input) {
     }
     return out;
 }
+//# sourceMappingURL=extension.js.map
