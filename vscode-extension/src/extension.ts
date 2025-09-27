@@ -72,7 +72,9 @@ export function activate(context: vscode.ExtensionContext) {
             content: prompt,
             language: "markdown",
           });
-          await vscode.window.showTextDocument(doc);
+          await vscode.window.showTextDocument(doc, {
+            viewColumn: vscode.ViewColumn.Beside,
+          });
 
           vscode.window.showInformationMessage(
             `AI Prompt generated for project: ${project.name}`
@@ -106,12 +108,16 @@ export function deactivate() {
 /**
  * Build the HTML string for the webview with our Team Collaboration Platform
  */
+
+/**
+ * Build the HTML string for the webview with our Team Collaboration Platform
+ */
 function getHtml(
   webview: vscode.Webview,
   context: vscode.ExtensionContext
 ): string {
-  // simple nonce to satisfy CSP
-  const nonce = String(Math.random());
+  // Generate a nonce to secure the script tag
+  const nonce = getNonce();
 
   return /* html */ `
 <!DOCTYPE html>
@@ -119,10 +125,12 @@ function getHtml(
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta
-        http-equiv="Content-Security-Policy"
-        content="default-src 'none'; img-src ${webview.cspSource} https:; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';"
-    />
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'none';
+        style-src ${webview.cspSource} 'unsafe-inline';
+        img-src ${webview.cspSource} https:;
+        script-src 'nonce-${nonce}';
+    ">
     <title>AI Collab Agent - Team Platform</title>
     <style>
         * {
@@ -468,7 +476,6 @@ function getHtml(
             <button class="tab-button" data-tab="prompts">🤖 AI Prompts</button>
         </div>
 
-        <!-- Users Tab -->
         <div id="users" class="tab-content active">
             <div class="section-title">Add Team Member</div>
             
@@ -507,7 +514,6 @@ function getHtml(
             </div>
         </div>
 
-        <!-- Projects Tab -->
         <div id="projects" class="tab-content">
             <div class="section-title">Create Project</div>
             
@@ -553,7 +559,6 @@ function getHtml(
             </div>
         </div>
 
-        <!-- AI Prompts Tab -->
         <div id="prompts" class="tab-content">
             <div class="section-title">AI Prompt Generator</div>
             
@@ -985,7 +990,6 @@ Give me a specific message for EACH team member, detailing them what they need t
             } catch (error) {
                 showStatus('promptStatus', 'Error: ' + error.message, 'error');
             }
-
         }
 
         function copyPrompt() {
@@ -1020,47 +1024,53 @@ Give me a specific message for EACH team member, detailing them what they need t
             }
         });
 
-        // Initialize on page load
-        // Initialize on page load and set up event listeners
-        // Centralized Event Handling
-        document.addEventListener('DOMContentLoaded', () => {
-            // --- Static Button Listeners ---
-            document.getElementById('add-user-btn')?.addEventListener('click', addUser);
-            document.getElementById('clear-user-form-btn')?.addEventListener('click', clearUserForm);
-            document.getElementById('create-project-btn')?.addEventListener('click', createProject);
-            document.getElementById('clear-project-form-btn')?.addEventListener('click', clearProjectForm);
-            document.getElementById('generate-prompt-btn')?.addEventListener('click', generatePrompt);
-            document.getElementById('copy-prompt-btn')?.addEventListener('click', copyPrompt);
+        // Centralized Event Handling & Initialization
+        // --- Static Button Listeners ---
+        document.getElementById('add-user-btn')?.addEventListener('click', addUser);
+        document.getElementById('clear-user-form-btn')?.addEventListener('click', clearUserForm);
+        document.getElementById('create-project-btn')?.addEventListener('click', createProject);
+        document.getElementById('clear-project-form-btn')?.addEventListener('click', clearProjectForm);
+        document.getElementById('generate-prompt-btn')?.addEventListener('click', generatePrompt);
+        document.getElementById('copy-prompt-btn')?.addEventListener('click', copyPrompt);
 
-            // --- Event Delegation for Dynamic Content and Tabs ---
-            document.body.addEventListener('click', (event) => {
-                const target = event.target;
+        // --- Event Delegation for Dynamic Content and Tabs ---
+        document.body.addEventListener('click', (event) => {
+            const target = event.target;
 
-                // Handle Tab switching
-                if (target.matches('.tab-button')) {
-                    showTab(target.dataset.tab, target);
+            // Handle Tab switching
+            if (target.matches('.tab-button')) {
+                showTab(target.dataset.tab, target);
+            }
+
+            // Handle removing a user
+            if (target.matches('.remove-user-btn')) {
+                const userId = target.dataset.userId;
+                if (userId) {
+                    app.removeUser(userId);
                 }
+            }
 
-                // Handle removing a user
-                if (target.matches('.remove-user-btn')) {
-                    const userId = target.dataset.userId;
-                    if (userId) {
-                        app.removeUser(userId);
-                    }
+            // Handle removing a project
+            if (target.matches('.remove-project-btn')) {
+                const projectId = target.dataset.projectId;
+                if (projectId) {
+                    app.removeProject(projectId);
                 }
-
-                // Handle removing a project
-                if (target.matches('.remove-project-btn')) {
-                    const projectId = target.dataset.projectId;
-                    if (projectId) {
-                        app.removeProject(projectId);
-                    }
-                }
-            });
-
-            console.log('🚀 AI Collab Agent - Team Platform initialized!');
+            }
         });
+
+        console.log('🚀 AI Collab Agent - Team Platform initialized!');
     </script>
 </body>
 </html>`;
+}
+
+function getNonce() {
+  let text = "";
+  const possible =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  for (let i = 0; i < 32; i++) {
+    text += possible.charAt(Math.floor(Math.random() * possible.length));
+  }
+  return text;
 }
