@@ -20,3 +20,18 @@ class SupabaseClient:
             "status": p.status
         }
         self.sb.table("projects").upsert(payload, on_conflict="name").execute()
+
+        
+    def fetch_project(self, name: str) -> Optional[Project]:
+        response = self.sb.table("projects").select("*").eq("name", name).execute()
+        data = response.data
+        if data:
+            project_data = data[0]
+            return Project(
+                name=project_data["name"],
+                description=project_data.get("description"),
+                required_skills=project_data.get("required_skills", []),
+                programming_languages=project_data.get("programming_languages", []),
+                status=project_data.get("status")
+            )
+        return None
