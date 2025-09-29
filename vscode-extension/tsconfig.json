@@ -1,12 +1,15 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "CommonJS",
-    "moduleResolution": "node", // change from Bundler
+    "module": "CommonJS",        
+    "moduleResolution": "node",  
     "strict": true,
     "outDir": "out",
-    "lib": ["ES2022"],
-    "types": ["vscode"]
+    "rootDir": "src",
+    "lib": ["ES2022", "DOM"],
+    "types": ["vscode"],
+    "sourceMap": true,
+    "skipLibCheck": true
   },
   "include": ["src"]
 }
