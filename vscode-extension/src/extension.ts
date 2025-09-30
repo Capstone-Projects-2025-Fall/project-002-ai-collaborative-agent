@@ -1,177 +1,199 @@
 import * as vscode from "vscode";
-import * as vsls from 'vsls/vscode';
+import * as vsls from "vsls/vscode";
 
 type Member = { name: string; skills: string[] };
 type AllocateInput = { requirements: string; members: Member[] };
 
 export async function activate(context: vscode.ExtensionContext) {
-  // show a toast so we know the extension actually activated
-  vscode.window.showInformationMessage("AI Collab Agent activated");
+	// show a toast so we know the extension actually activated
+	vscode.window.showInformationMessage("AI Collab Agent activated");
 
-  // ---- Debug/health command: appears as "AI Collab Agent: Hello (debug)"
-  const hello = vscode.commands.registerCommand("aiCollab.debugHello", () => {
-    vscode.window.showInformationMessage("Hello from AI Collab Agent!");
-});
-  context.subscriptions.push(hello);
-  
-  const liveShare = (await vsls.getApi()) as vsls.LiveShare | null;  
-  liveShare?.onDidChangeSession((e) =>
-    console.log('[AI Collab] Live Share role:', e.session?.role)
-  );
-  // ---- Main command: opens the webview panel
-  const open = vscode.commands.registerCommand("aiCollab.openPanel", () => {
-    const panel = vscode.window.createWebviewPanel(
-      "aiCollabPanel", // internal view type
-      "AI Collab Agent - Team Platform", // tab title
-      vscode.ViewColumn.Active, // where to show
-      {
-        enableScripts: true, // allow JS in webview
-        retainContextWhenHidden: true, // keep state when hidden
-      }
-    );
+	// ---- Debug/health command: appears as "AI Collab Agent: Hello (debug)"
+	const hello = vscode.commands.registerCommand("aiCollab.debugHello", () => {
+		vscode.window.showInformationMessage("Hello from AI Collab Agent!");
+	});
+	context.subscriptions.push(hello);
 
-  context.subscriptions.push(
-    vscode.commands.registerCommand('aiCollab.openPanel', async () => {
-      if (!ensureWorkspaceOpen()) return;
+	const liveShare = (await vsls.getApi()) as vsls.LiveShare | null;
+	liveShare?.onDidChangeSession((e) =>
+		console.log("[AI Collab] Live Share role:", e.session?.role)
+	);
+	// ---- Main command: opens the webview panel
+	const open = vscode.commands.registerCommand("aiCollab.openPanel", () => {
+		const panel = vscode.window.createWebviewPanel(
+			"aiCollabPanel", // internal view type
+			"AI Collab Agent - Team Platform", // tab title
+			vscode.ViewColumn.Active, // where to show
+			{
+				enableScripts: true, // allow JS in webview
+				retainContextWhenHidden: true, // keep state when hidden
+			}
+		);
 
-      const panel = vscode.window.createWebviewPanel(
-        'aiCollabPanel',
-        'AI Collab Agent',
-        vscode.ViewColumn.Active,
-        { enableScripts: true, retainContextWhenHidden: true }
-      );
-      panel.webview.html = getHtml(panel.webview, context);
+		// Add status bar button
+		const statusBarItem = vscode.window.createStatusBarItem(
+			vscode.StatusBarAlignment.Right,
+			100
+		);
+		statusBarItem.text = "$(rocket) AI Collab";
+		statusBarItem.tooltip = "Open AI Collab Panel";
+		statusBarItem.command = "aiCollab.openPanel";
+		statusBarItem.show();
+		context.subscriptions.push(statusBarItem);
 
-      let hostService: vsls.SharedService | null = null;      
-      let guestService: vsls.SharedServiceProxy | null = null;
+		context.subscriptions.push(
+			vscode.commands.registerCommand("aiCollab.openPanel", async () => {
+				if (!ensureWorkspaceOpen()) return;
 
-      if (liveShare?.session?.role === vsls.Role.Host) {
-        hostService = await liveShare.shareService('aiCollab.service');
-        if (!hostService) {
-          vscode.window.showWarningMessage('Could not share Live Share service. Start a Live Share session as Host.');
-        } else {
-          hostService.onRequest('allocate', (args: any[]) => {
-            const [payload] = args as [AllocateInput];
-            return mockAllocate(payload);
-        });
-            hostService.onRequest('createTeam', async (args: any[]) => {
-                const [payload] = args as [any];
-                await context.workspaceState.update('aiCollab.team', payload);
-                hostService!.notify('teamUpdated', payload);
-                return { ok: true as const };
-            }); 
-            }
-        } else if (liveShare?.session?.role === vsls.Role.Guest) {
-        guestService = await liveShare.getSharedService('aiCollab.service');
-        if (!guestService) {
-            vscode.window.showWarningMessage('Host service not found. Ask the host to open the panel.');
-        } else {
-            guestService.onNotify('teamUpdated', (payload: any) => {
-            panel.webview.postMessage({ type: 'teamSaved', payload });
-            });
-        }
-    } 
-    async function pushTeamToWebview() {
-        const team = await context.workspaceState.get('aiCollab.team');
-        panel.webview.postMessage({ type: 'teamLoaded', payload: team ?? null });
-      }
-      await pushTeamToWebview();
+				const panel = vscode.window.createWebviewPanel(
+					"aiCollabPanel",
+					"AI Collab Agent",
+					vscode.ViewColumn.Active,
+					{ enableScripts: true, retainContextWhenHidden: true }
+				);
+				panel.webview.html = getHtml(panel.webview, context);
 
-       // receive messages from the webview
-    panel.webview.onDidReceiveMessage(async (msg: any) => {
-        switch (msg.type) {
-          case "saveData": {
-            // Save all application data to workspace storage
-            await context.workspaceState.update(
-              "aiCollab.users",
-              msg.payload.users
-            );
-            await context.workspaceState.update(
-              "aiCollab.projects",
-              msg.payload.projects
-            );
-            await context.workspaceState.update(
-              "aiCollab.promptCount",
-              msg.payload.promptCount
-            );
-            vscode.window.showInformationMessage("Team data saved successfully!");
-            break;
-          }
-          case "loadData": {
-            // Load saved data and send back to webview
-            const users = await context.workspaceState.get("aiCollab.users", []);
-            const projects = await context.workspaceState.get(
-              "aiCollab.projects",
-              []
-            );
-            const promptCount = await context.workspaceState.get(
-              "aiCollab.promptCount",
-              0
-            );
-  
-            panel.webview.postMessage({
-              type: "dataLoaded",
-              payload: { users, projects, promptCount },
-            });
-            break;
-          }
-  
-          case "generatePrompt": {
-            // Generate AI prompt and potentially integrate with AI APIs
-            const { project, prompt } = msg.payload;
-  
-            // Show the generated prompt in a new document
-            const doc = await vscode.workspace.openTextDocument({
-              content: prompt,
-              language: "markdown",
-            });
-            await vscode.window.showTextDocument(doc);
-  
-            vscode.window.showInformationMessage(
-              `AI Prompt generated for project: ${project.name}`
-            );
-            break;
-          }
-          case "showError": {
-            vscode.window.showErrorMessage(msg.payload.message);
-            break;
-          }
-          case "showSuccess": {
-            vscode.window.showInformationMessage(msg.payload.message);
-            break;
-          }
-        }
-      });
-  
-      // Load data when panel is created
-      panel.webview.postMessage({ type: "requestData" });
-    }));
-    context.subscriptions.push(open);
-  });
+				let hostService: vsls.SharedService | null = null;
+				let guestService: vsls.SharedServiceProxy | null = null;
+
+				if (liveShare?.session?.role === vsls.Role.Host) {
+					hostService = await liveShare.shareService("aiCollab.service");
+					if (!hostService) {
+						vscode.window.showWarningMessage(
+							"Could not share Live Share service. Start a Live Share session as Host."
+						);
+					} else {
+						hostService.onRequest("allocate", (args: any[]) => {
+							const [payload] = args as [AllocateInput];
+							return mockAllocate(payload);
+						});
+						hostService.onRequest("createTeam", async (args: any[]) => {
+							const [payload] = args as [any];
+							await context.workspaceState.update("aiCollab.team", payload);
+							hostService!.notify("teamUpdated", payload);
+							return { ok: true as const };
+						});
+					}
+				} else if (liveShare?.session?.role === vsls.Role.Guest) {
+					guestService = await liveShare.getSharedService("aiCollab.service");
+					if (!guestService) {
+						vscode.window.showWarningMessage(
+							"Host service not found. Ask the host to open the panel."
+						);
+					} else {
+						guestService.onNotify("teamUpdated", (payload: any) => {
+							panel.webview.postMessage({ type: "teamSaved", payload });
+						});
+					}
+				}
+				async function pushTeamToWebview() {
+					const team = await context.workspaceState.get("aiCollab.team");
+					panel.webview.postMessage({
+						type: "teamLoaded",
+						payload: team ?? null,
+					});
+				}
+				await pushTeamToWebview();
+
+				// receive messages from the webview
+				panel.webview.onDidReceiveMessage(async (msg: any) => {
+					switch (msg.type) {
+						case "saveData": {
+							// Save all application data to workspace storage
+							await context.workspaceState.update(
+								"aiCollab.users",
+								msg.payload.users
+							);
+							await context.workspaceState.update(
+								"aiCollab.projects",
+								msg.payload.projects
+							);
+							await context.workspaceState.update(
+								"aiCollab.promptCount",
+								msg.payload.promptCount
+							);
+							vscode.window.showInformationMessage(
+								"Team data saved successfully!"
+							);
+							break;
+						}
+						case "loadData": {
+							// Load saved data and send back to webview
+							const users = await context.workspaceState.get(
+								"aiCollab.users",
+								[]
+							);
+							const projects = await context.workspaceState.get(
+								"aiCollab.projects",
+								[]
+							);
+							const promptCount = await context.workspaceState.get(
+								"aiCollab.promptCount",
+								0
+							);
+
+							panel.webview.postMessage({
+								type: "dataLoaded",
+								payload: { users, projects, promptCount },
+							});
+							break;
+						}
+
+						case "generatePrompt": {
+							// Generate AI prompt and potentially integrate with AI APIs
+							const { project, prompt } = msg.payload;
+
+							// Show the generated prompt in a new document
+							const doc = await vscode.workspace.openTextDocument({
+								content: prompt,
+								language: "markdown",
+							});
+							await vscode.window.showTextDocument(doc);
+
+							vscode.window.showInformationMessage(
+								`AI Prompt generated for project: ${project.name}`
+							);
+							break;
+						}
+						case "showError": {
+							vscode.window.showErrorMessage(msg.payload.message);
+							break;
+						}
+						case "showSuccess": {
+							vscode.window.showInformationMessage(msg.payload.message);
+							break;
+						}
+					}
+				});
+
+				// Load data when panel is created
+				panel.webview.postMessage({ type: "requestData" });
+			})
+		);
+		context.subscriptions.push(open);
+	});
 }
-
-   
 
 export function deactivate() {}
 
 function ensureWorkspaceOpen(): boolean {
-  if (!vscode.workspace.workspaceFolders?.length) {
-    vscode.window.showErrorMessage('Open a folder/workspace first.');
-    return false;
-  }
-  return true;
+	if (!vscode.workspace.workspaceFolders?.length) {
+		vscode.window.showErrorMessage("Open a folder/workspace first.");
+		return false;
+	}
+	return true;
 }
 
 /**
  * Build the HTML string for the webview with our Team Collaboration Platform
  */
 function getHtml(
-  webview: vscode.Webview,
-  context: vscode.ExtensionContext
+	webview: vscode.Webview,
+	context: vscode.ExtensionContext
 ): string {
-  // simple nonce to satisfy CSP
-  const nonce = String(Math.random());
-  return /* html */ `
+	// simple nonce to satisfy CSP
+	const nonce = String(Math.random());
+	return /* html */ `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1124,14 +1146,19 @@ Give me a specific message for EACH team member, detailing them what they need t
 }
 
 function mockAllocate(input: AllocateInput) {
-  const tasks = input.requirements.split('\n').map(s => s.trim()).filter(Boolean);
-  const members = input.members?.length ? input.members : [{ name: 'unassigned', skills: [] }];
-  const out: Record<string, string[]> = {};
-  let i = 0;
-  for (const t of tasks) {
-    const m = members[i % members.length].name || 'unassigned';
-    (out[m] ||= []).push(t);
-    i++;
-  }
-  return out;
+	const tasks = input.requirements
+		.split("\n")
+		.map((s) => s.trim())
+		.filter(Boolean);
+	const members = input.members?.length
+		? input.members
+		: [{ name: "unassigned", skills: [] }];
+	const out: Record<string, string[]> = {};
+	let i = 0;
+	for (const t of tasks) {
+		const m = members[i % members.length].name || "unassigned";
+		(out[m] ||= []).push(t);
+		i++;
+	}
+	return out;
 }
