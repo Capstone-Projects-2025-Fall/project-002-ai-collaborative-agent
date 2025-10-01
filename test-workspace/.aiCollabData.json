@@ -1,0 +1,24 @@
+{
+  "users": [
+    {
+      "name": "thomas",
+      "skills": "ml",
+      "programmingLanguages": "python",
+      "willingToWorkOn": "backend logic",
+      "id": 1759334743907.4968,
+      "createdAt": "2025-10-01T16:05:43.907Z"
+    }
+  ],
+  "projects": [
+    {
+      "name": "some project",
+      "description": "some description",
+      "goals": "fixing this problem",
+      "requirements": "have a working app",
+      "selectedMembers": [],
+      "id": 1759334763024.4832,
+      "createdAt": "2025-10-01T16:06:03.024Z"
+    }
+  ],
+  "promptCount": 0
+}

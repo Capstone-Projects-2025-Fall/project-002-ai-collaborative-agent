@@ -1,10 +1,22 @@
 import * as vscode from "vscode";
+import * as fs from "fs/promises";
+import * as path from "path";
+
+// Helper function to get the full path to our data file
+function getDataFilePath(): string | undefined {
+  const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+  if (!workspaceFolder) {
+    return undefined; // No open folder
+  }
+  // We'll store our data in a hidden file in the root of the workspace
+  return path.join(workspaceFolder.uri.fsPath, ".aiCollabData.json");
+}
 
 export function activate(context: vscode.ExtensionContext) {
   // show a toast so we know the extension actually activated
   vscode.window.showInformationMessage("AI Collab Agent activated");
 
-  // ---- Debug/health command: appears as "AI Collab Agent: Hello (debug)"
+  // ---- Debug/health command
   const hello = vscode.commands.registerCommand("aiCollab.debugHello", () => {
     vscode.window.showInformationMessage("Hello from AI Collab Agent!");
   });
@@ -13,12 +25,12 @@ export function activate(context: vscode.ExtensionContext) {
   // ---- Main command: opens the webview panel
   const open = vscode.commands.registerCommand("aiCollab.openPanel", () => {
     const panel = vscode.window.createWebviewPanel(
-      "aiCollabPanel", // internal view type
-      "AI Collab Agent - Team Platform", // tab title
-      vscode.ViewColumn.Active, // where to show
+      "aiCollabPanel",
+      "AI Collab Agent - Team Platform",
+      vscode.ViewColumn.Active,
       {
-        enableScripts: true, // allow JS in webview
-        retainContextWhenHidden: true, // keep state when hidden
+        enableScripts: true,
+        retainContextWhenHidden: true,
       }
     );
 
@@ -28,46 +40,59 @@ export function activate(context: vscode.ExtensionContext) {
     panel.webview.onDidReceiveMessage(async (msg: any) => {
       switch (msg.type) {
         case "saveData": {
-          // Save all application data to workspace storage
-          await context.workspaceState.update(
-            "aiCollab.users",
-            msg.payload.users
-          );
-          await context.workspaceState.update(
-            "aiCollab.projects",
-            msg.payload.projects
-          );
-          await context.workspaceState.update(
-            "aiCollab.promptCount",
-            msg.payload.promptCount
-          );
-          vscode.window.showInformationMessage("Team data saved successfully!");
+          const filePath = getDataFilePath();
+          if (!filePath) {
+            vscode.window.showErrorMessage(
+              "Please open a folder in your workspace to save data."
+            );
+            break;
+          }
+
+          try {
+            // Combine all data into a single object to save
+            const dataToSave = {
+              users: msg.payload.users || [],
+              projects: msg.payload.projects || [],
+              promptCount: msg.payload.promptCount || 0,
+            };
+            // Stringify with formatting (null, 2) for readability
+            const jsonString = JSON.stringify(dataToSave, null, 2);
+            await fs.writeFile(filePath, jsonString, "utf-8");
+
+            vscode.window.showInformationMessage(
+              "Team data saved to .aiCollabData.json!"
+            );
+          } catch (error) {
+            console.error("Failed to save data:", error);
+            vscode.window.showErrorMessage("Failed to save team data to file.");
+          }
           break;
         }
+
         case "loadData": {
-          // Load saved data and send back to webview
-          const users = await context.workspaceState.get("aiCollab.users", []);
-          const projects = await context.workspaceState.get(
-            "aiCollab.projects",
-            []
-          );
-          const promptCount = await context.workspaceState.get(
-            "aiCollab.promptCount",
-            0
-          );
+          const filePath = getDataFilePath();
+          let data = { users: [], projects: [], promptCount: 0 }; // Default empty state
+
+          if (filePath) {
+            try {
+              const fileContent = await fs.readFile(filePath, "utf-8");
+              data = JSON.parse(fileContent);
+            } catch (error) {
+              // This is expected if the file doesn't exist yet (first run).
+              // We'll just proceed with the default empty state.
+              console.log("Data file not found, using default state.");
+            }
+          }
 
           panel.webview.postMessage({
             type: "dataLoaded",
-            payload: { users, projects, promptCount },
+            payload: data,
           });
           break;
         }
 
         case "generatePrompt": {
-          // Generate AI prompt and potentially integrate with AI APIs
           const { project, prompt } = msg.payload;
-
-          // Show the generated prompt in a new document
           const doc = await vscode.workspace.openTextDocument({
             content: prompt,
             language: "markdown",
@@ -75,7 +100,6 @@ export function activate(context: vscode.ExtensionContext) {
           await vscode.window.showTextDocument(doc, {
             viewColumn: vscode.ViewColumn.Beside,
           });
-
           vscode.window.showInformationMessage(
             `AI Prompt generated for project: ${project.name}`
           );
@@ -90,7 +114,6 @@ export function activate(context: vscode.ExtensionContext) {
           break;
         }
         default:
-          // no-op
           break;
       }
     });
@@ -101,9 +124,7 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(open);
 }
 
-export function deactivate() {
-  // nothing to clean up yet
-}
+export function deactivate() {}
 
 /**
  * Build the HTML string for the webview with our Team Collaboration Platform
