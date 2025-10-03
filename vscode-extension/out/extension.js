@@ -47,8 +47,52 @@ function getDataFilePath() {
     // We'll store our data in a hidden file in the root of the workspace
     return path.join(workspaceFolder.uri.fsPath, ".aiCollabData.json");
 }
+// Helper function to load all data from the file
+async function loadInitialData() {
+    const filePath = getDataFilePath();
+    let data = {
+        users: [],
+        projects: [],
+        promptCount: 0,
+    };
+    if (filePath) {
+        try {
+            const fileContent = await fs.readFile(filePath, "utf-8");
+            const parsedData = JSON.parse(fileContent);
+            data.users = parsedData.users || [];
+            data.projects = parsedData.projects || [];
+            data.promptCount = parsedData.promptCount || 0;
+        }
+        catch (error) {
+            console.log("Data file not found or invalid, using default state.");
+        }
+    }
+    // Ensure selectedMemberIds is an array for all projects (backward compatibility/safety)
+    data.projects = data.projects.map((projectData) => ({
+        ...projectData,
+        selectedMemberIds: Array.isArray(projectData.selectedMemberIds)
+            ? projectData.selectedMemberIds
+            : [],
+    }));
+    return data;
+}
+// Helper function to save all data to the file
+async function saveInitialData(data) {
+    const filePath = getDataFilePath();
+    if (!filePath) {
+        vscode.window.showErrorMessage("Please open a folder in your workspace to save data.");
+        return;
+    }
+    try {
+        const jsonString = JSON.stringify(data, null, 2);
+        await fs.writeFile(filePath, jsonString, "utf-8");
+    }
+    catch (error) {
+        console.error("Failed to save data:", error);
+        vscode.window.showErrorMessage("Failed to save team data to file.");
+    }
+}
 function activate(context) {
-    // show a toast so we know the extension actually activated
     vscode.window.showInformationMessage("AI Collab Agent activated");
     // ---- Debug/health command
     const hello = vscode.commands.registerCommand("aiCollab.debugHello", () => {
@@ -56,53 +100,24 @@ function activate(context) {
     });
     context.subscriptions.push(hello);
     // ---- Main command: opens the webview panel
-    const open = vscode.commands.registerCommand("aiCollab.openPanel", () => {
+    const open = vscode.commands.registerCommand("aiCollab.openPanel", async () => {
         const panel = vscode.window.createWebviewPanel("aiCollabPanel", "AI Collab Agent - Team Platform", vscode.ViewColumn.Active, {
             enableScripts: true,
             retainContextWhenHidden: true,
+            localResourceRoots: [
+                vscode.Uri.file(path.join(context.extensionPath, "media")),
+            ],
         });
-        panel.webview.html = getHtml(panel.webview, context);
-        // receive messages from the webview
+        panel.webview.html = await getHtml(panel.webview, context);
         panel.webview.onDidReceiveMessage(async (msg) => {
             switch (msg.type) {
                 case "saveData": {
-                    const filePath = getDataFilePath();
-                    if (!filePath) {
-                        vscode.window.showErrorMessage("Please open a folder in your workspace to save data.");
-                        break;
-                    }
-                    try {
-                        // Combine all data into a single object to save
-                        const dataToSave = {
-                            users: msg.payload.users || [],
-                            projects: msg.payload.projects || [],
-                            promptCount: msg.payload.promptCount || 0,
-                        };
-                        // Stringify with formatting (null, 2) for readability
-                        const jsonString = JSON.stringify(dataToSave, null, 2);
-                        await fs.writeFile(filePath, jsonString, "utf-8");
-                        vscode.window.showInformationMessage("Team data saved to .aiCollabData.json!");
-                    }
-                    catch (error) {
-                        console.error("Failed to save data:", error);
-                        vscode.window.showErrorMessage("Failed to save team data to file.");
-                    }
+                    await saveInitialData(msg.payload);
+                    vscode.window.showInformationMessage("Team data saved to .aiCollabData.json!");
                     break;
                 }
                 case "loadData": {
-                    const filePath = getDataFilePath();
-                    let data = { users: [], projects: [], promptCount: 0 }; // Default empty state
-                    if (filePath) {
-                        try {
-                            const fileContent = await fs.readFile(filePath, "utf-8");
-                            data = JSON.parse(fileContent);
-                        }
-                        catch (error) {
-                            // This is expected if the file doesn't exist yet (first run).
-                            // We'll just proceed with the default empty state.
-                            console.log("Data file not found, using default state.");
-                        }
-                    }
+                    const data = await loadInitialData();
                     panel.webview.postMessage({
                         type: "dataLoaded",
                         payload: data,
@@ -110,669 +125,53 @@ function activate(context) {
                     break;
                 }
                 case "generatePrompt": {
-                    const { project, prompt } = msg.payload;
-                    const doc = await vscode.workspace.openTextDocument({
-                        content: prompt,
-                        language: "markdown",
-                    });
-                    await vscode.window.showTextDocument(doc, {
-                        viewColumn: vscode.ViewColumn.Beside,
-                    });
-                    vscode.window.showInformationMessage(`AI Prompt generated for project: ${project.name}`);
-                    break;
-                }
-                case "showError": {
-                    vscode.window.showErrorMessage(msg.payload.message);
-                    break;
-                }
-                case "showSuccess": {
-                    vscode.window.showInformationMessage(msg.payload.message);
-                    break;
-                }
-                default:
-                    break;
-            }
-        });
-        // Load data when panel is created
-        panel.webview.postMessage({ type: "requestData" });
-    });
-    context.subscriptions.push(open);
-}
-function deactivate() { }
-/**
- * Build the HTML string for the webview with our Team Collaboration Platform
- */
-/**
- * Build the HTML string for the webview with our Team Collaboration Platform
- */
-function getHtml(webview, context) {
-    // Generate a nonce to secure the script tag
-    const nonce = getNonce();
-    return /* html */ `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="
-        default-src 'none';
-        style-src ${webview.cspSource} 'unsafe-inline';
-        img-src ${webview.cspSource} https:;
-        script-src 'nonce-${nonce}';
-    ">
-    <title>AI Collab Agent - Team Platform</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            color: #333;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-            color: white;
-        }
-
-        .header h1 {
-            font-size: 2.5rem;
-            font-weight: 700;
-            margin-bottom: 8px;
-            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
-        }
-
-        .header p {
-            font-size: 1.1rem;
-            opacity: 0.9;
-        }
-
-        .tabs {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 25px;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-
-        .tab-button {
-            padding: 12px 24px;
-            background: rgba(255, 255, 255, 0.1);
-            border: none;
-            border-radius: 25px;
-            color: white;
-            font-size: 0.95rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        .tab-button:hover {
-            background: rgba(255, 255, 255, 0.2);
-            transform: translateY(-1px);
-        }
-
-        .tab-button.active {
-            background: rgba(255, 255, 255, 0.3);
-            border-color: rgba(255, 255, 255, 0.5);
-        }
-
-        .tab-content {
-            display: none;
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 15px;
-            padding: 30px;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
-            backdrop-filter: blur(20px);
-        }
-
-        .tab-content.active {
-            display: block;
-            animation: slideIn 0.3s ease-out;
-        }
-
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateY(15px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .form-grid {
-            display: grid;
-            gap: 20px;
-            margin-bottom: 25px;
-        }
-
-        .form-group {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .form-group label {
-            font-weight: 600;
-            margin-bottom: 6px;
-            color: #374151;
-            font-size: 0.9rem;
-        }
-
-        .form-group input,
-        .form-group textarea,
-        .form-group select {
-            padding: 12px;
-            border: 2px solid #e5e7eb;
-            border-radius: 8px;
-            font-size: 0.95rem;
-            transition: all 0.3s ease;
-            background: white;
-        }
-
-        .form-group input:focus,
-        .form-group textarea:focus,
-        .form-group select:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-
-        .form-group textarea {
-            resize: vertical;
-            min-height: 100px;
-            font-family: inherit;
-        }
-
-        .button-group {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            margin-top: 20px;
-        }
-
-        .btn {
-            padding: 12px 20px;
-            border: none;
-            border-radius: 8px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-        }
-
-        .btn-secondary {
-            background: #f1f5f9;
-            color: #475569;
-        }
-
-        .btn-secondary:hover {
-            background: #e2e8f0;
-        }
-
-        .user-list, .project-list {
-            background: #f8fafc;
-            border-radius: 12px;
-            padding: 15px;
-            margin: 15px 0;
-        }
-
-        .user-item, .project-item {
-            background: white;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 8px 0;
-            border-left: 4px solid #667eea;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        }
-
-        .user-item h3, .project-item h3 {
-            color: #1e293b;
-            margin-bottom: 8px;
-            font-size: 1.1rem;
-        }
-
-        .user-item p, .project-item p {
-            color: #64748b;
-            margin: 4px 0;
-            font-size: 0.9rem;
-        }
-
-        .prompt-output {
-            background: #1e293b;
-            color: #e2e8f0;
-            border-radius: 12px;
-            padding: 20px;
-            margin: 15px 0;
-            font-family: 'Consolas', 'Monaco', monospace;
-            white-space: pre-wrap;
-            max-height: 400px;
-            overflow-y: auto;
-            font-size: 0.85rem;
-            line-height: 1.4;
-        }
-
-        .status-message {
-            padding: 12px;
-            border-radius: 8px;
-            margin: 10px 0;
-            font-weight: 600;
-            font-size: 0.9rem;
-        }
-
-        .status-success {
-            background: #dcfce7;
-            color: #166534;
-        }
-
-        .status-error {
-            background: #fef2f2;
-            color: #991b1b;
-        }
-
-        .multi-select {
-            border: 2px solid #e5e7eb;
-            border-radius: 8px;
-            padding: 8px;
-            max-height: 150px;
-            overflow-y: auto;
-        }
-
-        .multi-select label {
-            display: flex;
-            align-items: center;
-            padding: 6px;
-            margin: 2px 0;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.9rem;
-        }
-
-        .multi-select label:hover {
-            background: #f1f5f9;
-        }
-
-        .multi-select input[type="checkbox"] {
-            margin-right: 8px;
-        }
-
-        .section-title {
-            font-size: 1.3rem;
-            font-weight: 700;
-            color: #1e293b;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-        }
-
-        .section-title::before {
-            content: '';
-            width: 3px;
-            height: 24px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            margin-right: 12px;
-            border-radius: 2px;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 15px;
-            margin: 20px 0;
-        }
-
-        .stat-card {
-            background: rgba(255,255,255,0.1);
-            border-radius: 12px;
-            padding: 20px;
-            text-align: center;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.2);
-            color: white;
-        }
-
-        .stat-card h3 {
-            font-size: 1.8rem;
-            font-weight: 700;
-            margin-bottom: 4px;
-        }
-
-        .stat-card p {
-            opacity: 0.8;
-            font-weight: 500;
-            font-size: 0.9rem;
-        }
-
-        @media (max-width: 768px) {
-            .container {
-                padding: 10px;
-            }
-            
-            .header h1 {
-                font-size: 2rem;
-            }
-            
-            .tab-content {
-                padding: 20px;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>🚀 AI Collab Agent</h1>
-            <p>Team Collaboration & AI-Powered Project Management</p>
-            
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <h3 id="userCount">0</h3>
-                    <p>Team Members</p>
-                </div>
-                <div class="stat-card">
-                    <h3 id="projectCount">0</h3>
-                    <p>Projects</p>
-                </div>
-                <div class="stat-card">
-                    <h3 id="promptCount">0</h3>
-                    <p>AI Prompts</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="tabs">
-            <button class="tab-button active" data-tab="users">👥 Team Members</button>
-            <button class="tab-button" data-tab="projects">📋 Projects</button>
-            <button class="tab-button" data-tab="prompts">🤖 AI Prompts</button>
-        </div>
-
-        <div id="users" class="tab-content active">
-            <div class="section-title">Add Team Member</div>
-            
-            <form class="form-grid">
-                <div class="form-group">
-                    <label for="userName">Full Name *</label>
-                    <input type="text" id="userName" required placeholder="Enter full name">
-                </div>
-                
-                <div class="form-group">
-                    <label for="userSkills">Skills *</label>
-                    <input type="text" id="userSkills" required placeholder="e.g., Leadership, Design, Analysis">
-                </div>
-                
-                <div class="form-group">
-                    <label for="userLanguages">Programming Languages *</label>
-                    <input type="text" id="userLanguages" required placeholder="e.g., Python, JavaScript, TypeScript">
-                </div>
-                
-                <div class="form-group">
-                    <label for="userWilling">Willing to Work On</label>
-                    <textarea id="userWilling" placeholder="Describe interests and preferred project types..."></textarea>
-                </div>
-            </form>
-            
-           <div class="button-group">
-                <button id="add-user-btn" class="btn btn-primary">Add Member</button>
-                <button id="clear-user-form-btn" class="btn btn-secondary">Clear Form</button>
-            </div>
-            
-            <div id="userStatus" class="status-message" style="display: none;"></div>
-            
-            <div class="section-title">Team Members</div>
-            <div id="userList" class="user-list">
-                <p style="text-align: center; color: #64748b; padding: 15px;">No team members yet</p>
-            </div>
-        </div>
-
-        <div id="projects" class="tab-content">
-            <div class="section-title">Create Project</div>
-            
-            <form class="form-grid">
-                <div class="form-group">
-                    <label for="projectName">Project Name *</label>
-                    <input type="text" id="projectName" required placeholder="Enter project name">
-                </div>
-                
-                <div class="form-group">
-                    <label for="projectDescription">Description *</label>
-                    <textarea id="projectDescription" required placeholder="Describe the project..."></textarea>
-                </div>
-                
-                <div class="form-group">
-                    <label for="projectGoals">Goals</label>
-                    <textarea id="projectGoals" placeholder="List main objectives..."></textarea>
-                </div>
-                
-                <div class="form-group">
-                    <label for="projectRequirements">Requirements</label>
-                    <textarea id="projectRequirements" placeholder="Technical requirements and constraints..."></textarea>
-                </div>
-                
-                <div class="form-group">
-                    <label>Select Team Members *</label>
-                    <div id="userSelection" class="multi-select">
-                        <p style="text-align: center; color: #64748b; padding: 10px;">Add team members first</p>
-                    </div>
-                </div>
-            </form>
-            
-            <div class="button-group">
-                <button id="create-project-btn" class="btn btn-primary">Create Project</button>
-                <button id="clear-project-form-btn" class="btn btn-secondary">Clear Form</button>
-            </div>
-            
-            <div id="projectStatus" class="status-message" style="display: none;"></div>
-            
-            <div class="section-title">Projects</div>
-            <div id="projectList" class="project-list">
-                <p style="text-align: center; color: #64748b; padding: 15px;">No projects yet</p>
-            </div>
-        </div>
-
-        <div id="prompts" class="tab-content">
-            <div class="section-title">AI Prompt Generator</div>
-            
-            <div class="form-group">
-                <label for="promptProject">Select Project</label>
-                <select id="promptProject">
-                    <option value="">Choose a project...</option>
-                </select>
-            </div>
-            
-            <div class="button-group">
-                <button id="generate-prompt-btn" class="btn btn-primary">Generate AI Prompt</button>
-                <button id="copy-prompt-btn" class="btn btn-secondary">Copy Prompt</button>
-            </div>
-            
-            <div id="promptStatus" class="status-message" style="display: none;"></div>
-            
-            <div class="section-title">Generated Prompt</div>
-            <div id="promptOutput" class="prompt-output">
-Select a project above to generate an AI-optimized prompt for team analysis and task allocation.
-
-The generated prompt will include:
-• Complete project information
-• Team member skills and preferences  
-• Analysis requests for AI models
-• Task assignment recommendations
-• Risk assessment guidelines
-            </div>
-        </div>
-    </div>
-
-    <script nonce="${nonce}">
-        // VS Code API
-        const vscode = acquireVsCodeApi();
-        
-        // TypeScript-like classes
-        class TeamMember {
-            constructor(name, skills, programmingLanguages, willingToWorkOn) {
-                this.name = name;
-                this.skills = skills;
-                this.programmingLanguages = programmingLanguages;
-                this.willingToWorkOn = willingToWorkOn;
-                this.id = Date.now() + Math.random();
-                this.createdAt = new Date().toISOString();
-            }
-        }
-
-        class Project {
-            constructor(name, description, goals, requirements, selectedMembers = []) {
-                this.name = name;
-                this.description = description;
-                this.goals = goals;
-                this.requirements = requirements;
-                this.selectedMembers = selectedMembers;
-                this.id = Date.now() + Math.random();
-                this.createdAt = new Date().toISOString();
-            }
-        }
-
-        class TeamCollaborationApp {
-            constructor() {
-                this.users = [];
-                this.projects = [];
-                this.promptCount = 0;
-                
-                // Request data from VS Code extension
-                vscode.postMessage({ type: 'loadData' });
-            }
-
-            loadData(data) {
-                if (data.users) {
-                    this.users = data.users.map(userData => {
-                        const user = new TeamMember(userData.name, userData.skills, userData.programmingLanguages, userData.willingToWorkOn);
-                        user.id = userData.id;
-                        user.createdAt = userData.createdAt;
-                        return user;
-                    });
-                }
-
-                if (data.projects) {
-                    this.projects = data.projects.map(projectData => {
-                        const project = new Project(projectData.name, projectData.description, projectData.goals, projectData.requirements, projectData.selectedMembers);
-                        project.id = projectData.id;
-                        project.createdAt = projectData.createdAt;
-                        return project;
-                    });
-                }
-
-                if (data.promptCount) {
-                    this.promptCount = data.promptCount;
-                }
-
-                this.updateUI();
-            }
-
-            saveData() {
-                vscode.postMessage({
-                    type: 'saveData',
-                    payload: {
-                        users: this.users,
-                        projects: this.projects,
-                        promptCount: this.promptCount
+                    const { projectId } = msg.payload;
+                    const currentData = await loadInitialData();
+                    const projectToPrompt = currentData.projects.find((p) => p.id == projectId);
+                    if (!projectToPrompt) {
+                        vscode.window.showErrorMessage("Project not found for AI prompt generation.");
+                        panel.webview.postMessage({
+                            type: "promptGenerationError",
+                            payload: { message: "Project not found." },
+                        });
+                        break;
                     }
-                });
-            }
+                    // --- FIX APPLIED HERE: Robust ID comparison ---
+                    const teamMembersForPrompt = currentData.users.filter((user) => 
+                    // Convert all IDs to string for reliable comparison
+                    projectToPrompt.selectedMemberIds
+                        .map((id) => String(id))
+                        .includes(String(user.id)));
+                    // --- END FIX ---
+                    // Create the detailed string ONLY from the filtered members
+                    const teamMemberDetails = teamMembersForPrompt
+                        .map((user, index) => `Team Member ${index + 1}:
+Name: ${user.name}
+Skills: ${user.skills}
+Programming Languages: ${user.programmingLanguages}
+Willing to work on: ${user.willingToWorkOn || "Not specified"}
 
-            addUser(name, skills, programmingLanguages, willingToWorkOn) {
-                if (!name || !skills || !programmingLanguages) {
-                    throw new Error('Name, skills, and programming languages are required');
-                }
-
-                const user = new TeamMember(name, skills, programmingLanguages, willingToWorkOn);
-                this.users.push(user);
-                this.saveData();
-                this.updateUI();
-                return user;
-            }
-
-            createProject(name, description, goals, requirements, selectedUserIds) {
-                if (!name || !description) {
-                    throw new Error('Project name and description are required');
-                }
-
-                if (!selectedUserIds || selectedUserIds.length === 0) {
-                    throw new Error('At least one team member must be selected');
-                }
-
-                const selectedMembers = this.users.filter(user => selectedUserIds.includes(user.id));
-                const project = new Project(name, description, goals, requirements, selectedMembers);
-                this.projects.push(project);
-                this.saveData();
-                this.updateUI();
-                return project;
-            }
-
-            generateAIPrompt(projectId) {
-                const project = this.projects.find(p => p.id == projectId);
-                if (!project) {
-                    throw new Error('Project not found');
-                }
-
-                this.promptCount++;
-                this.saveData();
-
-                const prompt = this.createComprehensivePrompt(project);
-                
-                // Send to VS Code extension for handling
-                vscode.postMessage({
-                    type: 'generatePrompt',
-                    payload: { project, prompt }
-                });
-                
-                return prompt;
-            }
-
-            createComprehensivePrompt(project) {
-                const teamMemberDetails = project.selectedMembers.map((user, index) => 
-                    \`Team Member \${index + 1}:
-Name: \${user.name}
-Skills: \${user.skills}
-Programming Languages: \${user.programmingLanguages}
-Willing to work on: \${user.willingToWorkOn}
-
-\`
-                ).join('');
-
-                return \`PROJECT ANALYSIS AND TEAM OPTIMIZATION REQUEST
+`)
+                        .join("");
+                    const promptContent = `PROJECT ANALYSIS AND TEAM OPTIMIZATION REQUEST
 
 === PROJECT INFORMATION ===
-Project Name: \${project.name}
-Created: \${new Date(project.createdAt).toLocaleString()}
+Project Name: ${projectToPrompt.name}
+Created: ${new Date(projectToPrompt.createdAt).toLocaleString()}
 
 Project Description:
-\${project.description}
+${projectToPrompt.description}
 
 Project Goals:
-\${project.goals}
+${projectToPrompt.goals}
 
 Project Requirements:
-\${project.requirements}
+${projectToPrompt.requirements}
 
 === TEAM COMPOSITION ===
-Team Size: \${project.selectedMembers.length} members
+Team Size: ${teamMembersForPrompt.length} members
 
-\${teamMemberDetails}
+${teamMemberDetails}
 
 === AI ANALYSIS REQUEST ===
 
@@ -808,290 +207,60 @@ Please analyze this project and team composition and provide:
    - Map deliverables to team member capabilities
    - Suggest milestone structure
 
-Give me a specific message for EACH team member, detailing them what they need to do RIGHT NOW and in the FUTURE. Give each user the exact things they need to work on according also to their skills.\`;
-            }
-
-            updateUI() {
-                this.updateStats();
-                this.updateUserList();
-                this.updateProjectList();
-                this.updateUserSelection();
-                this.updateProjectSelection();
-            }
-
-            updateStats() {
-                document.getElementById('userCount').textContent = this.users.length;
-                document.getElementById('projectCount').textContent = this.projects.length;
-                document.getElementById('promptCount').textContent = this.promptCount;
-            }
-
-            updateUserList() {
-                const userList = document.getElementById('userList');
-                if (this.users.length === 0) {
-                    userList.innerHTML = '<p style="text-align: center; color: #64748b; padding: 15px;">No team members yet</p>';
-                    return;
-                }
-
-                userList.innerHTML = this.users.map(user => \`
-                    <div class="user-item">
-                        <h3>👤 \${user.name}</h3>
-                        <p><strong>Skills:</strong> \${user.skills}</p>
-                        <p><strong>Languages:</strong> \${user.programmingLanguages}</p>
-                        <p><strong>Interests:</strong> \${user.willingToWorkOn || 'Not specified'}</p>
-                        <p><strong>Added:</strong> \${new Date(user.createdAt).toLocaleString()}</p>
-                        <button class="btn btn-secondary remove-user-btn" data-user-id="\${user.id}" style="margin-top: 8px; padding: 6px 12px; font-size: 0.8rem;">Remove</button>
-                    </div>
-                \`).join('');
-            }
-
-            updateProjectList() {
-                const projectList = document.getElementById('projectList');
-                if (this.projects.length === 0) {
-                    projectList.innerHTML = '<p style="text-align: center; color: #64748b; padding: 15px;">No projects yet</p>';
-                    return;
-                }
-
-                projectList.innerHTML = this.projects.map(project => \`
-                    <div class="project-item">
-                        <h3>📋 \${project.name}</h3>
-                        <p><strong>Description:</strong> \${project.description}</p>
-                        <p><strong>Goals:</strong> \${project.goals || 'Not specified'}</p>
-                        <p><strong>Requirements:</strong> \${project.requirements || 'Not specified'}</p>
-                        <p><strong>Team:</strong> \${project.selectedMembers.map(m => m.name).join(', ')}</p>
-                        <p><strong>Created:</strong> \${new Date(project.createdAt).toLocaleString()}</p>
-                        <button class="btn btn-secondary remove-project-btn" data-project-id="\${project.id}" style="margin-top: 8px; padding: 6px 12px; font-size: 0.8rem;">Remove</button>
-                    </div>
-                \`).join('');
-            }
-
-            updateUserSelection() {
-                const userSelection = document.getElementById('userSelection');
-                if (this.users.length === 0) {
-                    userSelection.innerHTML = '<p style="text-align: center; color: #64748b; padding: 10px;">Add team members first</p>';
-                    return;
-                }
-
-                userSelection.innerHTML = this.users.map(user => \`
-                    <label>
-                        <input type="checkbox" value="\${user.id}">
-                        <span><strong>\${user.name}</strong> - \${user.skills}</span>
-                    </label>
-                \`).join('');
-            }
-
-            updateProjectSelection() {
-                const projectSelect = document.getElementById('promptProject');
-                projectSelect.innerHTML = '<option value="">Choose a project...</option>' +
-                    this.projects.map(project => \`<option value="\${project.id}">\${project.name}</option>\`).join('');
-            }
-
-            removeUser(userId) {
-                this.users = this.users.filter(user => user.id != userId);
-                this.saveData();
-                this.updateUI();
-                showStatus('userStatus', 'Team member removed successfully!', 'success');
-            }
-
-            removeProject(projectId) {
-                this.projects = this.projects.filter(project => project.id != projectId);
-                this.saveData();
-                this.updateUI();
-                showStatus('projectStatus', 'Project removed successfully!', 'success');
-            }
-        }
-
-        // Global app instance
-        const app = new TeamCollaborationApp();
-
-        // Listen to messages from VS Code extension
-        window.addEventListener('message', event => {
-            const message = event.data;
-            switch (message.type) {
-                case 'requestData':
-                    vscode.postMessage({ type: 'loadData' });
+Give me a specific message for EACH team member, detailing them what they need to do RIGHT NOW and in the FUTURE. Give each user the exact things they need to work on according also to their skills.`;
+                    const tempFileName = `AI_Prompt_${projectToPrompt.name.replace(/[^a-zA-Z0-9]/g, "_")}_${Date.now()}.txt`;
+                    const workspaceFolders = vscode.workspace.workspaceFolders;
+                    if (workspaceFolders) {
+                        const filePath = vscode.Uri.joinPath(workspaceFolders[0].uri, tempFileName);
+                        await fs.writeFile(filePath.fsPath, promptContent, "utf-8");
+                        await vscode.window.showTextDocument(filePath, {
+                            viewColumn: vscode.ViewColumn.Beside,
+                            preview: false,
+                        });
+                    }
+                    currentData.promptCount++;
+                    await saveInitialData(currentData);
+                    panel.webview.postMessage({
+                        type: "dataLoaded",
+                        payload: currentData,
+                    });
+                    panel.webview.postMessage({
+                        type: "promptGeneratedFromExtension",
+                        payload: { prompt: promptContent },
+                    });
+                    vscode.window.showInformationMessage(`AI Prompt generated for project: ${projectToPrompt.name} and saved to ${tempFileName}`);
                     break;
-                case 'dataLoaded':
-                    app.loadData(message.payload);
+                }
+                case "showError": {
+                    vscode.window.showErrorMessage(msg.payload.message);
+                    break;
+                }
+                case "showSuccess": {
+                    vscode.window.showInformationMessage(msg.payload.message);
+                    break;
+                }
+                default:
                     break;
             }
         });
-
-        // UI Helper Functions
-        function showTab(tabName, clickedButton) {
-            // Hide all tabs
-            document.querySelectorAll('.tab-content').forEach(tab => {
-                tab.classList.remove('active');
-            });
-
-            // Remove active class from all buttons
-            document.querySelectorAll('.tab-button').forEach(btn => {
-                btn.classList.remove('active');
-            });
-
-            // Show selected tab
-            document.getElementById(tabName).classList.add('active');
-
-            // Activate corresponding button
-            if (clickedButton) {
-                clickedButton.classList.add('active');
-            }
-        }
-
-        function showStatus(elementId, message, type = 'success') {
-            const statusElement = document.getElementById(elementId);
-            statusElement.textContent = message;
-            statusElement.className = 'status-message status-' + type;
-            statusElement.style.display = 'block';
-            
-            setTimeout(() => {
-                statusElement.style.display = 'none';
-            }, 5000);
-
-            // Also send to VS Code
-            if (type === 'success') {
-                vscode.postMessage({ type: 'showSuccess', payload: { message } });
-            } else {
-                vscode.postMessage({ type: 'showError', payload: { message } });
-            }
-        }
-
-        function addUser() {
-            try {
-                const name = document.getElementById('userName').value.trim();
-                const skills = document.getElementById('userSkills').value.trim();
-                const languages = document.getElementById('userLanguages').value.trim();
-                const willing = document.getElementById('userWilling').value.trim();
-
-                const user = app.addUser(name, skills, languages, willing);
-                clearUserForm();
-                showStatus('userStatus', user.name + ' added successfully! Total: ' + app.users.length, 'success');
-            } catch (error) {
-                showStatus('userStatus', 'Error: ' + error.message, 'error');
-            }
-        }
-
-        function clearUserForm() {
-            document.getElementById('userName').value = '';
-            document.getElementById('userSkills').value = '';
-            document.getElementById('userLanguages').value = '';
-            document.getElementById('userWilling').value = '';
-        }
-
-        function createProject() {
-            try {
-                const name = document.getElementById('projectName').value.trim();
-                const description = document.getElementById('projectDescription').value.trim();
-                const goals = document.getElementById('projectGoals').value.trim();
-                const requirements = document.getElementById('projectRequirements').value.trim();
-                
-                const selectedCheckboxes = document.querySelectorAll('#userSelection input[type="checkbox"]:checked');
-                const selectedUserIds = Array.from(selectedCheckboxes).map(cb => cb.value);
-
-                const project = app.createProject(name, description, goals, requirements, selectedUserIds);
-                clearProjectForm();
-                showStatus('projectStatus', '🚀 ' + project.name + ' created successfully! Total: ' + app.projects.length, 'success');
-            } catch (error) {
-                showStatus('projectStatus', 'Error: ' + error.message, 'error');
-            }
-        }
-
-        function clearProjectForm() {
-            document.getElementById('projectName').value = '';
-            document.getElementById('projectDescription').value = '';
-            document.getElementById('projectGoals').value = '';
-            document.getElementById('projectRequirements').value = '';
-            
-            document.querySelectorAll('#userSelection input[type="checkbox"]').forEach(cb => {
-                cb.checked = false;
-            });
-        }
-
-        function generatePrompt() {
-            try {
-                const projectId = document.getElementById('promptProject').value;
-                if (!projectId) {
-                    throw new Error('Please select a project');
-                }
-
-                const prompt = app.generateAIPrompt(projectId);
-                document.getElementById('promptOutput').textContent = prompt;
-                showStatus('promptStatus', '🤖 AI Prompt generated! Opening in VS Code editor...', 'success');
-            } catch (error) {
-                showStatus('promptStatus', 'Error: ' + error.message, 'error');
-            }
-        }
-
-        function copyPrompt() {
-            const promptOutput = document.getElementById('promptOutput');
-            const text = promptOutput.textContent;
-            
-            if (!text || text.trim() === '' || text.includes('Select a project above')) {
-                showStatus('promptStatus', '❌ No prompt to copy. Generate a prompt first.', 'error');
-                return;
-            }
-
-            navigator.clipboard.writeText(text).then(() => {
-                showStatus('promptStatus', '📋 Prompt copied to clipboard!', 'success');
-            }).catch(() => {
-                showStatus('promptStatus', '❌ Failed to copy to clipboard', 'error');
-            });
-        }
-
-        // Add form validation animations
-        document.addEventListener('input', (e) => {
-            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
-                if (e.target.value.trim() !== '') {
-                    e.target.style.borderColor = '#10b981';
-                    e.target.style.boxShadow = '0 0 0 3px rgba(16, 185, 129, 0.1)';
-                } else if (e.target.hasAttribute('required')) {
-                    e.target.style.borderColor = '#ef4444';
-                    e.target.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.1)';
-                } else {
-                    e.target.style.borderColor = '#e5e7eb';
-                    e.target.style.boxShadow = 'none';
-                }
-            }
-        });
-
-        // Centralized Event Handling & Initialization
-        // --- Static Button Listeners ---
-        document.getElementById('add-user-btn')?.addEventListener('click', addUser);
-        document.getElementById('clear-user-form-btn')?.addEventListener('click', clearUserForm);
-        document.getElementById('create-project-btn')?.addEventListener('click', createProject);
-        document.getElementById('clear-project-form-btn')?.addEventListener('click', clearProjectForm);
-        document.getElementById('generate-prompt-btn')?.addEventListener('click', generatePrompt);
-        document.getElementById('copy-prompt-btn')?.addEventListener('click', copyPrompt);
-
-        // --- Event Delegation for Dynamic Content and Tabs ---
-        document.body.addEventListener('click', (event) => {
-            const target = event.target;
-
-            // Handle Tab switching
-            if (target.matches('.tab-button')) {
-                showTab(target.dataset.tab, target);
-            }
-
-            // Handle removing a user
-            if (target.matches('.remove-user-btn')) {
-                const userId = target.dataset.userId;
-                if (userId) {
-                    app.removeUser(userId);
-                }
-            }
-
-            // Handle removing a project
-            if (target.matches('.remove-project-btn')) {
-                const projectId = target.dataset.projectId;
-                if (projectId) {
-                    app.removeProject(projectId);
-                }
-            }
-        });
-
-        console.log('🚀 AI Collab Agent - Team Platform initialized!');
-    </script>
-</body>
-</html>`;
+    });
+    context.subscriptions.push(open);
+}
+function deactivate() { }
+async function getHtml(webview, context) {
+    const nonce = getNonce();
+    const htmlPath = path.join(context.extensionPath, "media", "webview.html");
+    let htmlContent = await fs.readFile(htmlPath, "utf-8");
+    htmlContent = htmlContent
+        .replace(/<head>/, `<head>
+        <meta http-equiv="Content-Security-Policy" content="
+            default-src 'none';
+            style-src ${webview.cspSource} 'unsafe-inline';
+            img-src ${webview.cspSource} https:;
+            script-src 'nonce-${nonce}';
+        ">`)
+        .replace(/<script>/, `<script nonce="${nonce}">`);
+    return htmlContent;
 }
 function getNonce() {
     let text = "";
