@@ -1,8 +1,6 @@
 import * as vscode from "vscode";
-// import * as fs from "fs/promises";
-// import * as path from "path";
 import * as vsls from "vsls/vscode";
-import * as fs from "fs";
+import * as fs from "fs/promises";
 import * as path from "path";
 
 // Helper function to get the full path to our data file
@@ -131,7 +129,7 @@ export async function activate(context: vscode.ExtensionContext) {
             };
             // Stringify with formatting (null, 2) for readability
             const jsonString = JSON.stringify(dataToSave, null, 2);
-            await fs.writeFile(filePath, jsonString, "utf-8");
+			await fs.writeFile(filePath, jsonString, { encoding: "utf-8" });
 
             vscode.window.showInformationMessage(
               "Team data saved to .aiCollabData.json!"
@@ -213,13 +211,13 @@ function ensureWorkspaceOpen(): boolean {
 /**
  * Build the HTML string for the webview with our Team Collaboration Platform
  */
-function getHtml(
+async function getHtml(
 	webview: vscode.Webview,
 	context: vscode.ExtensionContext,
 	data: any
-): string {
+): Promise<string> {
 	const htmlPath = path.join(context.extensionPath, "src", "webview.html");
-	let html = fs.readFileSync(htmlPath, "utf8");
+	let html = await fs.readFile(htmlPath, "utf8");
 
 	// Replace placeholders with dynamic data
 	html = html.replace(/{{cspSource}}/g, webview.cspSource);

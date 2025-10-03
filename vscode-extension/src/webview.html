@@ -5,7 +5,12 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<meta
 			http-equiv="Content-Security-Policy"
-			content="default-src 'none'; img-src ${webview.cspSource} https:; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';"
+			content="
+        default-src 'none';
+        style-src ${webview.cspSource} 'unsafe-inline';
+        img-src ${webview.cspSource} https:;
+        script-src 'nonce-${nonce}';
+    "
 		/>
 		<title>AI Collab Agent - Team Platform</title>
 		<style>
@@ -365,7 +370,6 @@
 				<button class="tab-button" data-tab="prompts">🤖 AI Prompts</button>
 			</div>
 
-			<!-- Users Tab -->
 			<div id="users" class="tab-content active">
 				<div class="section-title">Add Team Member</div>
 
@@ -426,7 +430,6 @@
 				</div>
 			</div>
 
-			<!-- Projects Tab -->
 			<div id="projects" class="tab-content">
 				<div class="section-title">Create Project</div>
 
@@ -499,7 +502,6 @@
 				</div>
 			</div>
 
-			<!-- AI Prompts Tab -->
 			<div id="prompts" class="tab-content">
 				<div class="section-title">AI Prompt Generator</div>
 
@@ -695,70 +697,70 @@
 				createComprehensivePrompt(project) {
 					const teamMemberDetails = project.selectedMembers
 						.map(
-							(user, index) => `
-			                    Team Member \${index + 1}:
-			                             Name: \${user.name}
-			                             Skills: \${user.skills}
-			                             Programming Languages: \${user.programmingLanguages}
-			                             Willing to work on: \${user.willingToWorkOn}`
+							(user, index) =>
+								`Team Member ${index + 1}:
+								Name: ${user.name}
+								Skills: ${user.skills}
+								Programming Languages: ${user.programmingLanguages}
+								Willing to work on: ${user.willingToWorkOn}`
 						)
 						.join("");
 
 					return `PROJECT ANALYSIS AND TEAM OPTIMIZATION REQUEST
 
-                            === PROJECT INFORMATION ===
-                            Project Name: \${project.name}
-                            Created: \${new Date(project.createdAt).toLocaleString()}
+							=== PROJECT INFORMATION ===
+							Project Name: \${project.name}
+							Created: \${new Date(project.createdAt).toLocaleString()}
 
-                            Project Description:
-                            \${project.description}
+							Project Description:
+							\${project.description}
 
-                            Project Goals:
-                            \${project.goals}
+							Project Goals:
+							\${project.goals}
 
-                            Project Requirements:
-                            \${project.requirements}
+							Project Requirements:
+							\${project.requirements}
 
-                            === TEAM COMPOSITION ===
-                            Team Size: \${project.selectedMembers.length} members
+							=== TEAM COMPOSITION ===
+							Team Size: \${project.selectedMembers.length} members
 
-                            \${teamMemberDetails}
+							\${teamMemberDetails}
 
-                            === AI ANALYSIS REQUEST ===
+							=== AI ANALYSIS REQUEST ===
 
-                            Please analyze this project and team composition and provide:
+							Please analyze this project and team composition and provide:
 
-                            1. TEAM ANALYSIS:
-                            - Evaluate if the current team has the right skill mix for the project requirements
-                            - Identify any skill gaps or redundancies
-                            - Assess team member compatibility based on their stated interests
+							1. TEAM ANALYSIS:
+							- Evaluate if the current team has the right skill mix for the project requirements
+							- Identify any skill gaps or redundancies
+							- Assess team member compatibility based on their stated interests
 
-                            2. PROJECT FEASIBILITY:
-                            - Analyze if the project goals are achievable with the current team
-                            - Identify potential challenges based on requirements vs. available skills
-                            - Suggest timeline considerations
+							2. PROJECT FEASIBILITY:
+							- Analyze if the project goals are achievable with the current team
+							- Identify potential challenges based on requirements vs. available skills
+							- Suggest timeline considerations
 
-                            3. ROLE ASSIGNMENTS:
-                            - Recommend specific roles for each team member based on their skills
-                            - Suggest who should lead different aspects of the project
-                            - Identify collaboration opportunities between team members
+							3. ROLE ASSIGNMENTS:
+							- Recommend specific roles for each team member based on their skills
+							- Suggest who should lead different aspects of the project
+							- Identify collaboration opportunities between team members
 
-                            4. OPTIMIZATION RECOMMENDATIONS:
-                            - Suggest additional skills that might be needed
-                            - Recommend training or resource allocation
-                            - Propose project structure and workflow improvements
+							4. OPTIMIZATION RECOMMENDATIONS:
+							- Suggest additional skills that might be needed
+							- Recommend training or resource allocation
+							- Propose project structure and workflow improvements
 
-                            5. RISK ASSESSMENT:
-                            - Identify potential project risks based on team composition
-                            - Suggest mitigation strategies
-                            - Highlight critical success factors
+							5. RISK ASSESSMENT:
+							- Identify potential project risks based on team composition
+							- Suggest mitigation strategies
+							- Highlight critical success factors
 
-                            6. DELIVERABLES MAPPING:
-                            - Break down project requirements into specific deliverables
-                            - Map deliverables to team member capabilities
-                            - Suggest milestone structure
+							6. DELIVERABLES MAPPING:
+							- Break down project requirements into specific deliverables
+							- Map deliverables to team member capabilities
+							- Suggest milestone structure
 
-			                Give me a specific message for EACH team member, detailing them what they need to do RIGHT NOW and in the FUTURE. Give each user the exact things they need to work on according also to their skills.`;
+							Give me a specific message for EACH team member, detailing them what they need to do RIGHT NOW and in the FUTURE. Give each user the exact things they need to work on according also to their skills.`;
 				}
 
 				updateUI() {
@@ -1087,58 +1089,54 @@
 				}
 			});
 
-			// Initialize on page load
-			// Initialize on page load and set up event listeners
-			// Centralized Event Handling
-			document.addEventListener("DOMContentLoaded", () => {
-				// --- Static Button Listeners ---
-				document
-					.getElementById("add-user-btn")
-					?.addEventListener("click", addUser);
-				document
-					.getElementById("clear-user-form-btn")
-					?.addEventListener("click", clearUserForm);
-				document
-					.getElementById("create-project-btn")
-					?.addEventListener("click", createProject);
-				document
-					.getElementById("clear-project-form-btn")
-					?.addEventListener("click", clearProjectForm);
-				document
-					.getElementById("generate-prompt-btn")
-					?.addEventListener("click", generatePrompt);
-				document
-					.getElementById("copy-prompt-btn")
-					?.addEventListener("click", copyPrompt);
+			// Centralized Event Handling & Initialization
+			// --- Static Button Listeners ---
+			document
+				.getElementById("add-user-btn")
+				?.addEventListener("click", addUser);
+			document
+				.getElementById("clear-user-form-btn")
+				?.addEventListener("click", clearUserForm);
+			document
+				.getElementById("create-project-btn")
+				?.addEventListener("click", createProject);
+			document
+				.getElementById("clear-project-form-btn")
+				?.addEventListener("click", clearProjectForm);
+			document
+				.getElementById("generate-prompt-btn")
+				?.addEventListener("click", generatePrompt);
+			document
+				.getElementById("copy-prompt-btn")
+				?.addEventListener("click", copyPrompt);
 
-				// --- Event Delegation for Dynamic Content and Tabs ---
-				document.body.addEventListener("click", (event) => {
-					const target = event.target;
+			// --- Event Delegation for Dynamic Content and Tabs ---
+			document.body.addEventListener("click", (event) => {
+				const target = event.target;
 
-					// Handle Tab switching
-					if (target.matches(".tab-button")) {
-						showTab(target.dataset.tab, target);
+				// Handle Tab switching
+				if (target.matches(".tab-button")) {
+					showTab(target.dataset.tab, target);
+				}
+
+				// Handle removing a user
+				if (target.matches(".remove-user-btn")) {
+					const userId = target.dataset.userId;
+					if (userId) {
+						app.removeUser(userId);
 					}
+				}
 
-					// Handle removing a user
-					if (target.matches(".remove-user-btn")) {
-						const userId = target.dataset.userId;
-						if (userId) {
-							app.removeUser(userId);
-						}
+				// Handle removing a project
+				if (target.matches(".remove-project-btn")) {
+					const projectId = target.dataset.projectId;
+					if (projectId) {
+						app.removeProject(projectId);
 					}
-
-					// Handle removing a project
-					if (target.matches(".remove-project-btn")) {
-						const projectId = target.dataset.projectId;
-						if (projectId) {
-							app.removeProject(projectId);
-						}
-					}
-				});
-
-				console.log("🚀 AI Collab Agent - Team Platform initialized!");
+				}
 			});
+
+			console.log("🚀 AI Collab Agent - Team Platform initialized!");
 		</script>
 	</body>
 </html>
