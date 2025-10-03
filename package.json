@@ -1,5 +1,8 @@
 {
   "dependencies": {
     "vsls": "^1.0.4753"
+  },
+  "devDependencies": {
+    "@types/node": "^24.6.1"
   }
 }

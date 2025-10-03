@@ -1,16 +1,21 @@
 {
-    "version": "0.2.0",
-    "configurations": [
-      {
-        "name": "Collaborative Agent",
-        "type": "extensionHost",
-        "request": "launch",
-        "runtimeExecutable": "${execPath}",
-        "args": [
-          "--extensionDevelopmentPath=${workspaceFolder}/vscode-extension"
-        ],
-        "outFiles": ["${workspaceFolder}/vscode-extension/out/**/*.js"],
-        "preLaunchTask": "npm: compile - vscode-extension"
-      }
-    ]
-  }
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Collaborative Agent", // Gave it a more descriptive name
+      "type": "extensionHost",
+      "request": "launch",
+      "runtimeExecutable": "${execPath}",
+      "args": [
+        // Path to your extension's development folder, relative to the top-level workspace
+        "--extensionDevelopmentPath=${workspaceFolder}/vscode-extension",
+        // Path to the test-workspace folder, relative to the top-level workspace
+        "--folder-uri=file://${workspaceFolder}/test-workspace"
+      ],
+      // Path to your extension's compiled JS output files
+      "outFiles": ["${workspaceFolder}/vscode-extension/out/**/*.js"],
+      // Reference to the compile task within your vscode-extension folder
+      "preLaunchTask": "npm: compile - vscode-extension"
+    }
+  ]
+}
