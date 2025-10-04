@@ -7,3 +7,12 @@
 .env.development.local
 .env.test.local
 .env.production.local
+.env
+
+node_modules/
+out/
+*.vsix
+.vscode-test/
+*.log
+
+.vscode/settings.json

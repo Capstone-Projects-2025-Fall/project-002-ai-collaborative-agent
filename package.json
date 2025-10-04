@@ -1,0 +1,95 @@
+{
+    "name": "ai-code-reviewer",
+    "displayName": "AI Code Reviewer",
+    "description": "Get instant AI-powered code reviews with a simple click",
+    "version": "1.0.0",
+    "engines": {
+        "vscode": "^1.74.0"
+    },
+    "categories": [
+        "Other"
+    ],
+    "keywords": [
+        "ai",
+        "code review",
+        "analysis",
+        "feedback"
+    ],
+    "activationEvents": [
+        "onStartupFinished"
+    ],
+    "main": "./out/ai_analyze.js",
+    "contributes": {
+        "commands": [
+            {
+                "command": "ai-code-reviewer.analyzeCode",
+                "title": "🤖 Analyze Code",
+                "category": "AI Code Reviewer"
+            },
+            {
+                "command": "ai-code-reviewer.showResults",
+                "title": "📊 Show Analysis Results",
+                "category": "AI Code Reviewer"
+            },
+            {
+                "command": "ai-code-reviewer.configure",
+                "title": "⚙️ Configure API Endpoint",
+                "category": "AI Code Reviewer"
+            }
+        ],
+        "configuration": {
+            "title": "AI Code Reviewer",
+            "properties": {
+                "aiCodeReviewer.apiEndpoint": {
+                    "type": "string",
+                    "default": "",
+                    "description": "Your Supabase function URL for code analysis",
+                    "pattern": "^https?://.*"
+                },
+                "aiCodeReviewer.showInlineButton": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Show inline Analyze button when code is selected"
+                },
+                "aiCodeReviewer.autoShowResults": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Automatically show results panel after analysis"
+                }
+            }
+        },
+        "keybindings": [
+            {
+                "command": "ai-code-reviewer.analyzeCode",
+                "key": "ctrl+shift+a",
+                "mac": "cmd+shift+a",
+                "when": "editorHasSelection"
+            }
+        ],
+        "menus": {
+            "editor/context": [
+                {
+                    "command": "ai-code-reviewer.analyzeCode",
+                    "when": "editorHasSelection",
+                    "group": "1_modification@1"
+                }
+            ]
+        }
+    },
+    "scripts": {
+        "vscode:prepublish": "npm run compile",
+        "compile": "tsc -p ./",
+        "watch": "tsc -watch -p ./"
+    },
+    "devDependencies": {
+        "@types/node": "^16.18.126",
+        "@types/node-fetch": "^2.6.2",
+        "@types/vscode": "^1.104.0",
+        "typescript": "^4.9.5"
+    },
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "node-fetch": "^2.6.7"
+    }
+}
