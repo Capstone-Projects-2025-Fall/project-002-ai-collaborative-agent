@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "fastify-auth0-verify": "^3.0.0"
+  }
+}
