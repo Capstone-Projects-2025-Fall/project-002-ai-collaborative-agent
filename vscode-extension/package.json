@@ -1,0 +1,53 @@
+{
+  "name": "ai-collab-agent",
+  "displayName": "AI Collab Agent",
+  "description": "Minimal starter: opens a webview to kick off team setup and task allocation.",
+  "publisher": "your-publisher-id",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.70.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:aiCollab.openPanel"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "aiCollab.openPanel",
+        "title": "AI Collab Agent: Open"
+      },
+      {
+        "command": "aiCollab.debugHello",
+        "title": "AI Collab Agent: Hello (debug)"
+      }
+    ],
+    "configuration": {
+      "title": "AI Collab Agent",
+      "properties": {
+        "aiCollab.apiBaseUrl": {
+          "type": "string",
+          "default": "http://localhost:4000",
+          "description": "Base URL of your Agent API (future use)."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p .",
+    "watch": "tsc -w",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^22.18.6",
+    "@types/vscode": "^1.70.0",
+    "esbuild": "^0.23.0",
+    "typescript": "^5.9.2"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
