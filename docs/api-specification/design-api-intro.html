@@ -4,30 +4,481 @@
 <meta charset="UTF-8">
 <meta name="generator" content="Docusaurus v3.8.1">
 <title data-rh="true">Design Document - Part II API | Project 002 Ai Collaborative Agent</title><meta data-rh="true" name="viewport" content="width=device-width,initial-scale=1"><meta data-rh="true" name="twitter:card" content="summary_large_image"><meta data-rh="true" property="og:url" content="https://Capstone-Projects-2025-Fall.github.io/project-002-ai-collaborative-agent/docs/api-specification/design-api-intro"><meta data-rh="true" property="og:locale" content="en"><meta data-rh="true" name="docusaurus_locale" content="en"><meta data-rh="true" name="docsearch:language" content="en"><meta data-rh="true" name="docusaurus_version" content="current"><meta data-rh="true" name="docusaurus_tag" content="docs-default-current"><meta data-rh="true" name="docsearch:version" content="current"><meta data-rh="true" name="docsearch:docusaurus_tag" content="docs-default-current"><meta data-rh="true" property="og:title" content="Design Document - Part II API | Project 002 Ai Collaborative Agent"><meta data-rh="true" name="description" content="What should be in this section."><meta data-rh="true" property="og:description" content="What should be in this section."><link data-rh="true" rel="icon" href="/project-002-ai-collaborative-agent/img/favicon.ico"><link data-rh="true" rel="canonical" href="https://Capstone-Projects-2025-Fall.github.io/project-002-ai-collaborative-agent/docs/api-specification/design-api-intro"><link data-rh="true" rel="alternate" href="https://Capstone-Projects-2025-Fall.github.io/project-002-ai-collaborative-agent/docs/api-specification/design-api-intro" hreflang="en"><link data-rh="true" rel="alternate" href="https://Capstone-Projects-2025-Fall.github.io/project-002-ai-collaborative-agent/docs/api-specification/design-api-intro" hreflang="x-default"><script data-rh="true" type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"API Specification","item":"https://Capstone-Projects-2025-Fall.github.io/project-002-ai-collaborative-agent/docs/category/api-specification"},{"@type":"ListItem","position":2,"name":"Design Document - Part II API","item":"https://Capstone-Projects-2025-Fall.github.io/project-002-ai-collaborative-agent/docs/api-specification/design-api-intro"}]}</script><script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script><link rel="stylesheet" href="/project-002-ai-collaborative-agent/assets/css/styles.5f90f4b3.css">
-<script src="/project-002-ai-collaborative-agent/assets/js/runtime~main.03167508.js" defer="defer"></script>
+<script src="/project-002-ai-collaborative-agent/assets/js/runtime~main.b3e5c044.js" defer="defer"></script>
 <script src="/project-002-ai-collaborative-agent/assets/js/main.e180355b.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard">
 <svg xmlns="http://www.w3.org/2000/svg" style="display: none;"><defs>
 <symbol id="theme-svg-external-link" viewBox="0 0 24 24"><path fill="currentColor" d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"/></symbol>
 </defs></svg>
-<script>!function(){var t="light";var e=function(){try{return new URLSearchParams(window.location.search).get("docusaurus-theme")}catch(t){}}()||function(){try{return window.localStorage.getItem("theme")}catch(t){}}();document.documentElement.setAttribute("data-theme",e||t),document.documentElement.setAttribute("data-theme-choice",e||t)}(),function(){try{const c=new URLSearchParams(window.location.search).entries();for(var[t,e]of c)if(t.startsWith("docusaurus-data-")){var a=t.replace("docusaurus-data-","data-");document.documentElement.setAttribute(a,e)}}catch(t){}}()</script><div id="__docusaurus"><div role="region" aria-label="Skip to main content"><a class="skipToContent_fXgn" href="#__docusaurus_skipToContent_fallback">Skip to main content</a></div><nav aria-label="Main" class="theme-layout-navbar navbar navbar--fixed-top"><div class="navbar__inner"><div class="theme-layout-navbar-left navbar__items"><button aria-label="Toggle navigation bar" aria-expanded="false" class="navbar__toggle clean-btn" type="button"><svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><path stroke="currentColor" stroke-linecap="round" stroke-miterlimit="10" stroke-width="2" d="M4 7h22M4 15h22M4 23h22"></path></svg></button><a class="navbar__brand" href="/project-002-ai-collaborative-agent/"><div class="navbar__logo"><img src="https://upload.wikimedia.org/wikipedia/commons/1/17/Temple_T_logo.svg" alt="My Site Logo" class="themedComponent_mlkZ themedComponent--light_NVdE"><img src="https://upload.wikimedia.org/wikipedia/commons/1/17/Temple_T_logo.svg" alt="My Site Logo" class="themedComponent_mlkZ themedComponent--dark_xIcU"></div><b class="navbar__title text--truncate">Project 002 Ai Collaborative Agent</b></a><a aria-current="page" class="navbar__item navbar__link navbar__link--active" href="/project-002-ai-collaborative-agent/docs/intro">Documentation</a><a class="navbar__item navbar__link" href="/project-002-ai-collaborative-agent/tutorial/Intro">Docusaurus Tutorial</a></div><div class="theme-layout-navbar-right navbar__items navbar__items--right"><a href="https://github.com/Capstone-Projects-2025-Fall/project-002-ai-collaborative-agent" target="_blank" rel="noopener noreferrer" class="navbar__item navbar__link">GitHub<svg width="13.5" height="13.5" aria-hidden="true" class="iconExternalLink_nPIU"><use href="#theme-svg-external-link"></use></svg></a><div class="toggle_vylO colorModeToggle_DEke"><button class="clean-btn toggleButton_gllP toggleButtonDisabled_aARS" type="button" disabled="" title="system mode" aria-label="Switch between dark and light mode (currently system mode)"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" class="toggleIcon_g3eP lightToggleIcon_pyhR"><path fill="currentColor" d="M12,9c1.65,0,3,1.35,3,3s-1.35,3-3,3s-3-1.35-3-3S10.35,9,12,9 M12,7c-2.76,0-5,2.24-5,5s2.24,5,5,5s5-2.24,5-5 S14.76,7,12,7L12,7z M2,13l2,0c0.55,0,1-0.45,1-1s-0.45-1-1-1l-2,0c-0.55,0-1,0.45-1,1S1.45,13,2,13z M20,13l2,0c0.55,0,1-0.45,1-1 s-0.45-1-1-1l-2,0c-0.55,0-1,0.45-1,1S19.45,13,20,13z M11,2v2c0,0.55,0.45,1,1,1s1-0.45,1-1V2c0-0.55-0.45-1-1-1S11,1.45,11,2z M11,20v2c0,0.55,0.45,1,1,1s1-0.45,1-1v-2c0-0.55-0.45-1-1-1C11.45,19,11,19.45,11,20z M5.99,4.58c-0.39-0.39-1.03-0.39-1.41,0 c-0.39,0.39-0.39,1.03,0,1.41l1.06,1.06c0.39,0.39,1.03,0.39,1.41,0s0.39-1.03,0-1.41L5.99,4.58z M18.36,16.95 c-0.39-0.39-1.03-0.39-1.41,0c-0.39,0.39-0.39,1.03,0,1.41l1.06,1.06c0.39,0.39,1.03,0.39,1.41,0c0.39-0.39,0.39-1.03,0-1.41 L18.36,16.95z M19.42,5.99c0.39-0.39,0.39-1.03,0-1.41c-0.39-0.39-1.03-0.39-1.41,0l-1.06,1.06c-0.39,0.39-0.39,1.03,0,1.41 s1.03,0.39,1.41,0L19.42,5.99z M7.05,18.36c0.39-0.39,0.39-1.03,0-1.41c-0.39-0.39-1.03-0.39-1.41,0l-1.06,1.06 c-0.39,0.39-0.39,1.03,0,1.41s1.03,0.39,1.41,0L7.05,18.36z"></path></svg><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" class="toggleIcon_g3eP darkToggleIcon_wfgR"><path fill="currentColor" d="M9.37,5.51C9.19,6.15,9.1,6.82,9.1,7.5c0,4.08,3.32,7.4,7.4,7.4c0.68,0,1.35-0.09,1.99-0.27C17.45,17.19,14.93,19,12,19 c-3.86,0-7-3.14-7-7C5,9.07,6.81,6.55,9.37,5.51z M12,3c-4.97,0-9,4.03-9,9s4.03,9,9,9s9-4.03,9-9c0-0.46-0.04-0.92-0.1-1.36 c-0.98,1.37-2.58,2.26-4.4,2.26c-2.98,0-5.4-2.42-5.4-5.4c0-1.81,0.89-3.42,2.26-4.4C12.92,3.04,12.46,3,12,3L12,3z"></path></svg><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" class="toggleIcon_g3eP systemToggleIcon_QzmC"><path fill="currentColor" d="m12 21c4.971 0 9-4.029 9-9s-4.029-9-9-9-9 4.029-9 9 4.029 9 9 9zm4.95-13.95c1.313 1.313 2.05 3.093 2.05 4.95s-0.738 3.637-2.05 4.95c-1.313 1.313-3.093 2.05-4.95 2.05v-14c1.857 0 3.637 0.737 4.95 2.05z"></path></svg></button></div><div class="navbarSearchContainer_Bca1"></div></div></div><div role="presentation" class="navbar-sidebar__backdrop"></div></nav><div id="__docusaurus_skipToContent_fallback" class="theme-layout-main main-wrapper mainWrapper_z2l0"><div class="docsWrapper_hBAB"><button aria-label="Scroll back to top" class="clean-btn theme-back-to-top-button backToTopButton_sjWU" type="button"></button><div class="docRoot_UBD9"><aside class="theme-doc-sidebar-container docSidebarContainer_YfHR"><div class="sidebarViewport_aRkj"><div class="sidebar_njMd"><nav aria-label="Docs sidebar" class="menu thin-scrollbar menu_SIkG"><ul class="theme-doc-sidebar-menu menu__list"><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-1 menu__list-item"><a class="menu__link" href="/project-002-ai-collaborative-agent/docs/intro">Introduction</a></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist" href="/project-002-ai-collaborative-agent/docs/category/requirements-specification">Requirements Specification</a><button aria-label="Expand sidebar category &#x27;Requirements Specification&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist" href="/project-002-ai-collaborative-agent/docs/category/system-architecture">System Architecture</a><button aria-label="Expand sidebar category &#x27;System Architecture&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist menu__link--active" href="/project-002-ai-collaborative-agent/docs/category/api-specification">API Specification</a><button aria-label="Collapse sidebar category &#x27;API Specification&#x27;" aria-expanded="true" type="button" class="clean-btn menu__caret"></button></div><ul class="menu__list"><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link menu__link--active" aria-current="page" tabindex="0" href="/project-002-ai-collaborative-agent/docs/api-specification/design-api-intro">Design Document - Part II API</a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/project-002-ai-collaborative-agent/docs/api-specification/openapi-spec">API 1 - Swagger Petstore</a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/project-002-ai-collaborative-agent/docs/api-specification/calculator-model-generated">CalculatorModel.java</a></li></ul></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist" href="/project-002-ai-collaborative-agent/docs/category/test-procedures">Test Procedures</a><button aria-label="Expand sidebar category &#x27;Test Procedures&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li></ul></nav></div></div></aside><main class="docMainContainer_TBSr"><div class="container padding-top--md padding-bottom--lg"><div class="row"><div class="col docItemCol_VOVn"><div class="docItemContainer_Djhp"><article><nav class="theme-doc-breadcrumbs breadcrumbsContainer_Z_bl" aria-label="Breadcrumbs"><ul class="breadcrumbs"><li class="breadcrumbs__item"><a aria-label="Home page" class="breadcrumbs__link" href="/project-002-ai-collaborative-agent/"><svg viewBox="0 0 24 24" class="breadcrumbHomeIcon_YNFT"><path d="M10 19v-5h4v5c0 .55.45 1 1 1h3c.55 0 1-.45 1-1v-7h1.7c.46 0 .68-.57.33-.87L12.67 3.6c-.38-.34-.96-.34-1.34 0l-8.36 7.53c-.34.3-.13.87.33.87H5v7c0 .55.45 1 1 1h3c.55 0 1-.45 1-1z" fill="currentColor"></path></svg></a></li><li class="breadcrumbs__item"><a class="breadcrumbs__link" href="/project-002-ai-collaborative-agent/docs/category/api-specification"><span>API Specification</span></a></li><li class="breadcrumbs__item breadcrumbs__item--active"><span class="breadcrumbs__link">Design Document - Part II API</span></li></ul></nav><div class="theme-doc-markdown markdown"><header><h1>Design Document - Part II API</h1></header>
-<p><strong>Purpose</strong></p>
-<p>This Design Document gives the complete design of the software implementation. This information should be in structured comments (e.g. Javadoc) in the source files. We encourage the use of a documentation generation tool to generate a draft of your API that you can augment to include the following details.</p>
-<p><strong>Requirements</strong></p>
-<p>In addition to the general documentation requirements the Design Document - Part II API will contain:</p>
-<p>General review of the software architecture for each module specified in Design Document - Part I Architecture. Please include your class diagram as an important reference.</p>
-<p><strong>For each class define the data fields, methods.</strong></p>
-<p>The purpose of the class.</p>
-<p>The purpose of each data field.</p>
-<p>The purpose of each method</p>
-<p>Pre-conditions if any.</p>
-<p>Post-conditions if any.</p>
-<p>Parameters and data types</p>
-<p>Return value and output variables</p>
-<p>Exceptions thrown* (PLEASE see note below for details).</p>
-<p>An example of an auto-generated and then augmented API specification is here (<a href="https://templeu.instructure.com/courses/106563/files/16928898?wrap=1" target="_blank" rel="noopener noreferrer" title="Fiscal Design Document 2_API.docx">Fiscal Design Document 2_API.docx</a> )</p>
-<p>This group developed their API documentation by hand (<a href="https://templeu.instructure.com/courses/106563/files/16928899?wrap=1" target="_blank" rel="noopener noreferrer" title="Design Document Part 2 API-1_MovieMatch.docx">Design Document Part 2 API-1_MovieMatch.docx</a> )</p>
-<p>*At the top level, or where appropriate, all exceptions should be caught and an error message that is meaningful to the user generated. It is not OK to say (&quot;xxxx has encountered a problem and will now close (OK?)&quot;. Error messages and recovery procedures should be documented in the User’s Manual.</p></div><footer class="theme-doc-footer docusaurus-mt-lg"><div class="row margin-top--sm theme-doc-footer-edit-meta-row"><div class="col"><a href="https://github.com/Capstone-Projects-2025-Fall/project-002-ai-collaborative-agent/edit/main/documentation/docs/api-specification/design-api-intro.md" target="_blank" rel="noopener noreferrer" class="theme-edit-this-page"><svg fill="currentColor" height="20" width="20" viewBox="0 0 40 40" class="iconEdit_Z9Sw" aria-hidden="true"><g><path d="m34.5 11.7l-3 3.1-6.3-6.3 3.1-3q0.5-0.5 1.2-0.5t1.1 0.5l3.9 3.9q0.5 0.4 0.5 1.1t-0.5 1.2z m-29.5 17.1l18.4-18.5 6.3 6.3-18.4 18.4h-6.3v-6.2z"></path></g></svg>Edit this page</a></div><div class="col lastUpdated_JAkA"><details><summary>Revision History</summary><table><thead><tr><th scope="row">Author</th><th scope="row">Revision</th><th scope="row">Date</th></tr></thead><tbody>nothing</tbody></table></details><span class="theme-last-updated">Last updated<!-- --> by <b>Morgan Butler</b></span></div></div></footer></article><nav class="docusaurus-mt-lg pagination-nav" aria-label="Docs pages"><a class="pagination-nav__link pagination-nav__link--prev" href="/project-002-ai-collaborative-agent/docs/category/api-specification"><div class="pagination-nav__sublabel">Previous</div><div class="pagination-nav__label">API Specification</div></a><a class="pagination-nav__link pagination-nav__link--next" href="/project-002-ai-collaborative-agent/docs/api-specification/openapi-spec"><div class="pagination-nav__sublabel">Next</div><div class="pagination-nav__label">API 1 - Swagger Petstore</div></a></nav></div></div></div></div></main></div></div></div><footer class="theme-layout-footer footer"><div class="container container-fluid"><div class="row footer__links"><div class="theme-layout-footer-column col footer__col"><div class="footer__title">Docs</div><ul class="footer__items clean-list"><li class="footer__item"><a class="footer__link-item" href="/project-002-ai-collaborative-agent/docs/intro">Documentation</a></li></ul></div><div class="theme-layout-footer-column col footer__col"><div class="footer__title">More</div><ul class="footer__items clean-list"><li class="footer__item"><a href="https://github.com/Capstone-Projects-2025-Fall/project-002-ai-collaborative-agent" target="_blank" rel="noopener noreferrer" class="footer__link-item">GitHub<svg width="13.5" height="13.5" aria-hidden="true" class="iconExternalLink_nPIU"><use href="#theme-svg-external-link"></use></svg></a></li></ul></div></div><div class="footer__bottom text--center"><div class="margin-bottom--sm"><img src="https://upload.wikimedia.org/wikipedia/commons/1/17/Temple_T_logo.svg" alt="My Site Logo" class="footer__logo themedComponent_mlkZ themedComponent--light_NVdE"><img src="https://upload.wikimedia.org/wikipedia/commons/1/17/Temple_T_logo.svg" alt="My Site Logo" class="footer__logo themedComponent_mlkZ themedComponent--dark_xIcU"></div><div class="footer__copyright">Copyright © 2025 Project 002 Ai Collaborative Agent, Inc. Built with Docusaurus.</div></div></div></footer></div>
+<script>!function(){var t="light";var e=function(){try{return new URLSearchParams(window.location.search).get("docusaurus-theme")}catch(t){}}()||function(){try{return window.localStorage.getItem("theme")}catch(t){}}();document.documentElement.setAttribute("data-theme",e||t),document.documentElement.setAttribute("data-theme-choice",e||t)}(),function(){try{const c=new URLSearchParams(window.location.search).entries();for(var[t,e]of c)if(t.startsWith("docusaurus-data-")){var a=t.replace("docusaurus-data-","data-");document.documentElement.setAttribute(a,e)}}catch(t){}}()</script><div id="__docusaurus"><div role="region" aria-label="Skip to main content"><a class="skipToContent_fXgn" href="#__docusaurus_skipToContent_fallback">Skip to main content</a></div><nav aria-label="Main" class="theme-layout-navbar navbar navbar--fixed-top"><div class="navbar__inner"><div class="theme-layout-navbar-left navbar__items"><button aria-label="Toggle navigation bar" aria-expanded="false" class="navbar__toggle clean-btn" type="button"><svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><path stroke="currentColor" stroke-linecap="round" stroke-miterlimit="10" stroke-width="2" d="M4 7h22M4 15h22M4 23h22"></path></svg></button><a class="navbar__brand" href="/project-002-ai-collaborative-agent/"><div class="navbar__logo"><img src="https://upload.wikimedia.org/wikipedia/commons/1/17/Temple_T_logo.svg" alt="My Site Logo" class="themedComponent_mlkZ themedComponent--light_NVdE"><img src="https://upload.wikimedia.org/wikipedia/commons/1/17/Temple_T_logo.svg" alt="My Site Logo" class="themedComponent_mlkZ themedComponent--dark_xIcU"></div><b class="navbar__title text--truncate">Project 002 Ai Collaborative Agent</b></a><a aria-current="page" class="navbar__item navbar__link navbar__link--active" href="/project-002-ai-collaborative-agent/docs/intro">Documentation</a><a class="navbar__item navbar__link" href="/project-002-ai-collaborative-agent/tutorial/Intro">Docusaurus Tutorial</a></div><div class="theme-layout-navbar-right navbar__items navbar__items--right"><a href="https://github.com/Capstone-Projects-2025-Fall/project-002-ai-collaborative-agent" target="_blank" rel="noopener noreferrer" class="navbar__item navbar__link">GitHub<svg width="13.5" height="13.5" aria-hidden="true" class="iconExternalLink_nPIU"><use href="#theme-svg-external-link"></use></svg></a><div class="toggle_vylO colorModeToggle_DEke"><button class="clean-btn toggleButton_gllP toggleButtonDisabled_aARS" type="button" disabled="" title="system mode" aria-label="Switch between dark and light mode (currently system mode)"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" class="toggleIcon_g3eP lightToggleIcon_pyhR"><path fill="currentColor" d="M12,9c1.65,0,3,1.35,3,3s-1.35,3-3,3s-3-1.35-3-3S10.35,9,12,9 M12,7c-2.76,0-5,2.24-5,5s2.24,5,5,5s5-2.24,5-5 S14.76,7,12,7L12,7z M2,13l2,0c0.55,0,1-0.45,1-1s-0.45-1-1-1l-2,0c-0.55,0-1,0.45-1,1S1.45,13,2,13z M20,13l2,0c0.55,0,1-0.45,1-1 s-0.45-1-1-1l-2,0c-0.55,0-1,0.45-1,1S19.45,13,20,13z M11,2v2c0,0.55,0.45,1,1,1s1-0.45,1-1V2c0-0.55-0.45-1-1-1S11,1.45,11,2z M11,20v2c0,0.55,0.45,1,1,1s1-0.45,1-1v-2c0-0.55-0.45-1-1-1C11.45,19,11,19.45,11,20z M5.99,4.58c-0.39-0.39-1.03-0.39-1.41,0 c-0.39,0.39-0.39,1.03,0,1.41l1.06,1.06c0.39,0.39,1.03,0.39,1.41,0s0.39-1.03,0-1.41L5.99,4.58z M18.36,16.95 c-0.39-0.39-1.03-0.39-1.41,0c-0.39,0.39-0.39,1.03,0,1.41l1.06,1.06c0.39,0.39,1.03,0.39,1.41,0c0.39-0.39,0.39-1.03,0-1.41 L18.36,16.95z M19.42,5.99c0.39-0.39,0.39-1.03,0-1.41c-0.39-0.39-1.03-0.39-1.41,0l-1.06,1.06c-0.39,0.39-0.39,1.03,0,1.41 s1.03,0.39,1.41,0L19.42,5.99z M7.05,18.36c0.39-0.39,0.39-1.03,0-1.41c-0.39-0.39-1.03-0.39-1.41,0l-1.06,1.06 c-0.39,0.39-0.39,1.03,0,1.41s1.03,0.39,1.41,0L7.05,18.36z"></path></svg><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" class="toggleIcon_g3eP darkToggleIcon_wfgR"><path fill="currentColor" d="M9.37,5.51C9.19,6.15,9.1,6.82,9.1,7.5c0,4.08,3.32,7.4,7.4,7.4c0.68,0,1.35-0.09,1.99-0.27C17.45,17.19,14.93,19,12,19 c-3.86,0-7-3.14-7-7C5,9.07,6.81,6.55,9.37,5.51z M12,3c-4.97,0-9,4.03-9,9s4.03,9,9,9s9-4.03,9-9c0-0.46-0.04-0.92-0.1-1.36 c-0.98,1.37-2.58,2.26-4.4,2.26c-2.98,0-5.4-2.42-5.4-5.4c0-1.81,0.89-3.42,2.26-4.4C12.92,3.04,12.46,3,12,3L12,3z"></path></svg><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" class="toggleIcon_g3eP systemToggleIcon_QzmC"><path fill="currentColor" d="m12 21c4.971 0 9-4.029 9-9s-4.029-9-9-9-9 4.029-9 9 4.029 9 9 9zm4.95-13.95c1.313 1.313 2.05 3.093 2.05 4.95s-0.738 3.637-2.05 4.95c-1.313 1.313-3.093 2.05-4.95 2.05v-14c1.857 0 3.637 0.737 4.95 2.05z"></path></svg></button></div><div class="navbarSearchContainer_Bca1"></div></div></div><div role="presentation" class="navbar-sidebar__backdrop"></div></nav><div id="__docusaurus_skipToContent_fallback" class="theme-layout-main main-wrapper mainWrapper_z2l0"><div class="docsWrapper_hBAB"><button aria-label="Scroll back to top" class="clean-btn theme-back-to-top-button backToTopButton_sjWU" type="button"></button><div class="docRoot_UBD9"><aside class="theme-doc-sidebar-container docSidebarContainer_YfHR"><div class="sidebarViewport_aRkj"><div class="sidebar_njMd"><nav aria-label="Docs sidebar" class="menu thin-scrollbar menu_SIkG"><ul class="theme-doc-sidebar-menu menu__list"><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-1 menu__list-item"><a class="menu__link" href="/project-002-ai-collaborative-agent/docs/intro">Introduction</a></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist" href="/project-002-ai-collaborative-agent/docs/category/requirements-specification">Requirements Specification</a><button aria-label="Expand sidebar category &#x27;Requirements Specification&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist" href="/project-002-ai-collaborative-agent/docs/category/system-architecture">System Architecture</a><button aria-label="Expand sidebar category &#x27;System Architecture&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist menu__link--active" href="/project-002-ai-collaborative-agent/docs/category/api-specification">API Specification</a><button aria-label="Collapse sidebar category &#x27;API Specification&#x27;" aria-expanded="true" type="button" class="clean-btn menu__caret"></button></div><ul class="menu__list"><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link menu__link--active" aria-current="page" tabindex="0" href="/project-002-ai-collaborative-agent/docs/api-specification/design-api-intro">Design Document - Part II API</a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/project-002-ai-collaborative-agent/docs/api-specification/openapi-spec">API 1 - Swagger Petstore</a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/project-002-ai-collaborative-agent/docs/api-specification/calculator-model-generated">CalculatorModel.java</a></li></ul></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist" href="/project-002-ai-collaborative-agent/docs/category/test-procedures">Test Procedures</a><button aria-label="Expand sidebar category &#x27;Test Procedures&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li></ul></nav></div></div></aside><main class="docMainContainer_TBSr"><div class="container padding-top--md padding-bottom--lg"><div class="row"><div class="col docItemCol_VOVn"><div class="docItemContainer_Djhp"><article><nav class="theme-doc-breadcrumbs breadcrumbsContainer_Z_bl" aria-label="Breadcrumbs"><ul class="breadcrumbs"><li class="breadcrumbs__item"><a aria-label="Home page" class="breadcrumbs__link" href="/project-002-ai-collaborative-agent/"><svg viewBox="0 0 24 24" class="breadcrumbHomeIcon_YNFT"><path d="M10 19v-5h4v5c0 .55.45 1 1 1h3c.55 0 1-.45 1-1v-7h1.7c.46 0 .68-.57.33-.87L12.67 3.6c-.38-.34-.96-.34-1.34 0l-8.36 7.53c-.34.3-.13.87.33.87H5v7c0 .55.45 1 1 1h3c.55 0 1-.45 1-1z" fill="currentColor"></path></svg></a></li><li class="breadcrumbs__item"><a class="breadcrumbs__link" href="/project-002-ai-collaborative-agent/docs/category/api-specification"><span>API Specification</span></a></li><li class="breadcrumbs__item breadcrumbs__item--active"><span class="breadcrumbs__link">Design Document - Part II API</span></li></ul></nav><div class="tocCollapsible_ETCw theme-doc-toc-mobile tocMobile_ITEo"><button type="button" class="clean-btn tocCollapsibleButton_TO0P">On this page</button></div><div class="theme-doc-markdown markdown"><header><h1>Design Document - Part II API</h1></header>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="design-document---part-ii-api-1">Design Document - Part II: API<a href="#design-document---part-ii-api-1" class="hash-link" aria-label="Direct link to Design Document - Part II: API" title="Direct link to Design Document - Part II: API">​</a></h2>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="general-review-of-software-architecture">General Review of Software Architecture<a href="#general-review-of-software-architecture" class="hash-link" aria-label="Direct link to General Review of Software Architecture" title="Direct link to General Review of Software Architecture">​</a></h3>
+<p>As outlined in Design Document - Part I, the AI Collab Agent extension follows a <strong>client-server architecture within the VS Code environment</strong>:</p>
+<ul>
+<li><strong>Backend (Extension Host):</strong> This is primarily handled by <code>extension.ts</code>. It runs in the VS Code extension host process (Node.js environment).<!-- -->
+<ul>
+<li><strong>Responsibilities:</strong> File system interaction (saving/loading data to <code>.aiCollabData.json</code>), communication with VS Code API (showing messages, opening new editor tabs), generating AI prompts, and handling messages from the Webview.</li>
+<li><strong>Data Persistence:</strong> Manages the persistent storage of <code>TeamMember</code> and <code>Project</code> data.</li>
+</ul>
+</li>
+<li><strong>Frontend (Webview):</strong> This is handled by <code>webview.html</code> (and its embedded JavaScript and CSS). It runs in a separate, sandboxed browser environment within VS Code.<!-- -->
+<ul>
+<li><strong>Responsibilities:</strong> User Interface rendering (forms, lists, status messages), user input handling, local state management (though data persistence is delegated to the backend), and sending messages to the <code>extension.ts</code> backend via the <code>vscode</code> API.</li>
+<li><strong>Communication:</strong> Interacts with <code>extension.ts</code> via message passing (<code>vscode.postMessage</code> and <code>window.addEventListener(&#x27;message&#x27;)</code>).</li>
+</ul>
+</li>
+</ul>
+<p><strong>Class Diagram Reference:</strong></p>
+<p>Below is a simplified class diagram to illustrate the relationships and responsibilities.</p>
+<!-- -->
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="module-extensionts-backend-logic">Module: <code>extension.ts</code> (Backend Logic)<a href="#module-extensionts-backend-logic" class="hash-link" aria-label="Direct link to module-extensionts-backend-logic" title="Direct link to module-extensionts-backend-logic">​</a></h3>
+<p>This file contains the core logic that runs within the VS Code extension host.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="class-implicit-extension-main-module">Class: <code>(Implicit) Extension Main Module</code><a href="#class-implicit-extension-main-module" class="hash-link" aria-label="Direct link to class-implicit-extension-main-module" title="Direct link to class-implicit-extension-main-module">​</a></h4>
+<ul>
+<li><strong>Purpose:</strong> Manages the lifecycle of the VS Code extension, registers commands, initializes the webview, handles inter-process communication with the webview, and manages persistent data storage.</li>
+</ul>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="data-fields-globalmodule-level">Data Fields: (Global/Module-level)<a href="#data-fields-globalmodule-level" class="hash-link" aria-label="Direct link to Data Fields: (Global/Module-level)" title="Direct link to Data Fields: (Global/Module-level)">​</a></h4>
+<ul>
+<li><code>context: vscode.ExtensionContext</code>
+<ul>
+<li><strong>Purpose:</strong> Provides access to the VS Code API and resources relevant to the extension&#x27;s lifecycle, such as its installation path (<code>extensionPath</code>) and global state.</li>
+</ul>
+</li>
+</ul>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="methods">Methods:<a href="#methods" class="hash-link" aria-label="Direct link to Methods:" title="Direct link to Methods:">​</a></h4>
+<ul>
+<li>
+<p><code>getDataFilePath(): string | undefined</code></p>
+<ul>
+<li><strong>Purpose:</strong> Determines the absolute path where the extension&#x27;s persistent data (<code>.aiCollabData.json</code>) should be stored within the currently open VS Code workspace.</li>
+<li><strong>Pre-conditions:</strong> A VS Code workspace must be open.</li>
+<li><strong>Post-conditions:</strong> Returns a valid file path string if a workspace is open, otherwise <code>undefined</code>.</li>
+<li><strong>Parameters:</strong> None</li>
+<li><strong>Return:</strong> <code>string | undefined</code> - The full path to the data file.</li>
+<li><strong>Exceptions:</strong> None explicitly thrown, but returns <code>undefined</code> if conditions aren&#x27;t met.</li>
+</ul>
+</li>
+<li>
+<p><code>loadInitialData(): Promise&lt;any&gt;</code></p>
+<ul>
+<li><strong>Purpose:</strong> Asynchronously reads the JSON data from the <code>.aiCollabData.json</code> file, parses it, and returns the application&#x27;s current state (users, projects, prompt count). Provides default empty states if the file doesn&#x27;t exist or is corrupted.</li>
+<li><strong>Pre-conditions:</strong> None. Relies on <code>getDataFilePath</code>.</li>
+<li><strong>Post-conditions:</strong> Returns a data object containing <code>users</code>, <code>projects</code>, and <code>promptCount</code>. <code>selectedMemberIds</code> in projects are guaranteed to be arrays.</li>
+<li><strong>Parameters:</strong> None</li>
+<li><strong>Return:</strong> <code>Promise&lt;any&gt;</code> - A promise that resolves to an object <code>{ users: [], projects: [], promptCount: 0 }</code>.</li>
+<li><strong>Exceptions:</strong> Handles file read/parse errors internally, falling back to default data.</li>
+</ul>
+</li>
+<li>
+<p><code>saveInitialData(data: any): Promise&lt;void&gt;</code></p>
+<ul>
+<li><strong>Purpose:</strong> Asynchronously serializes the current application data (users, projects, prompt count) into a JSON string and writes it to the <code>.aiCollabData.json</code> file.</li>
+<li><strong>Pre-conditions:</strong> <code>data</code> must be a valid JavaScript object. A workspace must be open to determine the file path.</li>
+<li><strong>Post-conditions:</strong> The <code>data</code> object is written to the <code>.aiCollabData.json</code> file.</li>
+<li><strong>Parameters:</strong>
+<ul>
+<li><code>data: any</code>: The application state object (containing <code>users</code>, <code>projects</code>, <code>promptCount</code>) to be saved.</li>
+</ul>
+</li>
+<li><strong>Return:</strong> <code>Promise&lt;void&gt;</code> - A promise that resolves when the data is successfully saved.</li>
+<li><strong>Exceptions:</strong> Catches and logs file write errors, shows an error message to the user.</li>
+</ul>
+</li>
+<li>
+<p><code>activate(context: vscode.ExtensionContext): void</code></p>
+<ul>
+<li><strong>Purpose:</strong> The entry point for the VS Code extension. Called when the extension is activated. It registers commands and initializes listeners.</li>
+<li><strong>Pre-conditions:</strong> None (called by VS Code).</li>
+<li><strong>Post-conditions:</strong> Commands (<code>aiCollab.debugHello</code>, <code>aiCollab.openPanel</code>) are registered.</li>
+<li><strong>Parameters:</strong>
+<ul>
+<li><code>context: vscode.ExtensionContext</code>: The context provided by VS Code for managing extension resources.</li>
+</ul>
+</li>
+<li><strong>Return:</strong> <code>void</code></li>
+<li><strong>Exceptions:</strong> None explicitly.</li>
+</ul>
+</li>
+<li>
+<p><code>deactivate(): void</code></p>
+<ul>
+<li><strong>Purpose:</strong> Called when the extension is deactivated. Used for cleanup. (Currently empty, as VS Code handles most resource disposal for this simple extension).</li>
+<li><strong>Pre-conditions:</strong> Extension is active.</li>
+<li><strong>Post-conditions:</strong> Resources cleaned up (if any).</li>
+<li><strong>Parameters:</strong> None</li>
+<li><strong>Return:</strong> <code>void</code></li>
+<li><strong>Exceptions:</strong> None explicitly.</li>
+</ul>
+</li>
+<li>
+<p><code>getHtml(webview: vscode.Webview, context: vscode.ExtensionContext): Promise&lt;string&gt;</code></p>
+<ul>
+<li><strong>Purpose:</strong> Reads the content of <code>webview.html</code> from the <code>media</code> folder, injects a Content Security Policy (CSP) meta tag with a unique <code>nonce</code>, and ensures script execution. This prepares the HTML for display in the webview panel.</li>
+<li><strong>Pre-conditions:</strong> <code>media/webview.html</code> must exist.</li>
+<li><strong>Post-conditions:</strong> Returns the modified HTML string ready for the webview.</li>
+<li><strong>Parameters:</strong>
+<ul>
+<li><code>webview: vscode.Webview</code>: The webview instance, used to get <code>cspSource</code>.</li>
+<li><code>context: vscode.ExtensionContext</code>: The extension context, used to get <code>extensionPath</code>.</li>
+</ul>
+</li>
+<li><strong>Return:</strong> <code>Promise&lt;string&gt;</code> - A promise that resolves to the full HTML content with CSP injected.</li>
+<li><strong>Exceptions:</strong> Catches file read errors (though not explicitly handled, an error would propagate).</li>
+</ul>
+</li>
+<li>
+<p><code>getNonce(): string</code></p>
+<ul>
+<li><strong>Purpose:</strong> Generates a cryptographically random string (nonce) used for the Content Security Policy to allow specific scripts to run while disallowing others.</li>
+<li><strong>Pre-conditions:</strong> None.</li>
+<li><strong>Post-conditions:</strong> Returns a 32-character alphanumeric string.</li>
+<li><strong>Parameters:</strong> None</li>
+<li><strong>Return:</strong> <code>string</code> - A random nonce string.</li>
+<li><strong>Exceptions:</strong> None.</li>
+</ul>
+</li>
+</ul>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="module-webviewhtml-frontend-logic">Module: <code>webview.html</code> (Frontend Logic)<a href="#module-webviewhtml-frontend-logic" class="hash-link" aria-label="Direct link to module-webviewhtml-frontend-logic" title="Direct link to module-webviewhtml-frontend-logic">​</a></h3>
+<p>This file contains the HTML, CSS, and JavaScript that renders and manages the user interface within the VS Code webview panel.</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="class-teammember">Class: <code>TeamMember</code><a href="#class-teammember" class="hash-link" aria-label="Direct link to class-teammember" title="Direct link to class-teammember">​</a></h4>
+<ul>
+<li><strong>Purpose:</strong> Represents a single team member with their profile details. Used to create, display, and manage individuals in the application.</li>
+</ul>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="data-fields">Data Fields:<a href="#data-fields" class="hash-link" aria-label="Direct link to Data Fields:" title="Direct link to Data Fields:">​</a></h4>
+<ul>
+<li><code>id: string | number</code>
+<ul>
+<li><strong>Purpose:</strong> Unique identifier for the team member. (Generated using <code>Date.now() + Math.random()</code>).</li>
+</ul>
+</li>
+<li><code>name: string</code>
+<ul>
+<li><strong>Purpose:</strong> The full name of the team member.</li>
+</ul>
+</li>
+<li><code>skills: string</code>
+<ul>
+<li><strong>Purpose:</strong> A comma-separated list of skills the member possesses.</li>
+</ul>
+</li>
+<li><code>programmingLanguages: string</code>
+<ul>
+<li><strong>Purpose:</strong> A comma-separated list of programming languages the member knows.</li>
+</ul>
+</li>
+<li><code>willingToWorkOn: string</code>
+<ul>
+<li><strong>Purpose:</strong> Description of the member&#x27;s interests or preferred project types.</li>
+</ul>
+</li>
+<li><code>createdAt: string</code>
+<ul>
+<li><strong>Purpose:</strong> Timestamp (ISO string) of when the team member was added.</li>
+</ul>
+</li>
+</ul>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="methods-1">Methods:<a href="#methods-1" class="hash-link" aria-label="Direct link to Methods:" title="Direct link to Methods:">​</a></h4>
+<ul>
+<li><code>constructor(name: string, skills: string, programmingLanguages: string, willingToWorkOn: string)</code>
+<ul>
+<li><strong>Purpose:</strong> Initializes a new <code>TeamMember</code> object.</li>
+<li><strong>Pre-conditions:</strong> <code>name</code>, <code>skills</code>, <code>programmingLanguages</code> should ideally be non-empty strings.</li>
+<li><strong>Post-conditions:</strong> A <code>TeamMember</code> instance with generated <code>id</code> and <code>createdAt</code> is created.</li>
+<li><strong>Parameters:</strong>
+<ul>
+<li><code>name: string</code>: Full name.</li>
+<li><code>skills: string</code>: Comma-separated skills.</li>
+<li><code>programmingLanguages: string</code>: Comma-separated languages.</li>
+<li><code>willingToWorkOn: string</code>: Interests/preferences.</li>
+</ul>
+</li>
+<li><strong>Return:</strong> <code>TeamMember</code> instance.</li>
+<li><strong>Exceptions:</strong> None.</li>
+</ul>
+</li>
+</ul>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="class-project">Class: <code>Project</code><a href="#class-project" class="hash-link" aria-label="Direct link to class-project" title="Direct link to class-project">​</a></h4>
+<ul>
+<li><strong>Purpose:</strong> Represents a single project within the application, encompassing its details and associated team members.</li>
+</ul>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="data-fields-1">Data Fields:<a href="#data-fields-1" class="hash-link" aria-label="Direct link to Data Fields:" title="Direct link to Data Fields:">​</a></h4>
+<ul>
+<li><code>id: string | number</code>
+<ul>
+<li><strong>Purpose:</strong> Unique identifier for the project.</li>
+</ul>
+</li>
+<li><code>name: string</code>
+<ul>
+<li><strong>Purpose:</strong> The name of the project.</li>
+</ul>
+</li>
+<li><code>description: string</code>
+<ul>
+<li><strong>Purpose:</strong> A detailed description of the project.</li>
+</ul>
+</li>
+<li><code>goals: string</code>
+<ul>
+<li><strong>Purpose:</strong> The objectives or aims of the project.</li>
+</ul>
+</li>
+<li><code>requirements: string</code>
+<ul>
+<li><strong>Purpose:</strong> Technical and functional requirements of the project.</li>
+</ul>
+</li>
+<li><code>selectedMemberIds: (string | number)[]</code>
+<ul>
+<li><strong>Purpose:</strong> An array of <code>id</code>s of the <code>TeamMember</code>s assigned to this project.</li>
+</ul>
+</li>
+<li><code>createdAt: string</code>
+<ul>
+<li><strong>Purpose:</strong> Timestamp (ISO string) of when the project was created.</li>
+</ul>
+</li>
+</ul>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="methods-2">Methods:<a href="#methods-2" class="hash-link" aria-label="Direct link to Methods:" title="Direct link to Methods:">​</a></h4>
+<ul>
+<li><code>constructor(name: string, description: string, goals: string, requirements: string, selectedMemberIds: (string | number)[])</code>
+<ul>
+<li><strong>Purpose:</strong> Initializes a new <code>Project</code> object.</li>
+<li><strong>Pre-conditions:</strong> <code>name</code>, <code>description</code> should ideally be non-empty strings. <code>selectedMemberIds</code> should be an array of valid <code>TeamMember</code> IDs.</li>
+<li><strong>Post-conditions:</strong> A <code>Project</code> instance with generated <code>id</code> and <code>createdAt</code> is created.</li>
+<li><strong>Parameters:</strong>
+<ul>
+<li><code>name: string</code>: Project name.</li>
+<li><code>description: string</code>: Project description.</li>
+<li><code>goals: string</code>: Project goals.</li>
+<li><code>requirements: string</code>: Project requirements.</li>
+<li><code>selectedMemberIds: (string | number)[]</code>: Array of IDs of assigned team members.</li>
+</ul>
+</li>
+<li><strong>Return:</strong> <code>Project</code> instance.</li>
+<li><strong>Exceptions:</strong> None.</li>
+</ul>
+</li>
+</ul>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="class-teamcollaborationapp">Class: <code>TeamCollaborationApp</code><a href="#class-teamcollaborationapp" class="hash-link" aria-label="Direct link to class-teamcollaborationapp" title="Direct link to class-teamcollaborationapp">​</a></h4>
+<ul>
+<li><strong>Purpose:</strong> The central controller for the webview&#x27;s UI and data management. It orchestrates user interactions, updates the display, and communicates with the VS Code extension backend for data persistence and AI services.</li>
+</ul>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="data-fields-2">Data Fields:<a href="#data-fields-2" class="hash-link" aria-label="Direct link to Data Fields:" title="Direct link to Data Fields:">​</a></h4>
+<ul>
+<li><code>users: TeamMember[]</code>
+<ul>
+<li><strong>Purpose:</strong> An array holding all <code>TeamMember</code> objects currently loaded in the application.</li>
+</ul>
+</li>
+<li><code>projects: Project[]</code>
+<ul>
+<li><strong>Purpose:</strong> An array holding all <code>Project</code> objects currently loaded in the application.</li>
+</ul>
+</li>
+<li><code>promptCount: number</code>
+<ul>
+<li><strong>Purpose:</strong> A counter for how many AI prompts have been generated.</li>
+</ul>
+</li>
+</ul>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="methods-3">Methods:<a href="#methods-3" class="hash-link" aria-label="Direct link to Methods:" title="Direct link to Methods:">​</a></h4>
+<ul>
+<li>
+<p><code>constructor()</code></p>
+<ul>
+<li><strong>Purpose:</strong> Initializes the application state and immediately requests initial data from the VS Code extension.</li>
+<li><strong>Pre-conditions:</strong> None.</li>
+<li><strong>Post-conditions:</strong> <code>users</code>, <code>projects</code> are initialized as empty arrays, <code>promptCount</code> to 0. A message is sent to the extension to <code>loadData</code>.</li>
+<li><strong>Parameters:</strong> None</li>
+<li><strong>Return:</strong> <code>TeamCollaborationApp</code> instance.</li>
+<li><strong>Exceptions:</strong> None.</li>
+</ul>
+</li>
+<li>
+<p><code>loadData(data: { users: any[], projects: any[], promptCount: number }): void</code></p>
+<ul>
+<li><strong>Purpose:</strong> Updates the internal state of the <code>TeamCollaborationApp</code> with data received from the VS Code extension. It reconstructs <code>TeamMember</code> and <code>Project</code> objects from raw data and then triggers a UI update.</li>
+<li><strong>Pre-conditions:</strong> <code>data</code> must be an object containing <code>users</code>, <code>projects</code>, and <code>promptCount</code>.</li>
+<li><strong>Post-conditions:</strong> <code>this.users</code>, <code>this.projects</code>, <code>this.promptCount</code> are updated. The UI is re-rendered.</li>
+<li><strong>Parameters:</strong>
+<ul>
+<li><code>data: object</code>: The payload received from the extension, containing arrays of user and project data and the prompt count.</li>
+</ul>
+</li>
+<li><strong>Return:</strong> <code>void</code></li>
+<li><strong>Exceptions:</strong> None.</li>
+</ul>
+</li>
+<li>
+<p><code>saveData(): void</code></p>
+<ul>
+<li><strong>Purpose:</strong> Sends the current internal state (<code>this.users</code>, <code>this.projects</code>, <code>this.promptCount</code>) to the VS Code extension for persistent storage.</li>
+<li><strong>Pre-conditions:</strong> None.</li>
+<li><strong>Post-conditions:</strong> A <code>saveData</code> message is posted to the VS Code extension.</li>
+<li><strong>Parameters:</strong> None</li>
+<li><strong>Return:</strong> <code>void</code></li>
+<li><strong>Exceptions:</strong> None.</li>
+</ul>
+</li>
+<li>
+<p><code>addUser(name: string, skills: string, programmingLanguages: string, willingToWorkOn: string): TeamMember</code></p>
+<ul>
+<li><strong>Purpose:</strong> Creates a new <code>TeamMember</code> object, adds it to the <code>users</code> array, and triggers data saving and UI update.</li>
+<li><strong>Pre-conditions:</strong> <code>name</code>, <code>skills</code>, <code>programmingLanguages</code> must be non-empty strings.</li>
+<li><strong>Post-conditions:</strong> A new <code>TeamMember</code> is added, data is saved, UI is updated.</li>
+<li><strong>Parameters:</strong>
+<ul>
+<li><code>name: string</code>: Full name.</li>
+<li><code>skills: string</code>: Comma-separated skills.</li>
+<li><code>programmingLanguages: string</code>: Comma-separated languages.</li>
+<li><code>willingToWorkOn: string</code>: Interests/preferences.</li>
+</ul>
+</li>
+<li><strong>Return:</strong> <code>TeamMember</code> - The newly added user object.</li>
+<li><strong>Exceptions:</strong> Throws <code>Error</code> if required fields are empty.</li>
+</ul>
+</li>
+<li>
+<p><code>createProject(name: string, description: string, goals: string, requirements: string, selectedUserIds: (string|number)[]): Project</code></p>
+<ul>
+<li><strong>Purpose:</strong> Creates a new <code>Project</code> object with assigned team members, adds it to the <code>projects</code> array, and triggers data saving and UI update.</li>
+<li><strong>Pre-conditions:</strong> <code>name</code>, <code>description</code> must be non-empty strings. <code>selectedUserIds</code> must be a non-empty array of existing user IDs.</li>
+<li><strong>Post-conditions:</strong> A new <code>Project</code> is added, data is saved, UI is updated.</li>
+<li><strong>Parameters:</strong>
+<ul>
+<li><code>name: string</code>: Project name.</li>
+<li><code>description: string</code>: Project description.</li>
+<li><code>goals: string</code>: Project goals.</li>
+<li><code>requirements: string</code>: Project requirements.</li>
+<li><code>selectedUserIds: (string|number)[]</code>: Array of IDs of selected team members.</li>
+</ul>
+</li>
+<li><strong>Return:</strong> <code>Project</code> - The newly created project object.</li>
+<li><strong>Exceptions:</strong> Throws <code>Error</code> if required fields are empty or no members are selected.</li>
+</ul>
+</li>
+<li>
+<p><code>generateAIPrompt(projectId: string | number): void</code></p>
+<ul>
+<li><strong>Purpose:</strong> Requests the VS Code extension backend to generate an AI prompt for a specified project.</li>
+<li><strong>Pre-conditions:</strong> <code>projectId</code> must be a valid ID of an existing project.</li>
+<li><strong>Post-conditions:</strong> A <code>generatePrompt</code> message is posted to the VS Code extension. The UI displays a &quot;Generating...&quot; status.</li>
+<li><strong>Parameters:</strong>
+<ul>
+<li><code>projectId: string | number</code>: The ID of the project for which to generate the prompt.</li>
+</ul>
+</li>
+<li><strong>Return:</strong> <code>void</code></li>
+<li><strong>Exceptions:</strong> None (error handling for invalid project ID is on the extension side).</li>
+</ul>
+</li>
+<li>
+<p><code>updateUI(): void</code></p>
+<ul>
+<li><strong>Purpose:</strong> A central method to refresh all parts of the webview UI (stats, user list, project list, dropdowns) based on the current internal data.</li>
+<li><strong>Pre-conditions:</strong> None.</li>
+<li><strong>Post-conditions:</strong> All relevant UI elements are updated.</li>
+<li><strong>Parameters:</strong> None</li>
+<li><strong>Return:</strong> <code>void</code></li>
+<li><strong>Exceptions:</strong> None.</li>
+</ul>
+</li>
+<li>
+<p><code>updateStats(): void</code></p>
+<ul>
+<li><strong>Purpose:</strong> Updates the display of the total number of users, projects, and AI prompts.</li>
+<li><strong>Pre-conditions:</strong> None.</li>
+<li><strong>Post-conditions:</strong> The <code>userCount</code>, <code>projectCount</code>, and <code>promptCount</code> elements in the HTML are updated.</li>
+<li><strong>Parameters:</strong> None</li>
+<li><strong>Return:</strong> <code>void</code></li>
+<li><strong>Exceptions:</strong> None.</li>
+</ul>
+</li>
+<li>
+<p><code>updateUserList(): void</code></p>
+<ul>
+<li><strong>Purpose:</strong> Renders or re-renders the list of all team members in the &quot;Team Members&quot; tab.</li>
+<li><strong>Pre-conditions:</strong> The <code>userList</code> HTML element must exist.</li>
+<li><strong>Post-conditions:</strong> The <code>userList</code> element contains HTML representations of all <code>this.users</code>.</li>
+<li><strong>Parameters:</strong> None</li>
+<li><strong>Return:</strong> <code>void</code></li>
+<li><strong>Exceptions:</strong> None.</li>
+</ul>
+</li>
+<li>
+<p><code>updateProjectList(): void</code></p>
+<ul>
+<li><strong>Purpose:</strong> Renders or re-renders the list of all projects in the &quot;Projects&quot; tab, showing assigned team members.</li>
+<li><strong>Pre-conditions:</strong> The <code>projectList</code> HTML element must exist.</li>
+<li><strong>Post-conditions:</strong> The <code>projectList</code> element contains HTML representations of all <code>this.projects</code>.</li>
+<li><strong>Parameters:</strong> None</li>
+<li><strong>Return:</strong> <code>void</code></li>
+<li><strong>Exceptions:</strong> None.</li>
+</ul>
+</li>
+<li>
+<p><code>updateUserSelection(): void</code></p>
+<ul>
+<li><strong>Purpose:</strong> Populates the multi-select checkbox list for team member assignment when creating a project.</li>
+<li><strong>Pre-conditions:</strong> The <code>userSelection</code> HTML element must exist.</li>
+<li><strong>Post-conditions:</strong> The <code>userSelection</code> element contains checkbox inputs for all <code>this.users</code>.</li>
+<li><strong>Parameters:</strong> None</li>
+<li><strong>Return:</strong> <code>void</code></li>
+<li><strong>Exceptions:</strong> None.</li>
+</ul>
+</li>
+<li>
+<p><code>updateProjectSelection(): void</code></p>
+<ul>
+<li><strong>Purpose:</strong> Populates the dropdown list of projects in the &quot;AI Prompts&quot; tab for prompt generation.</li>
+<li><strong>Pre-conditions:</strong> The <code>promptProject</code> HTML select element must exist.</li>
+<li><strong>Post-conditions:</strong> The <code>promptProject</code> element contains <code>&lt;option&gt;</code> tags for all <code>this.projects</code>.</li>
+<li><strong>Parameters:</strong> None</li>
+<li><strong>Return:</strong> <code>void</code></li>
+<li><strong>Exceptions:</strong> None.</li>
+</ul>
+</li>
+<li>
+<p><code>removeUser(userId: string | number): void</code></p>
+<ul>
+<li><strong>Purpose:</strong> Removes a <code>TeamMember</code> from the <code>users</code> array by their ID. Also removes this user from any projects they were assigned to. Triggers data saving and UI update.</li>
+<li><strong>Pre-conditions:</strong> <code>userId</code> must correspond to an existing <code>TeamMember</code>.</li>
+<li><strong>Post-conditions:</strong> The specified user is removed from <code>this.users</code> and from <code>selectedMemberIds</code> of any project. Data is saved, UI is updated.</li>
+<li><strong>Parameters:</strong>
+<ul>
+<li><code>userId: string | number</code>: The ID of the user to remove.</li>
+</ul>
+</li>
+<li><strong>Return:</strong> <code>void</code></li>
+<li><strong>Exceptions:</strong> None.</li>
+</ul>
+</li>
+<li>
+<p><code>removeProject(projectId: string | number): void</code></p>
+<ul>
+<li><strong>Purpose:</strong> Removes a <code>Project</code> from the <code>projects</code> array by its ID. Triggers data saving and UI update.</li>
+<li><strong>Pre-conditions:</strong> <code>projectId</code> must correspond to an existing <code>Project</code>.</li>
+<li><strong>Post-conditions:</strong> The specified project is removed from <code>this.projects</code>. Data is saved, UI is updated.</li>
+<li><strong>Parameters:</strong>
+<ul>
+<li><code>projectId: string | number</code>: The ID of the project to remove.</li>
+</ul>
+</li>
+<li><strong>Return:</strong> <code>void</code></li>
+<li><strong>Exceptions:</strong> None.</li>
+</ul>
+</li>
+</ul>
+<hr>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="additional-notes">Additional Notes:<a href="#additional-notes" class="hash-link" aria-label="Direct link to Additional Notes:" title="Direct link to Additional Notes:">​</a></h3>
+<ul>
+<li><strong>Error Handling:</strong> Exceptions are primarily handled at the point of origin (e.g., <code>addUser</code> throws an <code>Error</code> for missing fields, which is then caught by the event listener and displayed via <code>showStatus</code>). Network/file errors are handled on the extension side.</li>
+<li><strong>Parameters &amp; Data Types:</strong> TypeScript-like annotations (<code>: string</code>, <code>: number</code>, <code>: any[]</code>, <code>: Promise&lt;void&gt;</code>) are used to indicate data types.</li>
+<li><strong>Documentation Generation:</strong> Tools like JSDoc (for JavaScript/TypeScript) can parse comments structured like the ones described here (e.g., using <code>@param</code>, <code>@returns</code>, <code>@throws</code>) to automatically generate HTML documentation. This document serves as the <em>content</em> that would typically go into those comments.</li>
+</ul></div><footer class="theme-doc-footer docusaurus-mt-lg"><div class="row margin-top--sm theme-doc-footer-edit-meta-row"><div class="col"><a href="https://github.com/Capstone-Projects-2025-Fall/project-002-ai-collaborative-agent/edit/main/documentation/docs/api-specification/design-api-intro.md" target="_blank" rel="noopener noreferrer" class="theme-edit-this-page"><svg fill="currentColor" height="20" width="20" viewBox="0 0 40 40" class="iconEdit_Z9Sw" aria-hidden="true"><g><path d="m34.5 11.7l-3 3.1-6.3-6.3 3.1-3q0.5-0.5 1.2-0.5t1.1 0.5l3.9 3.9q0.5 0.4 0.5 1.1t-0.5 1.2z m-29.5 17.1l18.4-18.5 6.3 6.3-18.4 18.4h-6.3v-6.2z"></path></g></svg>Edit this page</a></div><div class="col lastUpdated_JAkA"><details><summary>Revision History</summary><table><thead><tr><th scope="row">Author</th><th scope="row">Revision</th><th scope="row">Date</th></tr></thead><tbody>nothing</tbody></table></details><span class="theme-last-updated">Last updated<!-- --> by <b>Thomas Ishida</b></span></div></div></footer></article><nav class="docusaurus-mt-lg pagination-nav" aria-label="Docs pages"><a class="pagination-nav__link pagination-nav__link--prev" href="/project-002-ai-collaborative-agent/docs/category/api-specification"><div class="pagination-nav__sublabel">Previous</div><div class="pagination-nav__label">API Specification</div></a><a class="pagination-nav__link pagination-nav__link--next" href="/project-002-ai-collaborative-agent/docs/api-specification/openapi-spec"><div class="pagination-nav__sublabel">Next</div><div class="pagination-nav__label">API 1 - Swagger Petstore</div></a></nav></div></div><div class="col col--3"><div class="tableOfContents_bqdL thin-scrollbar theme-doc-toc-desktop"><ul class="table-of-contents table-of-contents__left-border"><li><a href="#design-document---part-ii-api-1" class="table-of-contents__link toc-highlight">Design Document - Part II: API</a><ul><li><a href="#general-review-of-software-architecture" class="table-of-contents__link toc-highlight">General Review of Software Architecture</a></li><li><a href="#module-extensionts-backend-logic" class="table-of-contents__link toc-highlight">Module: <code>extension.ts</code> (Backend Logic)</a></li><li><a href="#module-webviewhtml-frontend-logic" class="table-of-contents__link toc-highlight">Module: <code>webview.html</code> (Frontend Logic)</a></li><li><a href="#additional-notes" class="table-of-contents__link toc-highlight">Additional Notes:</a></li></ul></li></ul></div></div></div></div></main></div></div></div><footer class="theme-layout-footer footer"><div class="container container-fluid"><div class="row footer__links"><div class="theme-layout-footer-column col footer__col"><div class="footer__title">Docs</div><ul class="footer__items clean-list"><li class="footer__item"><a class="footer__link-item" href="/project-002-ai-collaborative-agent/docs/intro">Documentation</a></li></ul></div><div class="theme-layout-footer-column col footer__col"><div class="footer__title">More</div><ul class="footer__items clean-list"><li class="footer__item"><a href="https://github.com/Capstone-Projects-2025-Fall/project-002-ai-collaborative-agent" target="_blank" rel="noopener noreferrer" class="footer__link-item">GitHub<svg width="13.5" height="13.5" aria-hidden="true" class="iconExternalLink_nPIU"><use href="#theme-svg-external-link"></use></svg></a></li></ul></div></div><div class="footer__bottom text--center"><div class="margin-bottom--sm"><img src="https://upload.wikimedia.org/wikipedia/commons/1/17/Temple_T_logo.svg" alt="My Site Logo" class="footer__logo themedComponent_mlkZ themedComponent--light_NVdE"><img src="https://upload.wikimedia.org/wikipedia/commons/1/17/Temple_T_logo.svg" alt="My Site Logo" class="footer__logo themedComponent_mlkZ themedComponent--dark_xIcU"></div><div class="footer__copyright">Copyright © 2025 Project 002 Ai Collaborative Agent, Inc. Built with Docusaurus.</div></div></div></footer></div>
 </body>
 </html>
