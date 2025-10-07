@@ -7,3 +7,17 @@
 .env.development.local
 .env.test.local
 .env.production.local
+
+# python stuff
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# virtual environment
+fastapi/.venv
+fastapi/venv
+venv/
+env/
+.venv/
+.env
