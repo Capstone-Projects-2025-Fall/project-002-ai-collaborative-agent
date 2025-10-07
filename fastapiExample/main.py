@@ -30,7 +30,7 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
 
 app = FastAPI(
     title="Collaborative Agent API",
-    description="Gateway service for handling requests",
+    description="The official API documentation for the AI Collab Agent backend. This API provides services for managing users, projects, tasks, and leveraging AI for collaborative development within the VS Code extension.",
     version="1.0.0"
 )
 
