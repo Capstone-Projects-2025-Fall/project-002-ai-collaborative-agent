@@ -38,6 +38,7 @@ exports.deactivate = deactivate;
 const vscode = __importStar(require("vscode"));
 const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
+const ai_analyze_1 = require("./ai_analyze");
 // Helper function to get the full path to our data file
 function getDataFilePath() {
     const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
@@ -93,6 +94,7 @@ async function saveInitialData(data) {
     }
 }
 function activate(context) {
+    (0, ai_analyze_1.activateCodeReviewer)(context);
     vscode.window.showInformationMessage("AI Collab Agent activated");
     // ---- Debug/health command
     const hello = vscode.commands.registerCommand("aiCollab.debugHello", () => {

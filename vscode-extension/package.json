@@ -11,7 +11,7 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:aiCollab.openPanel"
+    "onStartupFinished"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -23,6 +23,18 @@
       {
         "command": "aiCollab.debugHello",
         "title": "AI Collab Agent: Hello (debug)"
+      },
+      {
+        "command": "ai-code-reviewer.analyzeCode",
+        "title": "AnalyzeCode"
+      },
+      {
+        "command": "ai-code-reviewer.configure",
+        "title": "Configure Code Reviewer"
+      },
+      {
+        "command": "ai-code-reviewer.showResults",
+        "title": "Show Analysis Results"
       }
     ],
     "configuration": {
@@ -32,9 +44,27 @@
           "type": "string",
           "default": "http://localhost:4000",
           "description": "Base URL of your Agent API (future use)."
+        },
+        "aiCodeReviewer.apiEndpoint": {
+          "type": "string",
+          "default": "",
+          "description": "Your Supabase function URL for code analysis"
+        },
+        "aiCodeReviewer.showInlineButton": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show inline Analyze button when code is selected"
         }
       }
-    }
+    },
+    "keybindings": [
+      {
+        "command": "ai-code-reviewer.analyzeCode",
+        "key": "ctrl+shift+a",
+        "mac": "cmd+shift+a",
+        "when": "editorHasSelection"
+      }
+    ]
   },
   "scripts": {
     "compile": "tsc -p .",
@@ -49,5 +79,8 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "node-fetch": "^2.6.7"
+  }
 }

@@ -1,6 +1,8 @@
 import * as vscode from "vscode";
 import * as fs from "fs/promises";
 import * as path from "path";
+import { activateCodeReviewer } from "./ai_analyze";
+
 
 // Helper function to get the full path to our data file
 function getDataFilePath(): string | undefined {
@@ -64,6 +66,7 @@ async function saveInitialData(data: any): Promise<void> {
 }
 
 export function activate(context: vscode.ExtensionContext) {
+  activateCodeReviewer(context);
   vscode.window.showInformationMessage("AI Collab Agent activated");
 
   // ---- Debug/health command
