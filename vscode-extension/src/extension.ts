@@ -3,6 +3,8 @@ import * as fs from "fs/promises";
 import * as path from "path";
 import * as dotenv from "dotenv";
 import { AuthService } from "./authService";
+import { LoginWebviewPanel } from "./LoginWebview";
+import { RopcAuthService } from "./ropcAuthService";
 
 // Helper function to get the full path to our data file
 function getDataFilePath(): string | undefined {
@@ -70,7 +72,25 @@ export function activate(context: vscode.ExtensionContext) {
 
   vscode.window.showInformationMessage("AI Collab Agent activated");
 
-  const authService = new AuthService(context);
+  const authService = new RopcAuthService(context);
+
+  const loginWebviewCommand = vscode.commands.registerCommand(
+    "aiCollab.login",
+    () => {
+      LoginWebviewPanel.createOrShow(
+        context.extensionUri,
+        async (email, password) => {
+          // This function is called when the user clicks "Login" inside the webview
+          const success = await authService.login(email, password);
+          if (success) {
+            // Optionally, tell the main webview to reload its data
+            vscode.commands.executeCommand("aiCollab.openPanel");
+          }
+        }
+      );
+    }
+  );
+  context.subscriptions.push(loginWebviewCommand);
 
   // ---- Debug/health command
   const hello = vscode.commands.registerCommand("aiCollab.debugHello", () => {
@@ -263,8 +283,16 @@ Give me a specific message for EACH team member, detailing them what they need t
       });
     }
   );
-  const login = vscode.commands.registerCommand("aiCollab.login", async () => {
-    await authService.login();
+  const login = vscode.commands.registerCommand("aiCollab.login", () => {
+    // This command's job is to SHOW the login panel.
+    LoginWebviewPanel.createOrShow(
+      context.extensionUri,
+      async (email, password) => {
+        // This part only runs AFTER the user submits the form inside the webview.
+        // It correctly calls authService.login with the email and password.
+        await authService.login(email, password);
+      }
+    );
   });
 
   // Command: Logout

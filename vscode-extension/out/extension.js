@@ -39,7 +39,8 @@ const vscode = __importStar(require("vscode"));
 const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
 const dotenv = __importStar(require("dotenv"));
-const authService_1 = require("./authService");
+const LoginWebview_1 = require("./LoginWebview");
+const ropcAuthService_1 = require("./ropcAuthService");
 // Helper function to get the full path to our data file
 function getDataFilePath() {
     const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
@@ -97,7 +98,18 @@ async function saveInitialData(data) {
 function activate(context) {
     dotenv.config({ path: path.join(__dirname, "..", ".env") });
     vscode.window.showInformationMessage("AI Collab Agent activated");
-    const authService = new authService_1.AuthService(context);
+    const authService = new ropcAuthService_1.RopcAuthService(context);
+    const loginWebviewCommand = vscode.commands.registerCommand("aiCollab.login", () => {
+        LoginWebview_1.LoginWebviewPanel.createOrShow(context.extensionUri, async (email, password) => {
+            // This function is called when the user clicks "Login" inside the webview
+            const success = await authService.login(email, password);
+            if (success) {
+                // Optionally, tell the main webview to reload its data
+                vscode.commands.executeCommand("aiCollab.openPanel");
+            }
+        });
+    });
+    context.subscriptions.push(loginWebviewCommand);
     // ---- Debug/health command
     const hello = vscode.commands.registerCommand("aiCollab.debugHello", () => {
         vscode.window.showInformationMessage("Hello from AI Collab Agent!");
@@ -248,8 +260,13 @@ Give me a specific message for EACH team member, detailing them what they need t
             }
         });
     });
-    const login = vscode.commands.registerCommand("aiCollab.login", async () => {
-        await authService.login();
+    const login = vscode.commands.registerCommand("aiCollab.login", () => {
+        // This command's job is to SHOW the login panel.
+        LoginWebview_1.LoginWebviewPanel.createOrShow(context.extensionUri, async (email, password) => {
+            // This part only runs AFTER the user submits the form inside the webview.
+            // It correctly calls authService.login with the email and password.
+            await authService.login(email, password);
+        });
     });
     // Command: Logout
     const logout = vscode.commands.registerCommand("aiCollab.logout", async () => {
