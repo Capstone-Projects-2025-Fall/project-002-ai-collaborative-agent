@@ -2,6 +2,7 @@
 
 import * as vscode from "vscode";
 import { SupabaseClient, createClient } from "@supabase/supabase-js";
+import * as dotenv from "dotenv";
 
 // --- Configuration Constants ---
 const AUTH0_DOMAIN = process.env.AUTH0_DOMAIN;
@@ -68,7 +69,7 @@ export class RopcAuthService {
         throw new Error("Login failed: No tokens returned.");
       }
     } catch (err: any) {
-      vscode.window.showErrorMessage(`Login failed: ${err.message}`);
+      vscode.window.showErrorMessage(`Login failed: ${err.message}`); // Corrected line
       return false;
     }
   }

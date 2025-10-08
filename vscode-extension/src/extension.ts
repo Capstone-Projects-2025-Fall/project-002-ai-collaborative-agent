@@ -283,13 +283,25 @@ Give me a specific message for EACH team member, detailing them what they need t
       });
     }
   );
+
+  const testEnv = vscode.commands.registerCommand("aiCollab.testEnv", () => {
+    const auth0Domain = process.env.AUTH0_DOMAIN;
+    const auth0ClientId = process.env.AUTH0_CLIENT_ID;
+
+    vscode.window.showInformationMessage(
+      `[Test] Auth0 Domain: ${auth0Domain} | Client ID: ${auth0ClientId}`
+    );
+
+    // Also, let's log ALL environment variables to the debug console
+    console.log("--- All Environment Variables ---");
+    console.log(process.env);
+    console.log("---------------------------------");
+  });
   const login = vscode.commands.registerCommand("aiCollab.login", () => {
-    // This command's job is to SHOW the login panel.
     LoginWebviewPanel.createOrShow(
       context.extensionUri,
       async (email, password) => {
-        // This part only runs AFTER the user submits the form inside the webview.
-        // It correctly calls authService.login with the email and password.
+        // This code runs AFTER the user submits the form in the webview
         await authService.login(email, password);
       }
     );
@@ -341,7 +353,14 @@ Give me a specific message for EACH team member, detailing them what they need t
 
   // --- 3. Subscribe All Commands ---
   // Add all registered commands to the context subscriptions
-  context.subscriptions.push(hello, open, login, logout, getSupabaseUser);
+  context.subscriptions.push(
+    hello,
+    open,
+    login,
+    logout,
+    getSupabaseUser,
+    testEnv
+  );
 }
 
 export function deactivate() {}

@@ -35,6 +35,10 @@
       {
         "command": "aiCollab.debugHello",
         "title": "AI Collab Agent: Hello (debug)"
+      },
+      {
+        "command": "aiCollab.testEnv",
+        "title": "AI Collab Agent: Test .env Variables"
       }
     ],
     "configuration": {

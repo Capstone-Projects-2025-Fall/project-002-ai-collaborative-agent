@@ -91,7 +91,7 @@ class RopcAuthService {
             }
         }
         catch (err) {
-            vscode.window.showErrorMessage(`Login failed: ${err.message}`);
+            vscode.window.showErrorMessage(`Login failed: ${err.message}`); // Corrected line
             return false;
         }
     }
