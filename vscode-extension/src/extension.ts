@@ -1,6 +1,8 @@
 import * as vscode from "vscode";
 import * as fs from "fs/promises";
 import * as path from "path";
+import * as dotenv from "dotenv";
+import { AuthService } from "./authService";
 
 // Helper function to get the full path to our data file
 function getDataFilePath(): string | undefined {
@@ -64,7 +66,11 @@ async function saveInitialData(data: any): Promise<void> {
 }
 
 export function activate(context: vscode.ExtensionContext) {
+  dotenv.config({ path: path.join(__dirname, "..", ".env") });
+
   vscode.window.showInformationMessage("AI Collab Agent activated");
+
+  const authService = new AuthService(context);
 
   // ---- Debug/health command
   const hello = vscode.commands.registerCommand("aiCollab.debugHello", () => {
@@ -257,7 +263,57 @@ Give me a specific message for EACH team member, detailing them what they need t
       });
     }
   );
-  context.subscriptions.push(open);
+  const login = vscode.commands.registerCommand("aiCollab.login", async () => {
+    await authService.login();
+  });
+
+  // Command: Logout
+  const logout = vscode.commands.registerCommand(
+    "aiCollab.logout",
+    async () => {
+      await authService.logout();
+    }
+  );
+
+  // Command: Get Supabase User (requires authentication)
+  const getSupabaseUser = vscode.commands.registerCommand(
+    "aiCollab.getSupabaseUser",
+    async () => {
+      const supabase = await authService.getSupabaseClient();
+
+      if (!supabase) {
+        const choice = await vscode.window.showInformationMessage(
+          "You are not logged in. Would you like to log in?",
+          "Log In",
+          "Cancel"
+        );
+        if (choice === "Log In") {
+          vscode.commands.executeCommand("aiCollab.login");
+        }
+        return;
+      }
+
+      vscode.window.showInformationMessage(
+        "Fetching your Supabase user data..."
+      );
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
+
+      if (error) {
+        vscode.window.showErrorMessage(`Error getting user: ${error.message}`);
+      } else if (user) {
+        vscode.window.showInformationMessage(
+          `Successfully authenticated as ${user.email}`
+        );
+      }
+    }
+  );
+
+  // --- 3. Subscribe All Commands ---
+  // Add all registered commands to the context subscriptions
+  context.subscriptions.push(hello, open, login, logout, getSupabaseUser);
 }
 
 export function deactivate() {}

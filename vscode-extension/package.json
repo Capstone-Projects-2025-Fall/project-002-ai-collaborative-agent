@@ -5,13 +5,13 @@
   "publisher": "your-publisher-id",
   "version": "0.0.1",
   "engines": {
-    "vscode": "^1.70.0"
+    "vscode": "^1.80.0"
   },
   "categories": [
     "Other"
   ],
   "activationEvents": [
-    "onCommand:aiCollab.openPanel"
+    "onStartupFinished"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -19,6 +19,18 @@
       {
         "command": "aiCollab.openPanel",
         "title": "AI Collab Agent: Open"
+      },
+      {
+        "command": "aiCollab.login",
+        "title": "AI Collab Agent: Login"
+      },
+      {
+        "command": "aiCollab.logout",
+        "title": "AI Collab Agent: Logout"
+      },
+      {
+        "command": "aiCollab.getSupabaseUser",
+        "title": "AI Collab Agent: Get Supabase User"
       },
       {
         "command": "aiCollab.debugHello",
@@ -37,15 +49,21 @@
     }
   },
   "scripts": {
-    "compile": "tsc -p .",
-    "watch": "tsc -w",
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -w -p ./",
     "package": "vsce package"
   },
   "devDependencies": {
-    "@types/node": "^22.18.6",
-    "@types/vscode": "^1.70.0",
+    "@types/node": "^20.11.20",
+    "@types/vscode": "^1.80.0",
     "esbuild": "^0.23.0",
-    "typescript": "^5.9.2"
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.8",
+    "dotenv": "^16.4.5",
+    "nanoid": "^4.0.2"
   },
   "keywords": [],
   "author": "",

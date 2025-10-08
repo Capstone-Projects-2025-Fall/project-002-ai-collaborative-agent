@@ -38,6 +38,8 @@ exports.deactivate = deactivate;
 const vscode = __importStar(require("vscode"));
 const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
+const dotenv = __importStar(require("dotenv"));
+const authService_1 = require("./authService");
 // Helper function to get the full path to our data file
 function getDataFilePath() {
     const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
@@ -93,7 +95,9 @@ async function saveInitialData(data) {
     }
 }
 function activate(context) {
+    dotenv.config({ path: path.join(__dirname, "..", ".env") });
     vscode.window.showInformationMessage("AI Collab Agent activated");
+    const authService = new authService_1.AuthService(context);
     // ---- Debug/health command
     const hello = vscode.commands.registerCommand("aiCollab.debugHello", () => {
         vscode.window.showInformationMessage("Hello from AI Collab Agent!");
@@ -244,7 +248,35 @@ Give me a specific message for EACH team member, detailing them what they need t
             }
         });
     });
-    context.subscriptions.push(open);
+    const login = vscode.commands.registerCommand("aiCollab.login", async () => {
+        await authService.login();
+    });
+    // Command: Logout
+    const logout = vscode.commands.registerCommand("aiCollab.logout", async () => {
+        await authService.logout();
+    });
+    // Command: Get Supabase User (requires authentication)
+    const getSupabaseUser = vscode.commands.registerCommand("aiCollab.getSupabaseUser", async () => {
+        const supabase = await authService.getSupabaseClient();
+        if (!supabase) {
+            const choice = await vscode.window.showInformationMessage("You are not logged in. Would you like to log in?", "Log In", "Cancel");
+            if (choice === "Log In") {
+                vscode.commands.executeCommand("aiCollab.login");
+            }
+            return;
+        }
+        vscode.window.showInformationMessage("Fetching your Supabase user data...");
+        const { data: { user }, error, } = await supabase.auth.getUser();
+        if (error) {
+            vscode.window.showErrorMessage(`Error getting user: ${error.message}`);
+        }
+        else if (user) {
+            vscode.window.showInformationMessage(`Successfully authenticated as ${user.email}`);
+        }
+    });
+    // --- 3. Subscribe All Commands ---
+    // Add all registered commands to the context subscriptions
+    context.subscriptions.push(hello, open, login, logout, getSupabaseUser);
 }
 function deactivate() { }
 async function getHtml(webview, context) {
