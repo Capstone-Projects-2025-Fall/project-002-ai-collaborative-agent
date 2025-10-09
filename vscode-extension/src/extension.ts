@@ -1,158 +1,208 @@
 import * as vscode from "vscode";
 import * as fs from "fs/promises";
 import * as path from "path";
+import * as vsls from "vsls/vscode";
 
 // Helper function to get the full path to our data file
 function getDataFilePath(): string | undefined {
-  const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-  if (!workspaceFolder) {
-    return undefined; // No open folder
-  }
-  // We'll store our data in a hidden file in the root of the workspace
-  return path.join(workspaceFolder.uri.fsPath, ".aiCollabData.json");
+	const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+	if (!workspaceFolder) {
+		return undefined; // No open folder
+	}
+	// We'll store our data in a hidden file in the root of the workspace
+	return path.join(workspaceFolder.uri.fsPath, ".aiCollabData.json");
 }
 
 // Helper function to load all data from the file
 async function loadInitialData(): Promise<any> {
-  const filePath = getDataFilePath();
-  let data: { users: any[]; projects: any[]; promptCount: number } = {
-    users: [],
-    projects: [],
-    promptCount: 0,
-  };
+	const filePath = getDataFilePath();
+	let data: { users: any[]; projects: any[]; promptCount: number } = {
+		users: [],
+		projects: [],
+		promptCount: 0,
+	};
 
-  if (filePath) {
-    try {
-      const fileContent = await fs.readFile(filePath, "utf-8");
-      const parsedData = JSON.parse(fileContent);
+	if (filePath) {
+		try {
+			const fileContent = await fs.readFile(filePath, "utf-8");
+			const parsedData = JSON.parse(fileContent);
 
-      data.users = parsedData.users || [];
-      data.projects = parsedData.projects || [];
-      data.promptCount = parsedData.promptCount || 0;
-    } catch (error) {
-      console.log("Data file not found or invalid, using default state.");
-    }
-  }
+			data.users = parsedData.users || [];
+			data.projects = parsedData.projects || [];
+			data.promptCount = parsedData.promptCount || 0;
+		} catch (error) {
+			console.log("Data file not found or invalid, using default state.");
+		}
+	}
 
-  // Ensure selectedMemberIds is an array for all projects (backward compatibility/safety)
-  data.projects = data.projects.map((projectData: any) => ({
-    ...projectData,
-    selectedMemberIds: Array.isArray(projectData.selectedMemberIds)
-      ? projectData.selectedMemberIds
-      : [],
-  }));
+	// Ensure selectedMemberIds is an array for all projects (backward compatibility/safety)
+	data.projects = data.projects.map((projectData: any) => ({
+		...projectData,
+		selectedMemberIds: Array.isArray(projectData.selectedMemberIds)
+			? projectData.selectedMemberIds
+			: [],
+	}));
 
-  return data;
+	return data;
 }
 
 // Helper function to save all data to the file
 async function saveInitialData(data: any): Promise<void> {
-  const filePath = getDataFilePath();
-  if (!filePath) {
-    vscode.window.showErrorMessage(
-      "Please open a folder in your workspace to save data."
-    );
-    return;
-  }
-  try {
-    const jsonString = JSON.stringify(data, null, 2);
-    await fs.writeFile(filePath, jsonString, "utf-8");
-  } catch (error) {
-    console.error("Failed to save data:", error);
-    vscode.window.showErrorMessage("Failed to save team data to file.");
-  }
+	const filePath = getDataFilePath();
+	if (!filePath) {
+		vscode.window.showErrorMessage(
+			"Please open a folder in your workspace to save data."
+		);
+		return;
+	}
+	try {
+		const jsonString = JSON.stringify(data, null, 2);
+		await fs.writeFile(filePath, jsonString, "utf-8");
+	} catch (error) {
+		console.error("Failed to save data:", error);
+		vscode.window.showErrorMessage("Failed to save team data to file.");
+	}
 }
 
-export function activate(context: vscode.ExtensionContext) {
-  vscode.window.showInformationMessage("AI Collab Agent activated");
+export async function activate(context: vscode.ExtensionContext) {
+	vscode.window.showInformationMessage("AI Collab Agent activated");
 
-  // ---- Debug/health command
-  const hello = vscode.commands.registerCommand("aiCollab.debugHello", () => {
-    vscode.window.showInformationMessage("Hello from AI Collab Agent!");
-  });
-  context.subscriptions.push(hello);
+	// ---- Debug/health command
+	const hello = vscode.commands.registerCommand("aiCollab.debugHello", () => {
+		vscode.window.showInformationMessage("Hello from AI Collab Agent!");
+	});
+	context.subscriptions.push(hello);
 
-  // ---- Main command: opens the webview panel
-  const open = vscode.commands.registerCommand(
-    "aiCollab.openPanel",
-    async () => {
-      const panel = vscode.window.createWebviewPanel(
-        "aiCollabPanel",
-        "AI Collab Agent - Team Platform",
-        vscode.ViewColumn.Active,
-        {
-          enableScripts: true,
-          retainContextWhenHidden: true,
-          localResourceRoots: [
-            vscode.Uri.file(path.join(context.extensionPath, "media")),
-          ],
-        }
-      );
+	const liveShare = (await vsls.getApi()) as vsls.LiveShare | null;
+	liveShare?.onDidChangeSession((e) =>
+		console.log("[AI Collab] Live Share role:", e.session?.role)
+	);
 
-      panel.webview.html = await getHtml(panel.webview, context);
+	// ---- Main command: opens the webview panel
+	const open = vscode.commands.registerCommand(
+		"aiCollab.openPanel",
+		async () => {
+			const panel = vscode.window.createWebviewPanel(
+				"aiCollabPanel",
+				"AI Collab Agent - Team Platform",
+				vscode.ViewColumn.Active,
+				{
+					enableScripts: true,
+					retainContextWhenHidden: true,
+					localResourceRoots: [
+						vscode.Uri.file(path.join(context.extensionPath, "media")),
+					],
+				}
+			);
 
-      panel.webview.onDidReceiveMessage(async (msg: any) => {
-        switch (msg.type) {
-          case "saveData": {
-            await saveInitialData(msg.payload);
-            vscode.window.showInformationMessage(
-              "Team data saved to .aiCollabData.json!"
-            );
-            break;
-          }
+			panel.webview.html = await getHtml(panel.webview, context);
 
-          case "loadData": {
-            const data = await loadInitialData();
-            panel.webview.postMessage({
-              type: "dataLoaded",
-              payload: data,
-            });
-            break;
-          }
+			// Live Share service setup
+			let hostService: vsls.SharedService | null = null;
+			let guestService: vsls.SharedServiceProxy | null = null;
 
-          case "generatePrompt": {
-            const { projectId } = msg.payload;
+			if (liveShare?.session?.role === vsls.Role.Host) {
+				hostService = await liveShare.shareService("aiCollab.service");
+				if (!hostService) {
+					vscode.window.showWarningMessage(
+						"Could not share Live Share service. Start a Live Share session as Host."
+					);
+				} else {
+					hostService.onRequest("allocate", (args: any[]) => {
+						type AllocateInput = { [key: string]: any }; // Define the type or replace with the correct structure
+						const [payload] = args as [AllocateInput];
+						return mockAllocate(payload);
+					});
+					hostService.onRequest("createTeam", async (args: any[]) => {
+						const [payload] = args as [any];
+						await context.workspaceState.update("aiCollab.team", payload);
+						hostService!.notify("teamUpdated", payload);
+						return { ok: true as const };
+					});
+				}
+			} else if (liveShare?.session?.role === vsls.Role.Guest) {
+				guestService = await liveShare.getSharedService("aiCollab.service");
+				if (!guestService) {
+					vscode.window.showWarningMessage(
+						"Host service not found. Ask the host to open the panel."
+					);
+				} else {
+					guestService.onNotify("teamUpdated", (payload: any) => {
+						panel.webview.postMessage({ type: "teamSaved", payload });
+					});
+				}
+			}
+			async function pushTeamToWebview() {
+				const team = await context.workspaceState.get("aiCollab.team");
+				panel.webview.postMessage({
+					type: "teamLoaded",
+					payload: team ?? null,
+				});
+			}
+			await pushTeamToWebview();
 
-            const currentData = await loadInitialData();
-            const projectToPrompt = currentData.projects.find(
-              (p: any) => p.id == projectId
-            );
+			panel.webview.onDidReceiveMessage(async (msg: any) => {
+				switch (msg.type) {
+					case "saveData": {
+						await saveInitialData(msg.payload);
+						vscode.window.showInformationMessage(
+							"Team data saved to .aiCollabData.json!"
+						);
+						break;
+					}
 
-            if (!projectToPrompt) {
-              vscode.window.showErrorMessage(
-                "Project not found for AI prompt generation."
-              );
-              panel.webview.postMessage({
-                type: "promptGenerationError",
-                payload: { message: "Project not found." },
-              });
-              break;
-            }
+					case "loadData": {
+						const data = await loadInitialData();
+						panel.webview.postMessage({
+							type: "dataLoaded",
+							payload: data,
+						});
+						break;
+					}
 
-            // --- FIX APPLIED HERE: Robust ID comparison ---
-            const teamMembersForPrompt = currentData.users.filter((user: any) =>
-              // Convert all IDs to string for reliable comparison
-              projectToPrompt.selectedMemberIds
-                .map((id: any) => String(id))
-                .includes(String(user.id))
-            );
-            // --- END FIX ---
+					case "generatePrompt": {
+						const { projectId } = msg.payload;
 
-            // Create the detailed string ONLY from the filtered members
-            const teamMemberDetails = teamMembersForPrompt
-              .map(
-                (user: any, index: number) =>
-                  `Team Member ${index + 1}:
+						const currentData = await loadInitialData();
+						const projectToPrompt = currentData.projects.find(
+							(p: any) => p.id == projectId
+						);
+
+						if (!projectToPrompt) {
+							vscode.window.showErrorMessage(
+								"Project not found for AI prompt generation."
+							);
+							panel.webview.postMessage({
+								type: "promptGenerationError",
+								payload: { message: "Project not found." },
+							});
+							break;
+						}
+
+						// --- FIX APPLIED HERE: Robust ID comparison ---
+						const teamMembersForPrompt = currentData.users.filter((user: any) =>
+							// Convert all IDs to string for reliable comparison
+							projectToPrompt.selectedMemberIds
+								.map((id: any) => String(id))
+								.includes(String(user.id))
+						);
+						// --- END FIX ---
+
+						// Create the detailed string ONLY from the filtered members
+						const teamMemberDetails = teamMembersForPrompt
+							.map(
+								(user: any, index: number) =>
+									`Team Member ${index + 1}:
 Name: ${user.name}
 Skills: ${user.skills}
 Programming Languages: ${user.programmingLanguages}
 Willing to work on: ${user.willingToWorkOn || "Not specified"}
 
 `
-              )
-              .join("");
+							)
+							.join("");
 
-            const promptContent = `PROJECT ANALYSIS AND TEAM OPTIMIZATION REQUEST
+						const promptContent = `PROJECT ANALYSIS AND TEAM OPTIMIZATION REQUEST
 
 === PROJECT INFORMATION ===
 Project Name: ${projectToPrompt.name}
@@ -208,92 +258,103 @@ Please analyze this project and team composition and provide:
 
 Give me a specific message for EACH team member, detailing them what they need to do RIGHT NOW and in the FUTURE. Give each user the exact things they need to work on according also to their skills.`;
 
-            const tempFileName = `AI_Prompt_${projectToPrompt.name.replace(
-              /[^a-zA-Z0-9]/g,
-              "_"
-            )}_${Date.now()}.txt`;
-            const workspaceFolders = vscode.workspace.workspaceFolders;
-            if (workspaceFolders) {
-              const filePath = vscode.Uri.joinPath(
-                workspaceFolders[0].uri,
-                tempFileName
-              );
-              await fs.writeFile(filePath.fsPath, promptContent, "utf-8");
-              await vscode.window.showTextDocument(filePath, {
-                viewColumn: vscode.ViewColumn.Beside,
-                preview: false,
-              });
-            }
+						const tempFileName = `AI_Prompt_${projectToPrompt.name.replace(
+							/[^a-zA-Z0-9]/g,
+							"_"
+						)}_${Date.now()}.txt`;
+						const workspaceFolders = vscode.workspace.workspaceFolders;
+						if (workspaceFolders) {
+							const filePath = vscode.Uri.joinPath(
+								workspaceFolders[0].uri,
+								tempFileName
+							);
+							await fs.writeFile(filePath.fsPath, promptContent, "utf-8");
+							await vscode.window.showTextDocument(filePath, {
+								viewColumn: vscode.ViewColumn.Beside,
+								preview: false,
+							});
+						}
 
-            currentData.promptCount++;
-            await saveInitialData(currentData);
+						currentData.promptCount++;
+						await saveInitialData(currentData);
 
-            panel.webview.postMessage({
-              type: "dataLoaded",
-              payload: currentData,
-            });
-            panel.webview.postMessage({
-              type: "promptGeneratedFromExtension",
-              payload: { prompt: promptContent },
-            });
+						panel.webview.postMessage({
+							type: "dataLoaded",
+							payload: currentData,
+						});
+						panel.webview.postMessage({
+							type: "promptGeneratedFromExtension",
+							payload: { prompt: promptContent },
+						});
 
-            vscode.window.showInformationMessage(
-              `AI Prompt generated for project: ${projectToPrompt.name} and saved to ${tempFileName}`
-            );
-            break;
-          }
+						vscode.window.showInformationMessage(
+							`AI Prompt generated for project: ${projectToPrompt.name} and saved to ${tempFileName}`
+						);
+						break;
+					}
 
-          case "showError": {
-            vscode.window.showErrorMessage(msg.payload.message);
-            break;
-          }
-          case "showSuccess": {
-            vscode.window.showInformationMessage(msg.payload.message);
-            break;
-          }
-          default:
-            break;
-        }
-      });
-    }
-  );
-  context.subscriptions.push(open);
+					case "showError": {
+						vscode.window.showErrorMessage(msg.payload.message);
+						break;
+					}
+					case "showSuccess": {
+						vscode.window.showInformationMessage(msg.payload.message);
+						break;
+					}
+					default:
+						break;
+				}
+			});
+		}
+	);
+	context.subscriptions.push(open);
 }
 
 export function deactivate() {}
 
+function ensureWorkspaceOpen(): boolean {
+	if (!vscode.workspace.workspaceFolders?.length) {
+		vscode.window.showErrorMessage("Open a folder/workspace first.");
+		return false;
+	}
+	return true;
+}
+
 async function getHtml(
-  webview: vscode.Webview,
-  context: vscode.ExtensionContext
+	webview: vscode.Webview,
+	context: vscode.ExtensionContext
 ): Promise<string> {
-  const nonce = getNonce();
+	const nonce = getNonce();
 
-  const htmlPath = path.join(context.extensionPath, "media", "webview.html");
+	const htmlPath = path.join(context.extensionPath, "media", "webview.html");
 
-  let htmlContent = await fs.readFile(htmlPath, "utf-8");
+	let htmlContent = await fs.readFile(htmlPath, "utf-8");
 
-  htmlContent = htmlContent
-    .replace(
-      /<head>/,
-      `<head>
+	htmlContent = htmlContent
+		.replace(
+			/<head>/,
+			`<head>
         <meta http-equiv="Content-Security-Policy" content="
             default-src 'none';
             style-src ${webview.cspSource} 'unsafe-inline';
             img-src ${webview.cspSource} https:;
             script-src 'nonce-${nonce}';
         ">`
-    )
-    .replace(/<script>/, `<script nonce="${nonce}">`);
+		)
+		.replace(/<script>/, `<script nonce="${nonce}">`);
 
-  return htmlContent;
+	return htmlContent;
 }
 
 function getNonce() {
-  let text = "";
-  const possible =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  for (let i = 0; i < 32; i++) {
-    text += possible.charAt(Math.floor(Math.random() * possible.length));
-  }
-  return text;
+	let text = "";
+	const possible =
+		"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+	for (let i = 0; i < 32; i++) {
+		text += possible.charAt(Math.floor(Math.random() * possible.length));
+	}
+	return text;
+}
+function mockAllocate(payload: { [key: string]: any }): any {
+	throw new Error("Function not implemented.");
 }
