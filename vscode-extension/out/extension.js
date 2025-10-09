@@ -127,6 +127,16 @@ async function activate(context) {
 	liveShare?.onDidChangeSession((e) =>
 		console.log("[AI Collab] Live Share role:", e.session?.role)
 	);
+	// Add status bar button
+	const statusBarItem = vscode.window.createStatusBarItem(
+		vscode.StatusBarAlignment.Right,
+		100
+	);
+	statusBarItem.text = "$(rocket) AI Collab";
+	statusBarItem.tooltip = "Open AI Collab Panel";
+	statusBarItem.command = "aiCollab.openPanel";
+	statusBarItem.show();
+	context.subscriptions.push(statusBarItem);
 	// ---- Main command: opens the webview panel
 	const open = vscode.commands.registerCommand(
 		"aiCollab.openPanel",
@@ -341,7 +351,6 @@ Give me a specific message for EACH team member, detailing them what they need t
 	context.subscriptions.push(open);
 }
 function deactivate() {}
-
 function ensureWorkspaceOpen() {
 	if (!vscode.workspace.workspaceFolders?.length) {
 		vscode.window.showErrorMessage("Open a folder/workspace first.");
@@ -349,7 +358,6 @@ function ensureWorkspaceOpen() {
 	}
 	return true;
 }
-
 async function getHtml(webview, context) {
 	const nonce = getNonce();
 	const htmlPath = path.join(context.extensionPath, "media", "webview.html");

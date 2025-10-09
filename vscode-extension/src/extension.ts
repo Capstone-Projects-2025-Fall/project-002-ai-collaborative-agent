@@ -78,6 +78,17 @@ export async function activate(context: vscode.ExtensionContext) {
 		console.log("[AI Collab] Live Share role:", e.session?.role)
 	);
 
+	// Add status bar button
+	const statusBarItem = vscode.window.createStatusBarItem(
+		vscode.StatusBarAlignment.Right,
+		100
+	);
+	statusBarItem.text = "$(rocket) AI Collab";
+	statusBarItem.tooltip = "Open AI Collab Panel";
+	statusBarItem.command = "aiCollab.openPanel";
+	statusBarItem.show();
+	context.subscriptions.push(statusBarItem);
+
 	// ---- Main command: opens the webview panel
 	const open = vscode.commands.registerCommand(
 		"aiCollab.openPanel",
@@ -94,7 +105,6 @@ export async function activate(context: vscode.ExtensionContext) {
 					],
 				}
 			);
-
 			panel.webview.html = await getHtml(panel.webview, context);
 
 			// Live Share service setup

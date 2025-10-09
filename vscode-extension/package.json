@@ -36,6 +36,23 @@
       }
     }
   },
+  "viewsContainers": {
+			"activitybar": [
+				{
+					"id": "aiCollab-sidebar",
+					"title": "AI Collab",
+					"icon": "media/collaboration.svg"
+				}
+			]
+		},
+		"views": {
+			"aiCollab-sidebar": [
+				{
+					"id": "aiCollabView",
+					"name": "Team Panel"
+				}
+			]
+		},
   "scripts": {
     "compile": "tsc -p .",
     "watch": "tsc -w",
