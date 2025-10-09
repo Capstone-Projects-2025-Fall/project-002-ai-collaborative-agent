@@ -2,7 +2,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "AI Collab Extension", // Gave it a more descriptive name
+      "name": "AI Collab Agent", // Gave it a more descriptive name
       "type": "extensionHost",
       "request": "launch",
       "runtimeExecutable": "${execPath}",

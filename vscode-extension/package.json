@@ -11,7 +11,8 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:aiCollab.openPanel"
+    "onCommand:aiCollab.openPanel",
+    "*"
   ],
   "main": "./out/extension.js",
   "contributes": {

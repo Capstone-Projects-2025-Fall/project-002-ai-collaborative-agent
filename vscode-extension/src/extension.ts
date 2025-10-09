@@ -80,10 +80,10 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	// Add status bar button
 	const statusBarItem = vscode.window.createStatusBarItem(
-		vscode.StatusBarAlignment.Right,
-		100
+		vscode.StatusBarAlignment.Left,
+		1
 	);
-	statusBarItem.text = "$(rocket) AI Collab";
+	statusBarItem.text = "$(squirrel) AI Collab Agent";
 	statusBarItem.tooltip = "Open AI Collab Panel";
 	statusBarItem.command = "aiCollab.openPanel";
 	statusBarItem.show();
