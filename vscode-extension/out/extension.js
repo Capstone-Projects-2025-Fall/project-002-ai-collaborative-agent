@@ -119,6 +119,34 @@ async function activate(context) {
             ],
         });
         panel.webview.html = await getHtml(panel.webview, context);
+        // Handle messages from the webview
+        panel.webview.onDidReceiveMessage(async (message) => {
+            if (message.type === "openFile") {
+                try {
+                    // Open a folder selection dialog
+                    const options = {
+                        canSelectFiles: false,
+                        canSelectFolders: true,
+                        canSelectMany: false,
+                        openLabel: "Open Folder",
+                        defaultUri: vscode.Uri.file(require("os").homedir()), // Default to the user's home directory
+                    };
+                    const folderUri = await vscode.window.showOpenDialog(options);
+                    if (folderUri && folderUri.length > 0) {
+                        const selectedFolder = folderUri[0].fsPath;
+                        // Open the selected folder in VS Code
+                        vscode.commands.executeCommand("vscode.openFolder", vscode.Uri.file(selectedFolder));
+                        vscode.window.showInformationMessage(`Opened folder: ${selectedFolder}`);
+                    }
+                    else {
+                        vscode.window.showWarningMessage("No folder selected.");
+                    }
+                }
+                catch (error) {
+                    vscode.window.showErrorMessage(`Failed to open folder: ${error instanceof Error ? error.message : "Unknown error"}`);
+                }
+            }
+        });
         // Live Share service setup
         let hostService = null;
         let guestService = null;
