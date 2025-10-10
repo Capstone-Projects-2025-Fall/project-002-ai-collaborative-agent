@@ -15,16 +15,30 @@ serve(async (req) => {
 
   try {
     const url = new URL(req.url);
-    const accessToken = url.searchParams.get("access_token");
-    const refreshToken = url.searchParams.get("refresh_token");
-    const error = url.searchParams.get("error");
-    const errorDescription = url.searchParams.get("error_description");
+    
+    // Check for tokens in both query parameters AND URL fragment
+    let accessToken = url.searchParams.get("access_token");
+    let refreshToken = url.searchParams.get("refresh_token");
+    let error = url.searchParams.get("error");
+    let errorDescription = url.searchParams.get("error_description");
+
+    // If not found in query params, check the URL fragment
+    if (!accessToken && url.hash) {
+      const fragmentParams = new URLSearchParams(url.hash.substring(1));
+      accessToken = fragmentParams.get("access_token");
+      refreshToken = fragmentParams.get("refresh_token");
+      error = fragmentParams.get("error");
+      errorDescription = fragmentParams.get("error_description");
+    }
 
     console.log("OAuth callback received:", {
       hasAccessToken: !!accessToken,
       hasRefreshToken: !!refreshToken,
       error,
       errorDescription,
+      fullUrl: req.url,
+      hash: url.hash,
+      searchParams: Object.fromEntries(url.searchParams)
     });
 
     // Handle OAuth errors
@@ -58,12 +72,14 @@ serve(async (req) => {
 
     // Handle successful authentication
     if (accessToken) {
-      console.log("OAuth callback received with access token");
+      console.log("OAuth callback received with access token, redirecting to VS Code");
 
-      // Redirect to VS Code with the tokens
-      const vscodeUrl = `vscode://ai-collab-agent.auth?access_token=${accessToken}${
-        refreshToken ? `&refresh_token=${refreshToken}` : ""
+      // Create the VS Code URI with tokens
+      const vscodeUrl = `vscode://ai-collab-agent.auth?access_token=${encodeURIComponent(accessToken)}${
+        refreshToken ? `&refresh_token=${encodeURIComponent(refreshToken)}` : ""
       }`;
+
+      console.log("Redirecting to VS Code:", vscodeUrl);
 
       return new Response(
         `
@@ -75,21 +91,35 @@ serve(async (req) => {
               body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
               .success { color: #27ae60; }
               .loading { color: #3498db; }
+              .code { background: #f4f4f4; padding: 10px; border-radius: 5px; font-family: monospace; }
             </style>
           </head>
           <body>
             <h1 class="success">Authentication Successful!</h1>
             <p class="loading">Redirecting to VS Code...</p>
             <p>If VS Code doesn't open automatically, <a href="${vscodeUrl}">click here</a></p>
+            <div class="code">
+              <p>VS Code URI: ${vscodeUrl}</p>
+            </div>
             <script>
+              console.log("Attempting to redirect to VS Code:", "${vscodeUrl}");
+              
               // Try to redirect to VS Code
-              window.location.href = "${vscodeUrl}";
+              try {
+                window.location.href = "${vscodeUrl}";
+                console.log("Redirect initiated");
+              } catch (error) {
+                console.error("Redirect failed:", error);
+              }
               
               // Fallback: show manual link after 3 seconds
               setTimeout(() => {
                 document.body.innerHTML = \`
                   <h1 class="success">Authentication Successful!</h1>
                   <p>Please <a href="${vscodeUrl}">click here</a> to return to VS Code.</p>
+                  <div class="code">
+                    <p>VS Code URI: ${vscodeUrl}</p>
+                  </div>
                 \`;
               }, 3000);
             </script>
@@ -156,4 +186,3 @@ serve(async (req) => {
     );
   }
 });
-

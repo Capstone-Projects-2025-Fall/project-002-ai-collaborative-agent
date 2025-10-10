@@ -38,9 +38,13 @@ exports.deactivate = deactivate;
 const vscode = __importStar(require("vscode"));
 const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
-const dotenv = __importStar(require("dotenv"));
-const LoginWebview_1 = require("./LoginWebview");
-const ropcAuthService_1 = require("./ropcAuthService");
+const dotenv_1 = require("dotenv");
+const authService_1 = require("./authService");
+// Load environment variables from .env file in project root
+(0, dotenv_1.config)({ path: path.join(__dirname, "../../.env") });
+// Global variables for OAuth callback handling
+let authService;
+let extensionContext;
 // Helper function to get the full path to our data file
 function getDataFilePath() {
     const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
@@ -96,25 +100,93 @@ async function saveInitialData(data) {
     }
 }
 function activate(context) {
-    dotenv.config({ path: path.join(__dirname, "..", ".env") });
+    // Load environment variables from multiple possible locations
+    (0, dotenv_1.config)({ path: path.join(__dirname, "..", ".env") });
+    (0, dotenv_1.config)({ path: path.join(__dirname, "../../.env") });
     vscode.window.showInformationMessage("AI Collab Agent activated");
-    const authService = new ropcAuthService_1.RopcAuthService(context);
-    const loginWebviewCommand = vscode.commands.registerCommand("aiCollab.login", () => {
-        LoginWebview_1.LoginWebviewPanel.createOrShow(context.extensionUri, async (email, password) => {
-            // This function is called when the user clicks "Login" inside the webview
-            const success = await authService.login(email, password);
-            if (success) {
-                // Optionally, tell the main webview to reload its data
-                vscode.commands.executeCommand("aiCollab.openPanel");
+    // Store context globally for callback server
+    extensionContext = context;
+    // Initialize authentication service
+    try {
+        authService = new authService_1.AuthService();
+        authService.initialize();
+    }
+    catch (error) {
+        vscode.window.showErrorMessage(`Authentication setup failed: ${error instanceof Error ? error.message : "Unknown error"}`);
+        return;
+    }
+    // Register URI handler for custom protocol
+    // In your URI handler, add this additional check:
+    const handleUri = vscode.window.registerUriHandler({
+        handleUri(uri) {
+            console.log("=== OAuth Callback Debug ===");
+            console.log("Full URI:", uri.toString());
+            console.log("Scheme:", uri.scheme);
+            console.log("Authority:", uri.authority);
+            console.log("Query:", uri.query);
+            if (uri.scheme === "vscode" && uri.authority === "ai-collab-agent.auth") {
+                console.log("OAuth callback received via VS Code URI");
+                // Extract tokens from query parameters
+                const urlParams = new URLSearchParams(uri.query);
+                const accessToken = urlParams.get('access_token');
+                const refreshToken = urlParams.get('refresh_token');
+                console.log("Parsed tokens:", {
+                    accessToken: accessToken ? accessToken.substring(0, 20) + "..." : "None",
+                    refreshToken: refreshToken ? refreshToken.substring(0, 20) + "..." : "None"
+                });
+                if (accessToken) {
+                    console.log("Access token received, setting session...");
+                    // Set the session in Supabase
+                    authService
+                        .setSessionFromTokens(accessToken, refreshToken || undefined)
+                        .then(() => {
+                        console.log("Session set successfully");
+                        vscode.window.showInformationMessage("Authentication successful! Redirecting to main app...");
+                        // Open the main panel after successful authentication
+                        setTimeout(() => {
+                            openMainPanel(extensionContext, authService);
+                        }, 1000);
+                    })
+                        .catch((error) => {
+                        console.error("Error setting session:", error);
+                        vscode.window.showErrorMessage("Authentication failed: " + error.message);
+                    });
+                }
+                else {
+                    console.error("No access token found in callback");
+                    vscode.window.showErrorMessage("Authentication failed: No access token received");
+                }
             }
-        });
+            else {
+                console.log("URI not recognized:", uri.toString());
+            }
+        },
     });
-    context.subscriptions.push(loginWebviewCommand);
+    context.subscriptions.push(handleUri);
     // ---- Debug/health command
     const hello = vscode.commands.registerCommand("aiCollab.debugHello", () => {
         vscode.window.showInformationMessage("Hello from AI Collab Agent!");
     });
     context.subscriptions.push(hello);
+    // ---- Debug authentication status
+    const debugAuth = vscode.commands.registerCommand("aiCollab.debugAuth", () => {
+        const user = authService.getCurrentUser();
+        const session = authService.getCurrentSession();
+        const isAuth = authService.isAuthenticated();
+        console.log("Auth Debug Info:", {
+            user,
+            session: session ? {
+                access_token: session.access_token?.substring(0, 20) + "...",
+                expires_at: session.expires_at,
+                user: session.user?.id
+            } : null,
+            isAuthenticated: isAuth
+        });
+        vscode.window.showInformationMessage(`Auth Status: ${isAuth ? 'Authenticated' : 'Not authenticated'}\n` +
+            `User: ${user ? user.email : 'None'}\n` +
+            `Session: ${session ? 'Active' : 'None'}`);
+    });
+    context.subscriptions.push(debugAuth);
     // ---- Main command: opens the webview panel
     const open = vscode.commands.registerCommand("aiCollab.openPanel", async () => {
         // Check if user is authenticated
@@ -446,47 +518,6 @@ Give me a specific message for EACH team member, detailing them what they need t
                 break;
         }
     });
-    const testEnv = vscode.commands.registerCommand("aiCollab.testEnv", () => {
-        const auth0Domain = process.env.AUTH0_DOMAIN;
-        const auth0ClientId = process.env.AUTH0_CLIENT_ID;
-        vscode.window.showInformationMessage(`[Test] Auth0 Domain: ${auth0Domain} | Client ID: ${auth0ClientId}`);
-        // Also, let's log ALL environment variables to the debug console
-        console.log("--- All Environment Variables ---");
-        console.log(process.env);
-        console.log("---------------------------------");
-    });
-    const login = vscode.commands.registerCommand("aiCollab.login", () => {
-        LoginWebview_1.LoginWebviewPanel.createOrShow(context.extensionUri, async (email, password) => {
-            // This code runs AFTER the user submits the form in the webview
-            await authService.login(email, password);
-        });
-    });
-    // Command: Logout
-    const logout = vscode.commands.registerCommand("aiCollab.logout", async () => {
-        await authService.logout();
-    });
-    // Command: Get Supabase User (requires authentication)
-    const getSupabaseUser = vscode.commands.registerCommand("aiCollab.getSupabaseUser", async () => {
-        const supabase = await authService.getSupabaseClient();
-        if (!supabase) {
-            const choice = await vscode.window.showInformationMessage("You are not logged in. Would you like to log in?", "Log In", "Cancel");
-            if (choice === "Log In") {
-                vscode.commands.executeCommand("aiCollab.login");
-            }
-            return;
-        }
-        vscode.window.showInformationMessage("Fetching your Supabase user data...");
-        const { data: { user }, error, } = await supabase.auth.getUser();
-        if (error) {
-            vscode.window.showErrorMessage(`Error getting user: ${error.message}`);
-        }
-        else if (user) {
-            vscode.window.showInformationMessage(`Successfully authenticated as ${user.email}`);
-        }
-    });
-    // --- 3. Subscribe All Commands ---
-    // Add all registered commands to the context subscriptions
-    context.subscriptions.push(hello, open, login, logout, getSupabaseUser, testEnv);
 }
 function deactivate() {
     // Clean up resources if needed
