@@ -1,4 +1,5 @@
 "use strict";
+<<<<<<< Updated upstream
 // src/authService.ts
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
@@ -217,6 +218,226 @@ class AuthService {
                 console.log("User profile successfully created!");
             }
         }
+=======
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.AuthService = void 0;
+const supabase_js_1 = require("@supabase/supabase-js");
+class AuthService {
+    supabase;
+    supabaseUrl;
+    currentUser = null;
+    currentSession = null;
+    constructor() {
+        // Get Supabase configuration from environment variables
+        const supabaseUrl = process.env.SUPABASE_URL;
+        const supabaseKey = process.env.SUPABASE_ANON_KEY;
+        if (!supabaseUrl || !supabaseKey) {
+            throw new Error("Supabase configuration missing. Please set SUPABASE_URL and SUPABASE_ANON_KEY in your .env file.");
+        }
+        this.supabaseUrl = supabaseUrl;
+        this.supabase = (0, supabase_js_1.createClient)(supabaseUrl, supabaseKey);
+    }
+    async initialize() {
+        try {
+            // Check for existing session
+            const { data: { session }, error, } = await this.supabase.auth.getSession();
+            if (error) {
+                console.error("Error getting session:", error);
+                return;
+            }
+            if (session) {
+                this.currentSession = session;
+                this.currentUser = this.mapUser(session.user);
+            }
+        }
+        catch (error) {
+            console.error("Error initializing auth service:", error);
+        }
+    }
+    async signUp(email, password, name) {
+        try {
+            const { data, error } = await this.supabase.auth.signUp({
+                email,
+                password,
+                options: {
+                    data: {
+                        name: name || email.split("@")[0],
+                    },
+                },
+            });
+            if (error) {
+                return { user: null, error: error.message };
+            }
+            if (data.user) {
+                this.currentUser = this.mapUser(data.user);
+                this.currentSession = data.session;
+                return { user: this.currentUser, error: null };
+            }
+            return { user: null, error: "Sign up failed" };
+        }
+        catch (error) {
+            return {
+                user: null,
+                error: error instanceof Error ? error.message : "Unknown error",
+            };
+        }
+    }
+    async signIn(email, password) {
+        try {
+            const { data, error } = await this.supabase.auth.signInWithPassword({
+                email,
+                password,
+            });
+            if (error) {
+                return { user: null, error: error.message };
+            }
+            if (data.user) {
+                this.currentUser = this.mapUser(data.user);
+                this.currentSession = data.session;
+                return { user: this.currentUser, error: null };
+            }
+            return { user: null, error: "Sign in failed" };
+        }
+        catch (error) {
+            return {
+                user: null,
+                error: error instanceof Error ? error.message : "Unknown error",
+            };
+        }
+    }
+    async signInWithGoogle() {
+        try {
+            // Get the OAuth URL from Supabase
+            const { data, error } = await this.supabase.auth.signInWithOAuth({
+                provider: "google",
+                options: {
+                    redirectTo: `${this.supabaseUrl}/functions/v1/auth-callback`,
+                    skipBrowserRedirect: true,
+                },
+            });
+            if (error) {
+                return { user: null, error: error.message };
+            }
+            if (data.url) {
+                // Open the OAuth URL in the default browser using VS Code's URI handler
+                const { exec } = require("child_process");
+                const command = process.platform === "win32"
+                    ? "start"
+                    : process.platform === "darwin"
+                        ? "open"
+                        : "xdg-open";
+                exec(`${command} "${data.url}"`);
+                return { user: null, error: null };
+            }
+            return { user: null, error: "Failed to get OAuth URL" };
+        }
+        catch (error) {
+            return {
+                user: null,
+                error: error instanceof Error ? error.message : "Unknown error",
+            };
+        }
+    }
+    async signInWithGithub() {
+        try {
+            // Get the OAuth URL from Supabase
+            const { data, error } = await this.supabase.auth.signInWithOAuth({
+                provider: "github",
+                options: {
+                    redirectTo: `${this.supabaseUrl}/functions/v1/auth-callback`,
+                    skipBrowserRedirect: true,
+                },
+            });
+            if (error) {
+                return { user: null, error: error.message };
+            }
+            if (data.url) {
+                // Open the OAuth URL in the default browser using VS Code's URI handler
+                const { exec } = require("child_process");
+                const command = process.platform === "win32"
+                    ? "start"
+                    : process.platform === "darwin"
+                        ? "open"
+                        : "xdg-open";
+                exec(`${command} "${data.url}"`);
+                return { user: null, error: null };
+            }
+            return { user: null, error: "Failed to get OAuth URL" };
+        }
+        catch (error) {
+            return {
+                user: null,
+                error: error instanceof Error ? error.message : "Unknown error",
+            };
+        }
+    }
+    async signOut() {
+        try {
+            const { error } = await this.supabase.auth.signOut();
+            if (error) {
+                return { error: error.message };
+            }
+            this.currentUser = null;
+            this.currentSession = null;
+            return { error: null };
+        }
+        catch (error) {
+            return {
+                error: error instanceof Error ? error.message : "Unknown error",
+            };
+        }
+    }
+    getCurrentUser() {
+        return this.currentUser;
+    }
+    getCurrentSession() {
+        return this.currentSession;
+    }
+    isAuthenticated() {
+        return this.currentUser !== null && this.currentSession !== null;
+    }
+    async setSessionFromTokens(accessToken, refreshToken) {
+        try {
+            const { data, error } = await this.supabase.auth.setSession({
+                access_token: accessToken,
+                refresh_token: refreshToken || "",
+            });
+            if (error) {
+                throw new Error(error.message);
+            }
+            if (data.session) {
+                this.currentSession = data.session;
+                this.currentUser = this.mapUser(data.session.user);
+            }
+        }
+        catch (error) {
+            throw new Error(error instanceof Error ? error.message : "Failed to set session");
+        }
+    }
+    onAuthStateChange(callback) {
+        return this.supabase.auth.onAuthStateChange((event, session) => {
+            if (event === "SIGNED_IN" && session) {
+                this.currentSession = session;
+                this.currentUser = this.mapUser(session.user);
+                callback(this.currentUser);
+            }
+            else if (event === "SIGNED_OUT") {
+                this.currentSession = null;
+                this.currentUser = null;
+                callback(null);
+            }
+        }).data.subscription.unsubscribe;
+    }
+    mapUser(user) {
+        return {
+            id: user.id,
+            email: user.email || "",
+            name: user.user_metadata?.name ||
+                user.user_metadata?.full_name ||
+                user.email?.split("@")[0],
+            avatar_url: user.user_metadata?.avatar_url || user.user_metadata?.picture,
+        };
+>>>>>>> Stashed changes
     }
 }
 exports.AuthService = AuthService;
