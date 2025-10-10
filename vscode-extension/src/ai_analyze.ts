@@ -4,128 +4,117 @@ import fetch from 'node-fetch';
 let statusBarItem: vscode.StatusBarItem;
 let resultsPanel: vscode.WebviewPanel | undefined;
 let extensionContext: vscode.ExtensionContext;
-let codeLensProvider: AnalyzeCodeLensProvider;
-
-//Dislays the analyze code button when you highlight the code
-class AnalyzeCodeLensProvider implements vscode.CodeLensProvider {
-    private _onDidChangeCodeLenses: vscode.EventEmitter<void> = new vscode.EventEmitter<void>();
-    public readonly onDidChangeCodeLenses: vscode.Event<void> = this._onDidChangeCodeLenses.event;
-
-    public provideCodeLenses(document: vscode.TextDocument, token: vscode.CancellationToken): vscode.CodeLens[] | Thenable<vscode.CodeLens[]> {
-        const editor = vscode.window.activeTextEditor;
-        if (!editor || editor.document !== document) {
-            return [];
-        }
-
-        const selection = editor.selection;
-        if (selection.isEmpty) {
-            return [];
-        }
-
-        const selectedText = document.getText(selection).trim();
-        if (selectedText.length <= 10) {
-            return [];
-        }
-
-        const config = vscode.workspace.getConfiguration('aiCodeReviewer');
-        if (!config.get('showInlineButton', true)) {
-            return [];
-        }
-
-        const range = new vscode.Range(selection.start.line, 0, selection.start.line, 0);
-        const codeLens = new vscode.CodeLens(range, {
-            title: "Analyze Code ↓",
-            command: "ai-code-reviewer.analyzeCode",
-            arguments: []
-        });
-
-        return [codeLens];
-    }
-
-    public refresh(): void {
-        this._onDidChangeCodeLenses.fire();
-    }
-}
-
+let autoAnalyzeTimer: NodeJS.Timeout | undefined;
+let isAutoAnalyzeEnabled = true;
 
 export function activateCodeReviewer(context: vscode.ExtensionContext) {
     try {
-    console.log('AI Code Reviewer extension is now active!');
-    
-    extensionContext = context;
+        console.log('AI Code Reviewer extension is now active!');
+        
+        extensionContext = context;
 
-    //Creates the bar at the bottom right to show if the ai analyzer is active or not
-    statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
-    statusBarItem.command = 'ai-code-reviewer.configure';
-    context.subscriptions.push(statusBarItem);
-    console.log('Status bar item created');
+        // Creates the bar at the bottom right to show if the ai analyzer is active or not
+        statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
+        statusBarItem.command = 'ai-code-reviewer.configure';
+        context.subscriptions.push(statusBarItem);
+        console.log('Status bar item created');
 
-    //Makes the analyze button appear
-    codeLensProvider = new AnalyzeCodeLensProvider();
-    const codeLensDisposable = vscode.languages.registerCodeLensProvider(
-        { scheme: 'file' },
-        codeLensProvider
-    );
+        // Command to manually trigger analysis
+        const analyzeCommand = vscode.commands.registerCommand('ai-code-reviewer.analyzeCode', async () => {
+            await analyzeCurrentFile();
+        });
 
-    //Calls the supabase function
-    const analyzeCommand = vscode.commands.registerCommand('ai-code-reviewer.analyzeCode', async () => {
-        await analyzeSelectedCode();
-    });
+        // Shows the result panel on the right
+        const showResultsCommand = vscode.commands.registerCommand('ai-code-reviewer.showResults', () => {
+            showResultsPanel();
+        });
 
-    //Shows the result panel on the right
-    const showResultsCommand = vscode.commands.registerCommand('ai-code-reviewer.showResults', () => {
-        showResultsPanel();
-    });
+        // Opens setup dialog
+        const configureCommand = vscode.commands.registerCommand('ai-code-reviewer.configure', async () => {
+            await configureApiEndpoint();
+        });
 
-    //Opens setup dialog
-    const configureCommand = vscode.commands.registerCommand('ai-code-reviewer.configure', async () => {
-        await configureApiEndpoint();
-    });
+        // Toggle auto-analyze on/off
+        const toggleAutoAnalyzeCommand = vscode.commands.registerCommand('ai-code-reviewer.toggleAutoAnalyze', async () => {
+            isAutoAnalyzeEnabled = !isAutoAnalyzeEnabled;
+            if (isAutoAnalyzeEnabled) {
+                startAutoAnalyze();
+                vscode.window.showInformationMessage('Auto-analyze enabled');
+            } else {
+                stopAutoAnalyze();
+                vscode.window.showInformationMessage('Auto-analyze disabled');
+            }
+            updateStatusBar();
+        });
 
-    //Update the analyze button whe you highlight other things
-    const selectionChangeListener = vscode.window.onDidChangeTextEditorSelection((event) => {
-        setTimeout(() => {
-            codeLensProvider.refresh();
-        }, 50);
-    });
+        // Listen for file saves to trigger analysis
+        const saveListener = vscode.workspace.onDidSaveTextDocument((document) => {
+            if (isAutoAnalyzeEnabled && vscode.window.activeTextEditor?.document === document) {
+                analyzeCurrentFile();
+            }
+        });
 
-    const activeEditorChangeListener = vscode.window.onDidChangeActiveTextEditor((editor) => {
-        if (editor) {
-            codeLensProvider.refresh();
+        context.subscriptions.push(
+            analyzeCommand,
+            showResultsCommand,
+            configureCommand,
+            toggleAutoAnalyzeCommand,
+            saveListener
+        );
+
+        updateStatusBar();
+        
+        // Start auto-analyze if enabled
+        if (isAutoAnalyzeEnabled) {
+            startAutoAnalyze();
         }
-    });
-
-    context.subscriptions.push(
-        analyzeCommand,
-        showResultsCommand,
-        configureCommand,
-        selectionChangeListener,
-        activeEditorChangeListener,
-        codeLensDisposable
-    );
-
-    updateStatusBar();
-    console.log('updateStatusBar() called');
-} catch (error) {
-    console.error('Error activating Code Reviewer:', error);
-    vscode.window.showErrorMessage('Failed to activate Code Reviewer: ' + error);
-}
+        
+        console.log('updateStatusBar() called');
+    } catch (error) {
+        console.error('Error activating Code Reviewer:', error);
+        vscode.window.showErrorMessage('Failed to activate Code Reviewer: ' + error);
+    }
 }
 
-async function analyzeSelectedCode() {
+function startAutoAnalyze() {
+    stopAutoAnalyze(); // Clear any existing timer
+    
+    // Get the interval from settings (in minutes)
+    const config = vscode.workspace.getConfiguration('aiCodeReviewer');
+    const intervalMinutes = config.get<number>('autoAnalyzeInterval', 5);
+    const intervalMs = intervalMinutes * 60 * 1000; // Convert to milliseconds
+    
+    // Run at the specified interval (don't run immediately on start)
+    autoAnalyzeTimer = setInterval(() => {
+        analyzeCurrentFile();
+    }, intervalMs);
+    
+    console.log(`Auto-analyze started with ${intervalMinutes} minute interval`);
+}
+
+function stopAutoAnalyze() {
+    if (autoAnalyzeTimer) {
+        clearInterval(autoAnalyzeTimer);
+        autoAnalyzeTimer = undefined;
+    }
+}
+
+async function analyzeCurrentFile() {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
-        vscode.window.showErrorMessage('No active editor found');
+        console.log('No active editor found for auto-analyze');
         return;
     }
 
-    const selection = editor.selection;
-    if (selection.isEmpty) {
-        vscode.window.showWarningMessage('Please select some code to analyze');
+    const document = editor.document;
+    const fullCode = document.getText();
+    
+    // Skip if file is empty or too small
+    if (fullCode.trim().length < 10) {
+        console.log('File too small to analyze');
         return;
     }
 
-    const selectedCode = editor.document.getText(selection);
     const config = vscode.workspace.getConfiguration('aiCodeReviewer');
     const apiEndpoint = config.get<string>('apiEndpoint');
     
@@ -133,76 +122,56 @@ async function analyzeSelectedCode() {
     const apiKey = await extensionContext.secrets.get('supabaseApiKey');
 
     if (!apiEndpoint || !apiKey) {
-        const result = await vscode.window.showErrorMessage(
-            'API endpoint or key not configured. Please configure your Supabase function URL and API key.',
-            'Configure Now'
-        );
-        if (result === 'Configure Now') {
-            await configureApiEndpoint();
-        }
+        console.log('API not configured, skipping auto-analyze');
         return;
     }
 
-    await vscode.window.withProgress({
-        location: vscode.ProgressLocation.Notification,
-        title: 'AI Code Reviewer',
-        cancellable: true
-    }, async (progress, token) => {
-        progress.report({ increment: 0, message: 'Analyzing code' });
+    // Show a subtle notification that analysis is happening
+    vscode.window.setStatusBarMessage('$(sync~spin) Analyzing code...', 3000);
 
-        try {
-            const headers: Record<string, string> = {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`,
-                'apikey': apiKey
-            };
+    try {
+        const headers: Record<string, string> = {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`,
+            'apikey': apiKey
+        };
 
-            //Sends the selected code to the suoabase function
-            const response = await fetch(apiEndpoint, {
-                method: 'POST',
-                headers: headers,
-                body: JSON.stringify({
-                    code: selectedCode
-                })
-            });
+        const response = await fetch(apiEndpoint, {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify({
+                code: fullCode,
+                fileName: document.fileName,
+                language: document.languageId
+            })
+        });
 
-            progress.report({ increment: 50, message: 'Processing AI response...' });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(`API Error ${response.status}: ${errorData.error || 'Unknown error'}`);
-            }
-
-            const data = await response.json();
-            progress.report({ increment: 100, message: 'Analysis complete!' });
-
-            codeLensProvider.refresh();
-
-            showResultsPanel(data.message, selectedCode);
-
-            const viewResults = await vscode.window.showInformationMessage(
-                'Code analysis completed!',
-                'View Results'
-            );
-
-            if (viewResults === 'View Results' && resultsPanel) {
-                resultsPanel.reveal();
-            }
-
-        } catch (error: any) {
-            vscode.window.showErrorMessage(`Analysis failed: ${error.message}`);
-            console.error('Analysis error:', error);
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(`API Error ${response.status}: ${errorData.error || 'Unknown error'}`);
         }
-    });
+
+        const data = await response.json();
+
+        // Update results panel silently (don't force it to show)
+        showResultsPanel(data.message, fullCode, document.fileName);
+
+        // Show subtle completion message
+        vscode.window.setStatusBarMessage('$(check) Analysis complete', 3000);
+
+    } catch (error: any) {
+        console.error('Auto-analysis error:', error);
+        // Don't show intrusive error messages for auto-analyze
+        vscode.window.setStatusBarMessage('$(warning) Analysis failed', 3000);
+    }
 }
 
-function showResultsPanel(analysisResult?: string, originalCode?: string) {
-    //Brings the panel out
+function showResultsPanel(analysisResult?: string, originalCode?: string, fileName?: string) {
+    // Brings the panel out
     if (resultsPanel) {
-        resultsPanel.reveal();
-        //Update the results
+        // Update the results without revealing (less intrusive)
         if (analysisResult) {
-            updateResultsPanel(analysisResult, originalCode || '');
+            updateResultsPanel(analysisResult, originalCode || '', fileName);
         }
         return;
     }
@@ -210,7 +179,7 @@ function showResultsPanel(analysisResult?: string, originalCode?: string) {
     resultsPanel = vscode.window.createWebviewPanel(
         'aiCodeReviewResults',
         'AI Code Review Results',
-        //opens on the right side of the code
+        // Opens on the right side of the code
         vscode.ViewColumn.Beside,
         {
             enableScripts: true,
@@ -218,27 +187,25 @@ function showResultsPanel(analysisResult?: string, originalCode?: string) {
         }
     );
 
-    //Clears the panel when the you close it
+    // Clears the panel when you close it
     resultsPanel.onDidDispose(() => {
         resultsPanel = undefined;
     });
 
     if (analysisResult) {
-        updateResultsPanel(analysisResult, originalCode || '');
+        updateResultsPanel(analysisResult, originalCode || '', fileName);
     } else {
-        resultsPanel.webview.html = getWebviewContent('', '');
+        resultsPanel.webview.html = getWebviewContent('', '', '');
     }
 }
 
-//Puts the data into the panel
-function updateResultsPanel(analysisResult: string, originalCode: string) {
+function updateResultsPanel(analysisResult: string, originalCode: string, fileName?: string) {
     if (resultsPanel) {
-        resultsPanel.webview.html = getWebviewContent(analysisResult, originalCode);
+        resultsPanel.webview.html = getWebviewContent(analysisResult, originalCode, fileName);
     }
 }
 
-//Front end for the Ppnel that appears on the right side when you click analzye code
-function getWebviewContent(analysisResult: string, originalCode: string): string {
+function getWebviewContent(analysisResult: string, originalCode: string, fileName?: string): string {
     return `
     <!DOCTYPE html>
     <html lang="en">
@@ -270,6 +237,12 @@ function getWebviewContent(analysisResult: string, originalCode: string): string
                 align-items: center;
                 gap: 10px;
             }
+
+            .file-name {
+                font-size: 14px;
+                color: var(--vscode-descriptionForeground);
+                margin-top: 5px;
+            }
             
             .code-section {
                 background: var(--vscode-textCodeBlock-background);
@@ -294,7 +267,7 @@ function getWebviewContent(analysisResult: string, originalCode: string): string
                 border: 1px solid var(--vscode-input-border);
                 border-radius: 4px;
                 padding: 12px;
-                max-height: 200px;
+                max-height: 400px;
                 overflow-y: auto;
             }
             
@@ -337,44 +310,36 @@ function getWebviewContent(analysisResult: string, originalCode: string): string
                 padding-top: 15px;
                 border-top: 1px solid var(--vscode-panel-border);
             }
-            
-            .loading {
-                text-align: center;
-                padding: 40px;
-                color: var(--vscode-descriptionForeground);
-            }
-            
-            .loading::after {
-                content: '';
+
+            .auto-analyze-badge {
                 display: inline-block;
-                width: 20px;
-                height: 20px;
-                border: 2px solid var(--vscode-descriptionForeground);
-                border-radius: 50%;
-                border-top-color: var(--vscode-textLink-foreground);
-                animation: spin 1s linear infinite;
+                background: var(--vscode-badge-background);
+                color: var(--vscode-badge-foreground);
+                padding: 2px 8px;
+                border-radius: 10px;
+                font-size: 12px;
                 margin-left: 10px;
-            }
-            
-            @keyframes spin {
-                to { transform: rotate(360deg); }
             }
         </style>
     </head>
     <body>
         <div class="header">
-            <h1>AI Code Review Results</h1>
+            <h1>
+                AI Code Review Results
+                <span class="auto-analyze-badge">Auto-Analyzed</span>
+            </h1>
+            ${fileName ? `<div class="file-name">${escapeHtml(fileName)}</div>` : ''}
         </div>
         
         ${analysisResult ? `
-            <div class="code-section">
-                <h3>Analyzed Code</h3>
-                <div class="code-content">${escapeHtml(originalCode)}</div>
-            </div>
-            
             <div class="analysis-section">
                 <h3>Analysis Results</h3>
                 <div class="analysis-content">${formatAnalysisResult(analysisResult)}</div>
+            </div>
+            
+            <div class="code-section">
+                <h3>Analyzed Code</h3>
+                <div class="code-content">${escapeHtml(originalCode)}</div>
             </div>
             
             <div class="timestamp">
@@ -382,8 +347,9 @@ function getWebviewContent(analysisResult: string, originalCode: string): string
             </div>
         ` : `
             <div class="empty-state">
-                <h2>Ready for Code Analysis</h2>
-                <p>Select some code in your editor and click the "Analyze Code" button or use <strong>Cmd+Shift+A</strong> to get started.</p>
+                <h2>Waiting for Auto-Analysis</h2>
+                <p>The active file will be automatically analyzed every 5 minutes.</p>
+                <p>You can also manually trigger analysis using the command palette.</p>
             </div>
         `}
     </body>
@@ -428,7 +394,7 @@ async function configureApiEndpoint() {
     if (newEndpoint) {
         await config.update('apiEndpoint', newEndpoint, vscode.ConfigurationTarget.Global);
         
-        //API key will be stored in VS code's secure storage
+        // API key will be stored in VS code's secure storage
         const newApiKey = await vscode.window.showInputBox({
             prompt: 'Enter your Supabase API key (anon or service_role)',
             placeHolder: 'Get this from your Supabase dashboard > Settings > API',
@@ -444,6 +410,11 @@ async function configureApiEndpoint() {
         if (newApiKey) {
             await extensionContext.secrets.store('supabaseApiKey', newApiKey);
             vscode.window.showInformationMessage('API endpoint and key configured successfully!');
+            
+            // Start auto-analyze after configuration
+            if (isAutoAnalyzeEnabled) {
+                startAutoAnalyze();
+            }
         } else {
             vscode.window.showInformationMessage('API endpoint configured (but no API key provided)');
         }
@@ -458,11 +429,16 @@ async function updateStatusBar() {
     const apiKey = await extensionContext.secrets.get('supabaseApiKey');
     
     if (apiEndpoint && apiKey) {
-        statusBarItem.text = 'AI Reviewer';
-        statusBarItem.tooltip = 'AI Code Reviewer - Ready';
+        if (isAutoAnalyzeEnabled) {
+            statusBarItem.text = '$(sync~spin) AI Reviewer (Auto)';
+            statusBarItem.tooltip = 'AI Code Reviewer - Auto-analyzing every 5 minutes\nClick to configure';
+        } else {
+            statusBarItem.text = '$(circle-slash) AI Reviewer (Off)';
+            statusBarItem.tooltip = 'AI Code Reviewer - Auto-analyze disabled\nClick to configure';
+        }
         statusBarItem.backgroundColor = undefined;
     } else {
-        statusBarItem.text = 'Setup Required';
+        statusBarItem.text = '$(warning) Setup Required';
         statusBarItem.tooltip = 'Click to configure AI Code Reviewer';
         statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
     }
@@ -470,6 +446,8 @@ async function updateStatusBar() {
 }
 
 export function deactivate() {
+    stopAutoAnalyze();
+    
     if (statusBarItem) {
         statusBarItem.dispose();
     }

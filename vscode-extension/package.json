@@ -26,15 +26,23 @@
       },
       {
         "command": "ai-code-reviewer.analyzeCode",
-        "title": "AnalyzeCode"
+        "title": "Analyze Current File",
+        "category": "AI Code Reviewer"
       },
       {
         "command": "ai-code-reviewer.configure",
-        "title": "Configure Code Reviewer"
+        "title": "Configure Settings",
+        "category": "AI Code Reviewer"
       },
       {
         "command": "ai-code-reviewer.showResults",
-        "title": "Show Analysis Results"
+        "title": "Show Analysis Results",
+        "category": "AI Code Reviewer"
+      },
+      {
+        "command": "ai-code-reviewer.toggleAutoAnalyze",
+        "title": "Toggle Auto-Analyze (On/Off)",
+        "category": "AI Code Reviewer"
       }
     ],
     "configuration": {
@@ -50,10 +58,17 @@
           "default": "",
           "description": "Your Supabase function URL for code analysis"
         },
-        "aiCodeReviewer.showInlineButton": {
+        "aiCodeReviewer.autoAnalyzeInterval": {
+          "type": "number",
+          "default": 1,
+          "description": "Auto-analyze interval in minutes (default: 5 minutes)",
+          "minimum": 1,
+          "maximum": 60
+        },
+        "aiCodeReviewer.autoAnalyzeEnabled": {
           "type": "boolean",
           "default": true,
-          "description": "Show inline Analyze button when code is selected"
+          "description": "Enable automatic code analysis"
         }
       }
     },
@@ -61,8 +76,12 @@
       {
         "command": "ai-code-reviewer.analyzeCode",
         "key": "ctrl+shift+a",
-        "mac": "cmd+shift+a",
-        "when": "editorHasSelection"
+        "mac": "cmd+shift+a"
+      },
+      {
+        "command": "ai-code-reviewer.toggleAutoAnalyze",
+        "key": "ctrl+shift+t",
+        "mac": "cmd+shift+t"
       }
     ]
   },
