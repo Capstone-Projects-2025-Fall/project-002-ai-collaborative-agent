@@ -1,4 +1,3 @@
-<<<<<<< Updated upstream
 // src/authService.ts
 
 import * as vscode from "vscode";
@@ -187,7 +186,7 @@ export class AuthService {
     } catch (err: any) {
       vscode.window.showErrorMessage(
         `Error during token exchange: ${err.message}`
-=======
+
 import {
   createClient,
   SupabaseClient,
@@ -441,47 +440,10 @@ export class AuthService {
     } catch (error) {
       throw new Error(
         error instanceof Error ? error.message : "Failed to set session"
->>>>>>> Stashed changes
       );
     }
   }
 
-<<<<<<< Updated upstream
-  private async ensureUserProfile(supabase: SupabaseClient) {
-    // 1. Get the current user from Supabase auth
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      console.error("No user found.");
-      return;
-    }
-
-    // 2. Check if a profile already exists
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("id")
-      .eq("id", user.id)
-      .single();
-
-    // 3. If no profile exists, create one with default or user-provided data.
-    if (!profile) {
-      const { error } = await supabase.from("profiles").upsert({
-        id: user.id, // This links it to the auth.users table
-        name: "thomas", // You would get this from user input or Auth0 metadata
-        skills: "ml",
-        programming_languages: "python",
-        willing_to_work_on: "backend logic",
-      });
-
-      if (error) {
-        console.error("Error creating user profile:", error.message);
-      } else {
-        console.log("User profile successfully created!");
-      }
-    }
-=======
   onAuthStateChange(callback: (user: AuthUser | null) => void): () => void {
     return this.supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_IN" && session) {
@@ -506,6 +468,5 @@ export class AuthService {
         user.email?.split("@")[0],
       avatar_url: user.user_metadata?.avatar_url || user.user_metadata?.picture,
     };
->>>>>>> Stashed changes
   }
 }

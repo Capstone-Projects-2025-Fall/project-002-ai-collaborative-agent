@@ -125,3 +125,4 @@ You can modify the Edge Function (`supabase/functions/auth-callback/index.ts`) t
 - Add additional validation
 - Customize the success/error pages
 
+

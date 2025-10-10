@@ -1,24 +1,10 @@
 import * as vscode from "vscode";
 import * as fs from "fs/promises";
 import * as path from "path";
-<<<<<<< Updated upstream
 import * as dotenv from "dotenv";
 import { AuthService } from "./authService";
 import { LoginWebviewPanel } from "./LoginWebview";
 import { RopcAuthService } from "./ropcAuthService";
-=======
-import { config } from "dotenv";
-import { AuthService, AuthUser } from "./authService";
-import * as http from "http";
-import * as url from "url";
-
-// Load environment variables from .env file in project root
-config({ path: path.join(__dirname, "../../.env") });
-
-// Global variables for OAuth callback handling
-let authService: AuthService;
-let extensionContext: vscode.ExtensionContext;
->>>>>>> Stashed changes
 
 // Helper function to get the full path to our data file
 function getDataFilePath(): string | undefined {
@@ -86,7 +72,6 @@ export function activate(context: vscode.ExtensionContext) {
 
   vscode.window.showInformationMessage("AI Collab Agent activated");
 
-<<<<<<< Updated upstream
   const authService = new RopcAuthService(context);
 
   const loginWebviewCommand = vscode.commands.registerCommand(
@@ -106,70 +91,6 @@ export function activate(context: vscode.ExtensionContext) {
     }
   );
   context.subscriptions.push(loginWebviewCommand);
-=======
-  // Store context globally for callback server
-  extensionContext = context;
-
-  // Initialize authentication service
-  try {
-    authService = new AuthService();
-    authService.initialize();
-  } catch (error) {
-    vscode.window.showErrorMessage(
-      `Authentication setup failed: ${
-        error instanceof Error ? error.message : "Unknown error"
-      }`
-    );
-    return;
-  }
-
-  // Register URI handler for custom protocol
-  const handleUri = vscode.window.registerUriHandler({
-    handleUri(uri: vscode.Uri) {
-      console.log("Received URI:", uri.toString());
-
-      if (uri.scheme === "vscode" && uri.authority === "ai-collab-agent.auth") {
-        console.log("OAuth callback received via VS Code URI");
-
-        // Extract tokens from query parameters
-        const accessToken = uri.query;
-        const refreshToken = uri.fragment;
-
-        if (accessToken) {
-          console.log("Access token received, setting session...");
-
-          // Set the session in Supabase
-          authService
-            .setSessionFromTokens(accessToken, refreshToken || undefined)
-            .then(() => {
-              console.log("Session set successfully");
-              vscode.window.showInformationMessage(
-                "Authentication successful! Redirecting to main app..."
-              );
-
-              // Open the main panel after successful authentication
-              setTimeout(() => {
-                openMainPanel(extensionContext, authService);
-              }, 1000);
-            })
-            .catch((error) => {
-              console.error("Error setting session:", error);
-              vscode.window.showErrorMessage(
-                "Authentication failed: " + error.message
-              );
-            });
-        } else {
-          console.error("No access token found in callback");
-          vscode.window.showErrorMessage(
-            "Authentication failed: No access token received"
-          );
-        }
-      }
-    },
-  });
-
-  context.subscriptions.push(handleUri);
->>>>>>> Stashed changes
 
   // ---- Debug/health command
   const hello = vscode.commands.registerCommand("aiCollab.debugHello", () => {
@@ -569,7 +490,6 @@ Give me a specific message for EACH team member, detailing them what they need t
       default:
         break;
     }
-<<<<<<< Updated upstream
   );
 
   const testEnv = vscode.commands.registerCommand("aiCollab.testEnv", () => {
@@ -649,9 +569,6 @@ Give me a specific message for EACH team member, detailing them what they need t
     getSupabaseUser,
     testEnv
   );
-=======
-  });
->>>>>>> Stashed changes
 }
 
 export function deactivate() {
