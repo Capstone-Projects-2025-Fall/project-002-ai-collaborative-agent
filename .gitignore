@@ -7,3 +7,7 @@
 .env.development.local
 .env.test.local
 .env.production.local
+
+node_modules/
+vscode-extension/node_modules/
+vscode-extension/out/
