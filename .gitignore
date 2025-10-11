@@ -8,4 +8,6 @@
 .env.test.local
 .env.production.local
 
-node_nodules/
+node_modules/
+
+
