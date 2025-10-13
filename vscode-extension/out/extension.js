@@ -134,16 +134,48 @@ async function activate(context) {
                     const folderUri = await vscode.window.showOpenDialog(options);
                     if (folderUri && folderUri.length > 0) {
                         const selectedFolder = folderUri[0].fsPath;
-                        // Open the selected folder in VS Code
-                        vscode.commands.executeCommand("vscode.openFolder", vscode.Uri.file(selectedFolder));
-                        vscode.window.showInformationMessage(`Opened folder: ${selectedFolder}`);
+                        // List files in the selected folder
+                        const files = await vscode.workspace.fs.readDirectory(vscode.Uri.file(selectedFolder));
+                        // Open the first file in the folder (or prompt the user to select one)
+                        const firstFile = files.find(([name, type]) => type === vscode.FileType.File);
+                        if (firstFile) {
+                            const filePath = path.join(selectedFolder, firstFile[0]);
+                            const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(filePath));
+                            await vscode.window.showTextDocument(doc);
+                            vscode.window.showInformationMessage(`Opened file: ${filePath}`);
+                            try {
+                                // Start a Live Share session
+                                const liveShare = await vsls.getApi(); // Get the Live Share API
+                                if (liveShare) {
+                                    const session = await liveShare.share(); // Start the Live Share session
+                                    console.log("Live Share session object:", session); // Debugging
+                                    if (session) {
+                                        // Use the session object to retrieve the invite link
+                                        vscode.window.showInformationMessage(`Live Share session started!`);
+                                    }
+                                    else {
+                                        vscode.window.showErrorMessage("Failed to start Live Share session.");
+                                    }
+                                }
+                                else {
+                                    vscode.window.showErrorMessage("Live Share extension is not installed or not available.");
+                                }
+                            }
+                            catch (error) {
+                                console.error("Error starting Live Share session:", error);
+                                vscode.window.showErrorMessage("An error occurred while starting Live Share.");
+                            }
+                        }
+                        else {
+                            vscode.window.showWarningMessage("No files found in the selected folder.");
+                        }
                     }
                     else {
                         vscode.window.showWarningMessage("No folder selected.");
                     }
                 }
                 catch (error) {
-                    vscode.window.showErrorMessage(`Failed to open folder: ${error instanceof Error ? error.message : "Unknown error"}`);
+                    vscode.window.showErrorMessage(`Failed to open file: ${error instanceof Error ? error.message : "Unknown error"}`);
                 }
             }
         });
