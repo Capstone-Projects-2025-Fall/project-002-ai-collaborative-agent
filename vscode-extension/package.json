@@ -39,9 +39,7 @@
   "scripts": {
     "compile": "tsc -p .",
     "watch": "tsc -w",
-    "package": "vsce package"
-  },
-  "scripts": {
+    "package": "vsce package",
     "test": "vitest",
     "test:watch": "vitest --watch",
     "test:ui": "vitest --ui",
