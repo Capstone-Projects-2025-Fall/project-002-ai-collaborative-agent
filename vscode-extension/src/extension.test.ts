@@ -6,7 +6,11 @@ import * as vscode from "vscode";
 import * as path from "path";
 
 // We must import the functions we want to test
-import { loadInitialData, saveInitialData } from "./extension"; // Adjust path if needed
+import {
+  loadInitialData,
+  saveInitialData,
+  createPromptForProject,
+} from "./extension"; // Adjust path if needed
 
 // --- Mocking Section ---
 // We tell Vitest: "anytime code asks for the 'vscode' module, give them our fake version"
@@ -103,6 +107,41 @@ describe("Data Handling Logic", () => {
         expectedJsonString,
         "utf-8"
       );
+    });
+  });
+
+  describe("createPromptForProject", () => {
+    // Setup mock data we can reuse in our tests
+    const mockUsers = [
+      { id: "1", name: "Alice", skills: "React, Node.js" },
+      { id: "2", name: "Bob", skills: "Python, Django" },
+      { id: "3", name: "Charlie", skills: "DevOps, AWS" },
+    ];
+    it("should return an empty string if the project is null or undefined", () => {
+      // Act: Call the function with invalid input
+      const prompt = createPromptForProject(null, mockUsers);
+      // Assert: Expect a specific "safe" output
+      expect(prompt).toBe("");
+    });
+    it("should include the project name and details of selected members", () => {
+      // Arrange
+      const mockProject = {
+        name: "Super Secret Project",
+        description: "A test description.",
+        goals: "A test goal.",
+        requirements: "A test requirement.",
+        selectedMemberIds: ["1", "3"], // Alice and Charlie
+      };
+
+      // Act
+      const prompt = createPromptForProject(mockProject, mockUsers);
+
+      // Assert
+      expect(prompt).toContain("Project Name: Super Secret Project");
+      expect(prompt).toContain("Name: Alice");
+      expect(prompt).toContain("Skills: DevOps, AWS"); // Charlie's skill
+      // This is a crucial assertion!
+      expect(prompt).not.toContain("Name: Bob"); // Bob was NOT selected
     });
   });
 });

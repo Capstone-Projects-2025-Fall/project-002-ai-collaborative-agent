@@ -63,96 +63,33 @@ export async function saveInitialData(data: any): Promise<void> {
   }
 }
 
-export function activate(context: vscode.ExtensionContext) {
-  vscode.window.showInformationMessage("AI Collab Agent activated");
+export function createPromptForProject(
+  projectToPrompt: any,
+  allUsers: any[]
+): string {
+  if (!projectToPrompt) {
+    return ""; // Or throw an error, which we can test for!
+  }
 
-  // ---- Debug/health command
-  const hello = vscode.commands.registerCommand("aiCollab.debugHello", () => {
-    vscode.window.showInformationMessage("Hello from AI Collab Agent!");
-  });
-  context.subscriptions.push(hello);
+  const teamMembersForPrompt = allUsers.filter((user: any) =>
+    projectToPrompt.selectedMemberIds
+      .map((id: any) => String(id))
+      .includes(String(user.id))
+  );
 
-  // ---- Main command: opens the webview panel
-  const open = vscode.commands.registerCommand(
-    "aiCollab.openPanel",
-    async () => {
-      const panel = vscode.window.createWebviewPanel(
-        "aiCollabPanel",
-        "AI Collab Agent - Team Platform",
-        vscode.ViewColumn.Active,
-        {
-          enableScripts: true,
-          retainContextWhenHidden: true,
-          localResourceRoots: [
-            vscode.Uri.file(path.join(context.extensionPath, "media")),
-          ],
-        }
-      );
+  const teamMemberDetails = teamMembersForPrompt
+    .map(
+      (user: any, index: number) =>
+        `Team Member ${index + 1}:
+          Name: ${user.name}
+          Skills: ${user.skills}
+          Programming Languages: ${user.programmingLanguages}
+          Willing to work on: ${user.willingToWorkOn || "Not specified"}
+          `
+    )
+    .join("");
 
-      panel.webview.html = await getHtml(panel.webview, context);
-
-      panel.webview.onDidReceiveMessage(async (msg: any) => {
-        switch (msg.type) {
-          case "saveData": {
-            await saveInitialData(msg.payload);
-            vscode.window.showInformationMessage(
-              "Team data saved to .aiCollabData.json!"
-            );
-            break;
-          }
-
-          case "loadData": {
-            const data = await loadInitialData();
-            panel.webview.postMessage({
-              type: "dataLoaded",
-              payload: data,
-            });
-            break;
-          }
-
-          case "generatePrompt": {
-            const { projectId } = msg.payload;
-
-            const currentData = await loadInitialData();
-            const projectToPrompt = currentData.projects.find(
-              (p: any) => p.id == projectId
-            );
-
-            if (!projectToPrompt) {
-              vscode.window.showErrorMessage(
-                "Project not found for AI prompt generation."
-              );
-              panel.webview.postMessage({
-                type: "promptGenerationError",
-                payload: { message: "Project not found." },
-              });
-              break;
-            }
-
-            // --- FIX APPLIED HERE: Robust ID comparison ---
-            const teamMembersForPrompt = currentData.users.filter((user: any) =>
-              // Convert all IDs to string for reliable comparison
-              projectToPrompt.selectedMemberIds
-                .map((id: any) => String(id))
-                .includes(String(user.id))
-            );
-            // --- END FIX ---
-
-            // Create the detailed string ONLY from the filtered members
-            const teamMemberDetails = teamMembersForPrompt
-              .map(
-                (user: any, index: number) =>
-                  `Team Member ${index + 1}:
-Name: ${user.name}
-Skills: ${user.skills}
-Programming Languages: ${user.programmingLanguages}
-Willing to work on: ${user.willingToWorkOn || "Not specified"}
-
-`
-              )
-              .join("");
-
-            const promptContent = `PROJECT ANALYSIS AND TEAM OPTIMIZATION REQUEST
+  const promptContent = `PROJECT ANALYSIS AND TEAM OPTIMIZATION REQUEST
 
 === PROJECT INFORMATION ===
 Project Name: ${projectToPrompt.name}
@@ -207,6 +144,79 @@ Please analyze this project and team composition and provide:
    - Suggest milestone structure
 
 Give me a specific message for EACH team member, detailing them what they need to do RIGHT NOW and in the FUTURE. Give each user the exact things they need to work on according also to their skills.`;
+
+  return promptContent;
+}
+
+export function activate(context: vscode.ExtensionContext) {
+  vscode.window.showInformationMessage("AI Collab Agent activated");
+
+  // ---- Debug/health command
+  const hello = vscode.commands.registerCommand("aiCollab.debugHello", () => {
+    vscode.window.showInformationMessage("Hello from AI Collab Agent!");
+  });
+  context.subscriptions.push(hello);
+
+  // ---- Main command: opens the webview panel
+  const open = vscode.commands.registerCommand(
+    "aiCollab.openPanel",
+    async () => {
+      const panel = vscode.window.createWebviewPanel(
+        "aiCollabPanel",
+        "AI Collab Agent - Team Platform",
+        vscode.ViewColumn.Active,
+        {
+          enableScripts: true,
+          retainContextWhenHidden: true,
+          localResourceRoots: [
+            vscode.Uri.file(path.join(context.extensionPath, "media")),
+          ],
+        }
+      );
+
+      panel.webview.html = await getHtml(panel.webview, context);
+
+      panel.webview.onDidReceiveMessage(async (msg: any) => {
+        switch (msg.type) {
+          case "saveData": {
+            await saveInitialData(msg.payload);
+            vscode.window.showInformationMessage(
+              "Team data saved to .aiCollabData.json!"
+            );
+            break;
+          }
+
+          case "loadData": {
+            const data = await loadInitialData();
+            panel.webview.postMessage({
+              type: "dataLoaded",
+              payload: data,
+            });
+            break;
+          }
+
+          case "generatePrompt": {
+            const { projectId } = msg.payload;
+
+            const currentData = await loadInitialData();
+            const projectToPrompt = currentData.projects.find(
+              (p: any) => p.id == projectId
+            );
+            const promptContent = createPromptForProject(
+              projectToPrompt,
+              currentData.users
+            );
+
+            if (!projectToPrompt) {
+              vscode.window.showErrorMessage(
+                "Project not found for AI prompt generation."
+              );
+              panel.webview.postMessage({
+                type: "promptGenerationError",
+                payload: { message: "Project not found." },
+              });
+              break;
+            }
 
             const tempFileName = `AI_Prompt_${projectToPrompt.name.replace(
               /[^a-zA-Z0-9]/g,

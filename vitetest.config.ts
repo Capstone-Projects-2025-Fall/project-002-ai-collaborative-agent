@@ -3,12 +3,18 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
-    // 👇 enable DOM APIs (like document) for testing
-    environment: "jsdom",
-    // 👇 enable vitest's globals (describe, it, expect, etc.)
     globals: true,
-    // 👇 look for test files in the 'src' directory
-    include: ["src/**/*.test.ts"],
-    setupFiles: "./src/tests/setup.ts", // optional setup file
+    environment: "jsdom",
+    // ... other settings
+
+    // 👇 ADD THIS COVERAGE SECTION
+    coverage: {
+      // Choose the provider
+      provider: "v8",
+      // Specify the reporters, including 'html'
+      reporter: ["text", "json", "html"],
+      // The directory where reports will be generated
+      reportsDirectory: "./coverage",
+    },
   },
 });
