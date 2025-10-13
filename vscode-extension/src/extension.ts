@@ -13,7 +13,7 @@ function getDataFilePath(): string | undefined {
 }
 
 // Helper function to load all data from the file
-async function loadInitialData(): Promise<any> {
+export async function loadInitialData(): Promise<any> {
   const filePath = getDataFilePath();
   let data: { users: any[]; projects: any[]; promptCount: number } = {
     users: [],
@@ -46,7 +46,7 @@ async function loadInitialData(): Promise<any> {
 }
 
 // Helper function to save all data to the file
-async function saveInitialData(data: any): Promise<void> {
+export async function saveInitialData(data: any): Promise<void> {
   const filePath = getDataFilePath();
   if (!filePath) {
     vscode.window.showErrorMessage(
