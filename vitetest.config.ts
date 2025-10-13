@@ -7,6 +7,8 @@ export default defineConfig({
     environment: "jsdom",
     // ... other settings
 
+    exclude: ["**/node_modules/**", "**/dist/**", "**/out/**"],
+
     // 👇 ADD THIS COVERAGE SECTION
     coverage: {
       // Choose the provider

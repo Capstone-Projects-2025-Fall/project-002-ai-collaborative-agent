@@ -10,9 +10,6 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [
-    "onCommand:aiCollab.openPanel"
-  ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
@@ -36,6 +33,23 @@
       }
     }
   },
+  "viewsContainers": {
+    "activitybar": [
+      {
+        "id": "aiCollab-sidebar",
+        "title": "AI Collab",
+        "icon": "media/collaboration.svg"
+      }
+    ]
+  },
+  "views": {
+    "aiCollab-sidebar": [
+      {
+        "id": "aiCollabView",
+        "name": "Team Panel"
+      }
+    ]
+  },
   "scripts": {
     "compile": "tsc -p .",
     "watch": "tsc -w",
@@ -53,5 +67,8 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "vsls": "^1.0.4753"
+  }
 }

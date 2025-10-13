@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import * as fs from "fs/promises";
 import * as path from "path";
+import * as vsls from "vsls/vscode";
 
 // Helper function to get the full path to our data file
 function getDataFilePath(): string | undefined {
@@ -50,7 +51,7 @@ export async function saveInitialData(data: any): Promise<void> {
   const filePath = getDataFilePath();
   if (!filePath) {
     vscode.window.showErrorMessage(
-      "Please open a folder in your workspace to save data."
+      "Please open a folder in your workspace to save data.",
     );
     return;
   }
@@ -65,7 +66,7 @@ export async function saveInitialData(data: any): Promise<void> {
 
 export function createPromptForProject(
   projectToPrompt: any,
-  allUsers: any[]
+  allUsers: any[],
 ): string {
   if (!projectToPrompt) {
     return ""; // Or throw an error, which we can test for!
@@ -74,7 +75,7 @@ export function createPromptForProject(
   const teamMembersForPrompt = allUsers.filter((user: any) =>
     projectToPrompt.selectedMemberIds
       .map((id: any) => String(id))
-      .includes(String(user.id))
+      .includes(String(user.id)),
   );
 
   const teamMemberDetails = teamMembersForPrompt
@@ -85,7 +86,7 @@ export function createPromptForProject(
           Skills: ${user.skills}
           Programming Languages: ${user.programmingLanguages}
           Willing to work on: ${user.willingToWorkOn || "Not specified"}
-          `
+          `,
     )
     .join("");
 
@@ -148,7 +149,7 @@ Give me a specific message for EACH team member, detailing them what they need t
   return promptContent;
 }
 
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
   vscode.window.showInformationMessage("AI Collab Agent activated");
 
   // ---- Debug/health command
@@ -156,6 +157,22 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.window.showInformationMessage("Hello from AI Collab Agent!");
   });
   context.subscriptions.push(hello);
+
+  const liveShare = (await vsls.getApi()) as vsls.LiveShare | null;
+  liveShare?.onDidChangeSession((e) =>
+    console.log("[AI Collab] Live Share role:", e.session?.role),
+  );
+
+  // Add status bar button
+  const statusBarItem = vscode.window.createStatusBarItem(
+    vscode.StatusBarAlignment.Left,
+    1,
+  );
+  statusBarItem.text = "$(squirrel) AI Collab Agent";
+  statusBarItem.tooltip = "Open AI Collab Panel";
+  statusBarItem.command = "aiCollab.openPanel";
+  statusBarItem.show();
+  context.subscriptions.push(statusBarItem);
 
   // ---- Main command: opens the webview panel
   const open = vscode.commands.registerCommand(
@@ -171,17 +188,152 @@ export function activate(context: vscode.ExtensionContext) {
           localResourceRoots: [
             vscode.Uri.file(path.join(context.extensionPath, "media")),
           ],
-        }
+        },
       );
 
       panel.webview.html = await getHtml(panel.webview, context);
+
+      // Handle messages from the webview
+      panel.webview.onDidReceiveMessage(async (message) => {
+        if (message.type === "openFile") {
+          try {
+            // Open a folder selection dialog
+            const options = {
+              canSelectFiles: false,
+              canSelectFolders: true,
+              canSelectMany: false,
+              openLabel: "Open Folder",
+              defaultUri: vscode.Uri.file(require("os").homedir()), // Default to the user's home directory
+            };
+
+            const folderUri = await vscode.window.showOpenDialog(options);
+
+            const currentData = await loadInitialData();
+            const projectToPrompt = currentData.projects.find(
+              (p: any) => p.id == projectId,
+            );
+            const promptContent = createPromptForProject(
+              projectToPrompt,
+              currentData.users,
+            );
+
+            if (folderUri && folderUri.length > 0) {
+              const selectedFolder = folderUri[0].fsPath;
+
+              // List files in the selected folder
+              const files = await vscode.workspace.fs.readDirectory(
+                vscode.Uri.file(selectedFolder),
+              );
+
+              // Open the first file in the folder (or prompt the user to select one)
+              const firstFile = files.find(
+                ([name, type]) => type === vscode.FileType.File,
+              );
+              if (firstFile) {
+                const filePath = path.join(selectedFolder, firstFile[0]);
+                const doc = await vscode.workspace.openTextDocument(
+                  vscode.Uri.file(filePath),
+                );
+                await vscode.window.showTextDocument(doc);
+                vscode.window.showInformationMessage(
+                  `Opened file: ${filePath}`,
+                );
+
+                try {
+                  // Start a Live Share session
+                  const liveShare = await vsls.getApi(); // Get the Live Share API
+                  if (liveShare) {
+                    const session = await liveShare.share(); // Start the Live Share session
+                    console.log("Live Share session object:", session); // Debugging
+                    if (session) {
+                      // Use the session object to retrieve the invite link
+                      vscode.window.showInformationMessage(
+                        `Live Share session started!`,
+                      );
+                    } else {
+                      vscode.window.showErrorMessage(
+                        "Failed to start Live Share session.",
+                      );
+                    }
+                  } else {
+                    vscode.window.showErrorMessage(
+                      "Live Share extension is not installed or not available.",
+                    );
+                  }
+                } catch (error) {
+                  console.error("Error starting Live Share session:", error);
+                  vscode.window.showErrorMessage(
+                    "An error occurred while starting Live Share.",
+                  );
+                }
+              } else {
+                vscode.window.showWarningMessage(
+                  "No files found in the selected folder.",
+                );
+              }
+            } else {
+              vscode.window.showWarningMessage("No folder selected.");
+            }
+          } catch (error) {
+            vscode.window.showErrorMessage(
+              `Failed to open file: ${
+                error instanceof Error ? error.message : "Unknown error"
+              }`,
+            );
+          }
+        }
+      });
+
+      // Live Share service setup
+      let hostService: vsls.SharedService | null = null;
+      let guestService: vsls.SharedServiceProxy | null = null;
+
+      if (liveShare?.session?.role === vsls.Role.Host) {
+        hostService = await liveShare.shareService("aiCollab.service");
+        if (!hostService) {
+          vscode.window.showWarningMessage(
+            "Could not share Live Share service. Start a Live Share session as Host.",
+          );
+        } else {
+          hostService.onRequest("allocate", (args: any[]) => {
+            type AllocateInput = { [key: string]: any }; // Define the type or replace with the correct structure
+            const [payload] = args as [AllocateInput];
+            return mockAllocate(payload);
+          });
+          hostService.onRequest("createTeam", async (args: any[]) => {
+            const [payload] = args as [any];
+            await context.workspaceState.update("aiCollab.team", payload);
+            hostService!.notify("teamUpdated", payload);
+            return { ok: true as const };
+          });
+        }
+      } else if (liveShare?.session?.role === vsls.Role.Guest) {
+        guestService = await liveShare.getSharedService("aiCollab.service");
+        if (!guestService) {
+          vscode.window.showWarningMessage(
+            "Host service not found. Ask the host to open the panel.",
+          );
+        } else {
+          guestService.onNotify("teamUpdated", (payload: any) => {
+            panel.webview.postMessage({ type: "teamSaved", payload });
+          });
+        }
+      }
+      async function pushTeamToWebview() {
+        const team = await context.workspaceState.get("aiCollab.team");
+        panel.webview.postMessage({
+          type: "teamLoaded",
+          payload: team ?? null,
+        });
+      }
+      await pushTeamToWebview();
 
       panel.webview.onDidReceiveMessage(async (msg: any) => {
         switch (msg.type) {
           case "saveData": {
             await saveInitialData(msg.payload);
             vscode.window.showInformationMessage(
-              "Team data saved to .aiCollabData.json!"
+              "Team data saved to .aiCollabData.json!",
             );
             break;
           }
@@ -200,16 +352,16 @@ export function activate(context: vscode.ExtensionContext) {
 
             const currentData = await loadInitialData();
             const projectToPrompt = currentData.projects.find(
-              (p: any) => p.id == projectId
+              (p: any) => p.id == projectId,
             );
             const promptContent = createPromptForProject(
               projectToPrompt,
-              currentData.users
+              currentData.users,
             );
 
             if (!projectToPrompt) {
               vscode.window.showErrorMessage(
-                "Project not found for AI prompt generation."
+                "Project not found for AI prompt generation.",
               );
               panel.webview.postMessage({
                 type: "promptGenerationError",
@@ -218,15 +370,94 @@ export function activate(context: vscode.ExtensionContext) {
               break;
             }
 
+            // --- FIX APPLIED HERE: Robust ID comparison ---
+            const teamMembersForPrompt = currentData.users.filter((user: any) =>
+              // Convert all IDs to string for reliable comparison
+              projectToPrompt.selectedMemberIds
+                .map((id: any) => String(id))
+                .includes(String(user.id)),
+            );
+            // --- END FIX ---
+
+            // Create the detailed string ONLY from the filtered members
+            const teamMemberDetails = teamMembersForPrompt
+              .map(
+                (user: any, index: number) =>
+                  `Team Member ${index + 1}:
+Name: ${user.name}
+Skills: ${user.skills}
+Programming Languages: ${user.programmingLanguages}
+Willing to work on: ${user.willingToWorkOn || "Not specified"}
+
+`,
+              )
+              .join("");
+
+            const promptContent = `PROJECT ANALYSIS AND TEAM OPTIMIZATION REQUEST
+
+=== PROJECT INFORMATION ===
+Project Name: ${projectToPrompt.name}
+Created: ${new Date(projectToPrompt.createdAt).toLocaleString()}
+
+Project Description:
+${projectToPrompt.description}
+
+Project Goals:
+${projectToPrompt.goals}
+
+Project Requirements:
+${projectToPrompt.requirements}
+
+=== TEAM COMPOSITION ===
+Team Size: ${teamMembersForPrompt.length} members
+
+${teamMemberDetails}
+
+=== AI ANALYSIS REQUEST ===
+
+Please analyze this project and team composition and provide:
+
+1. TEAM ANALYSIS:
+   - Evaluate if the current team has the right skill mix for the project requirements
+   - Identify any skill gaps or redundancies
+   - Assess team member compatibility based on their stated interests
+
+2. PROJECT FEASIBILITY:
+   - Analyze if the project goals are achievable with the current team
+   - Identify potential challenges based on requirements vs. available skills
+   - Suggest timeline considerations
+
+3. ROLE ASSIGNMENTS:
+   - Recommend specific roles for each team member based on their skills
+   - Suggest who should lead different aspects of the project
+   - Identify collaboration opportunities between team members
+
+4. OPTIMIZATION RECOMMENDATIONS:
+   - Suggest additional skills that might be needed
+   - Recommend training or resource allocation
+   - Propose project structure and workflow improvements
+
+5. RISK ASSESSMENT:
+   - Identify potential project risks based on team composition
+   - Suggest mitigation strategies
+   - Highlight critical success factors
+
+6. DELIVERABLES MAPPING:
+   - Break down project requirements into specific deliverables
+   - Map deliverables to team member capabilities
+   - Suggest milestone structure
+
+Give me a specific message for EACH team member, detailing them what they need to do RIGHT NOW and in the FUTURE. Give each user the exact things they need to work on according also to their skills.`;
+
             const tempFileName = `AI_Prompt_${projectToPrompt.name.replace(
               /[^a-zA-Z0-9]/g,
-              "_"
+              "_",
             )}_${Date.now()}.txt`;
             const workspaceFolders = vscode.workspace.workspaceFolders;
             if (workspaceFolders) {
               const filePath = vscode.Uri.joinPath(
                 workspaceFolders[0].uri,
-                tempFileName
+                tempFileName,
               );
               await fs.writeFile(filePath.fsPath, promptContent, "utf-8");
               await vscode.window.showTextDocument(filePath, {
@@ -248,7 +479,7 @@ export function activate(context: vscode.ExtensionContext) {
             });
 
             vscode.window.showInformationMessage(
-              `AI Prompt generated for project: ${projectToPrompt.name} and saved to ${tempFileName}`
+              `AI Prompt generated for project: ${projectToPrompt.name} and saved to ${tempFileName}`,
             );
             break;
           }
@@ -265,16 +496,24 @@ export function activate(context: vscode.ExtensionContext) {
             break;
         }
       });
-    }
+    },
   );
   context.subscriptions.push(open);
 }
 
 export function deactivate() {}
 
+function ensureWorkspaceOpen(): boolean {
+  if (!vscode.workspace.workspaceFolders?.length) {
+    vscode.window.showErrorMessage("Open a folder/workspace first.");
+    return false;
+  }
+  return true;
+}
+
 async function getHtml(
   webview: vscode.Webview,
-  context: vscode.ExtensionContext
+  context: vscode.ExtensionContext,
 ): Promise<string> {
   const nonce = getNonce();
 
@@ -291,7 +530,7 @@ async function getHtml(
             style-src ${webview.cspSource} 'unsafe-inline';
             img-src ${webview.cspSource} https:;
             script-src 'nonce-${nonce}';
-        ">`
+        ">`,
     )
     .replace(/<script>/, `<script nonce="${nonce}">`);
 
@@ -306,4 +545,7 @@ function getNonce() {
     text += possible.charAt(Math.floor(Math.random() * possible.length));
   }
   return text;
+}
+function mockAllocate(payload: { [key: string]: any }): any {
+  throw new Error("Function not implemented.");
 }
