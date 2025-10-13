@@ -354,6 +354,10 @@ export async function activate(context: vscode.ExtensionContext) {
             const projectToPrompt = currentData.projects.find(
               (p: any) => p.id == projectId,
             );
+            const promptContent = createPromptForProject(
+              projectToPrompt,
+              currentData.users,
+            );
 
             if (!projectToPrompt) {
               vscode.window.showErrorMessage(
