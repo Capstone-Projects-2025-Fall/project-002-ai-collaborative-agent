@@ -146,24 +146,26 @@ export async function activate(context: vscode.ExtensionContext) {
 								);
 
 								try {
-									// Start a Live Share session
+									/// Start a Live Share session
 									const liveShare = await vsls.getApi(); // Get the Live Share API
-									if (liveShare) {
-										const session = await liveShare.share(); // Start the Live Share session
-										console.log("Live Share session object:", session); // Debugging
-										if (session) {
-											// Use the session object to retrieve the invite link
-											vscode.window.showInformationMessage(
-												`Live Share session started!`
-											);
-										} else {
-											vscode.window.showErrorMessage(
-												"Failed to start Live Share session."
-											);
-										}
-									} else {
+									if (!liveShare) {
 										vscode.window.showErrorMessage(
 											"Live Share extension is not installed or not available."
+										);
+										return;
+									}
+
+									await liveShare.share(); // May return undefined even if successful
+
+									// Check if session is active
+									if (liveShare.session && liveShare.session.id) {
+										vscode.window.showInformationMessage(
+											"Live Share session started!"
+										);
+										console.log("Live Share session info:", liveShare.session);
+									} else {
+										vscode.window.showErrorMessage(
+											"Failed to start Live Share session."
 										);
 									}
 								} catch (error) {
