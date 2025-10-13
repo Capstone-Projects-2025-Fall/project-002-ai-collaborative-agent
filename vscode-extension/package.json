@@ -10,9 +10,6 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [
-    "onCommand:aiCollab.openPanel"
-  ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
@@ -37,34 +34,41 @@
     }
   },
   "viewsContainers": {
-			"activitybar": [
-				{
-					"id": "aiCollab-sidebar",
-					"title": "AI Collab",
-					"icon": "media/collaboration.svg"
-				}
-			]
-		},
-		"views": {
-			"aiCollab-sidebar": [
-				{
-					"id": "aiCollabView",
-					"name": "Team Panel"
-				}
-			]
-		},
+    "activitybar": [
+      {
+        "id": "aiCollab-sidebar",
+        "title": "AI Collab",
+        "icon": "media/collaboration.svg"
+      }
+    ]
+  },
+  "views": {
+    "aiCollab-sidebar": [
+      {
+        "id": "aiCollabView",
+        "name": "Team Panel"
+      }
+    ]
+  },
   "scripts": {
     "compile": "tsc -p .",
     "watch": "tsc -w",
-    "package": "vsce package"
+    "package": "vsce package",
+    "test": "vitest",
+    "test:watch": "vitest --watch",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage"
   },
   "devDependencies": {
-    "@types/node": "^22.18.6",
-    "@types/vscode": "^1.70.0",
-    "esbuild": "^0.23.0",
+    "@types/node": "^22.18.10",
+    "@types/vscode": "^1.105.0",
+    "esbuild": "^0.25.10",
     "typescript": "^5.9.2"
   },
   "keywords": [],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "vsls": "^1.0.4753"
+  }
 }

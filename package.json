@@ -1,8 +1,14 @@
 {
   "devDependencies": {
-    "@types/node": "^24.6.1"
+    "@vitest/coverage-v8": "^3.2.4",
+    "@vitest/ui": "^3.2.4",
+    "jsdom": "^27.0.0",
+    "vitest": "^3.2.4"
   },
-  "dependencies": {
-    "vsls": "^1.0.4753"
+  "scripts": {
+    "test": "vitest -c ./vitetest.config.ts",
+    "test:watch": "vitest -c ./vitetest.config.ts --watch",
+    "test:ui": "vitest -c ./vitetest.config.ts --ui",
+    "test:coverage": "vitest -c ./vitetest.config.ts run --coverage"
   }
 }
