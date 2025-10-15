@@ -546,10 +546,19 @@ The generated prompt will include:
                     throw new Error('Name, skills, and programming languages are required');
                 }
 
-                const user = new TeamMember(name, skills, programmingLanguages, willingToWorkOn);
-                this.users.push(user);
-                this.saveData();
-                this.updateUI();
+                const user = {
+                    name: name,
+                    skills: skills,
+                    programming_languages: programmingLanguages,
+                    willing_to_work_on: willingToWorkOn
+                };
+
+                // Send to extension to save in Supabase
+                vscode.postMessage({
+                    type: 'addUser',
+                    payload: { user: user }
+                });
+
                 return user;
             }
 
@@ -563,10 +572,22 @@ The generated prompt will include:
                     throw new Error('At least one team member must be selected');
                 }
 
-                const project = new Project(name, description, goals, requirements, selectedUserIds); // Pass IDs
-                this.projects.push(project);
-                this.saveData();
-                this.updateUI();
+                const project = {
+                    name: name,
+                    description: description,
+                    goals: goals,
+                    requirements: requirements
+                };
+
+                // Send to extension to save in Supabase
+                vscode.postMessage({
+                    type: 'createProject',
+                    payload: { 
+                        project: project,
+                        selectedMemberIds: selectedUserIds
+                    }
+                });
+
                 return project;
             }
 
@@ -666,21 +687,19 @@ The generated prompt will include:
             }
 
             removeUser(userId) {
-                this.users = this.users.filter(user => user.id != userId);
-                // Also remove this user from any projects they might be assigned to
-                this.projects.forEach(project => {
-                    project.selectedMemberIds = project.selectedMemberIds.filter(memberId => memberId != userId);
+                // Send to extension to delete from Supabase
+                vscode.postMessage({
+                    type: 'deleteUser',
+                    payload: { userId: userId }
                 });
-                this.saveData();
-                this.updateUI();
-                showStatus('userStatus', 'Team member removed successfully!', 'success');
             }
 
             removeProject(projectId) {
-                this.projects = this.projects.filter(project => project.id != projectId);
-                this.saveData();
-                this.updateUI();
-                showStatus('projectStatus', 'Project removed successfully!', 'success');
+                // Send to extension to delete from Supabase
+                vscode.postMessage({
+                    type: 'deleteProject',
+                    payload: { projectId: projectId }
+                });
             }
         }
 
@@ -697,11 +716,16 @@ The generated prompt will include:
                 case 'dataLoaded':
                     app.loadData(message.payload); // This will re-render everything
                     break;
+                case 'promptGenerating': // NEW: Show loading state
+                    document.getElementById('promptOutput').textContent = message.payload.message;
+                    showStatus('promptStatus', message.payload.message, 'success');
+                    break;
                 case 'promptGeneratedFromExtension': // NEW: Listen for generated prompt from extension
                      document.getElementById('promptOutput').textContent = message.payload.prompt;
-                     showStatus('promptStatus', '🤖 AI Prompt generated! See editor for markdown.', 'success');
+                     showStatus('promptStatus', '🤖 AI Prompt generated! Check the editor for full details.', 'success');
                      break;
                 case 'promptGenerationError': // NEW: Handle errors from extension
+                    document.getElementById('promptOutput').textContent = 'Error generating prompt. Please try again.';
                     showStatus('promptStatus', `Error: ${message.payload.message}`, 'error');
                     break;
             }

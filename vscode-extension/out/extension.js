@@ -38,62 +38,231 @@ exports.deactivate = deactivate;
 const vscode = __importStar(require("vscode"));
 const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
-// Helper function to get the full path to our data file
-function getDataFilePath() {
-    const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-    if (!workspaceFolder) {
-        return undefined; // No open folder
-    }
-    // We'll store our data in a hidden file in the root of the workspace
-    return path.join(workspaceFolder.uri.fsPath, ".aiCollabData.json");
-}
-// Helper function to load all data from the file
-async function loadInitialData() {
-    const filePath = getDataFilePath();
-    let data = {
-        users: [],
-        projects: [],
-        promptCount: 0,
-    };
-    if (filePath) {
-        try {
-            const fileContent = await fs.readFile(filePath, "utf-8");
-            const parsedData = JSON.parse(fileContent);
-            data.users = parsedData.users || [];
-            data.projects = parsedData.projects || [];
-            data.promptCount = parsedData.promptCount || 0;
-        }
-        catch (error) {
-            console.log("Data file not found or invalid, using default state.");
-        }
-    }
-    // Ensure selectedMemberIds is an array for all projects (backward compatibility/safety)
-    data.projects = data.projects.map((projectData) => ({
-        ...projectData,
-        selectedMemberIds: Array.isArray(projectData.selectedMemberIds)
-            ? projectData.selectedMemberIds
-            : [],
-    }));
-    return data;
-}
-// Helper function to save all data to the file
-async function saveInitialData(data) {
-    const filePath = getDataFilePath();
-    if (!filePath) {
-        vscode.window.showErrorMessage("Please open a folder in your workspace to save data.");
-        return;
-    }
+const supabaseConfig_1 = require("./supabaseConfig");
+// SUPABASE DATABASE FUNCTIONS
+// Load all users from Supabase
+async function loadUsersFromSupabase() {
     try {
-        const jsonString = JSON.stringify(data, null, 2);
-        await fs.writeFile(filePath, jsonString, "utf-8");
+        const supabase = (0, supabaseConfig_1.getSupabaseClient)();
+        const { data, error } = await supabase
+            .from("users")
+            .select("*")
+            .order("created_at", { ascending: false });
+        if (error) {
+            console.error("Error loading users:", error);
+            return [];
+        }
+        return data || [];
     }
     catch (error) {
-        console.error("Failed to save data:", error);
-        vscode.window.showErrorMessage("Failed to save team data to file.");
+        console.error("Failed to load users from Supabase:", error);
+        return [];
+    }
+}
+// Load all projects with their team members from Supabase
+async function loadProjectsFromSupabase() {
+    try {
+        const supabase = (0, supabaseConfig_1.getSupabaseClient)();
+        // First, get all projects
+        const { data: projects, error: projectsError } = await supabase
+            .from("projects")
+            .select("*")
+            .order("created_at", { ascending: false });
+        if (projectsError) {
+            console.error("Error loading projects:", projectsError);
+            return [];
+        }
+        if (!projects || projects.length === 0) {
+            return [];
+        }
+        // For each project, get its team members
+        const projectsWithMembers = await Promise.all(projects.map(async (project) => {
+            const { data: members, error: membersError } = await supabase
+                .from("project_members")
+                .select("user_id")
+                .eq("project_id", project.id);
+            if (membersError) {
+                console.error("Error loading project members:", membersError);
+                return { ...project, selectedMemberIds: [] };
+            }
+            const selectedMemberIds = members?.map((m) => m.user_id) || [];
+            return { ...project, selectedMemberIds };
+        }));
+        return projectsWithMembers;
+    }
+    catch (error) {
+        console.error("Failed to load projects from Supabase:", error);
+        return [];
+    }
+}
+// Get prompt count from Supabase
+async function getPromptCount() {
+    try {
+        const supabase = (0, supabaseConfig_1.getSupabaseClient)();
+        const { count, error } = await supabase
+            .from("ai_prompts")
+            .select("*", { count: "exact", head: true });
+        if (error) {
+            console.error("Error getting prompt count:", error);
+            return 0;
+        }
+        return count || 0;
+    }
+    catch (error) {
+        console.error("Failed to get prompt count:", error);
+        return 0;
+    }
+}
+// Load all data from Supabase
+async function loadDataFromSupabase() {
+    const users = await loadUsersFromSupabase();
+    const projects = await loadProjectsFromSupabase();
+    const promptCount = await getPromptCount();
+    return {
+        users,
+        projects,
+        promptCount,
+    };
+}
+// Save a new user to Supabase
+async function saveUserToSupabase(user) {
+    try {
+        const supabase = (0, supabaseConfig_1.getSupabaseClient)();
+        const { data, error } = await supabase
+            .from("users")
+            .insert([user])
+            .select()
+            .single();
+        if (error) {
+            console.error("Error saving user:", error);
+            throw new Error(error.message);
+        }
+        return data;
+    }
+    catch (error) {
+        console.error("Failed to save user to Supabase:", error);
+        throw error;
+    }
+}
+// Save a new project to Supabase
+async function saveProjectToSupabase(project, selectedMemberIds) {
+    try {
+        const supabase = (0, supabaseConfig_1.getSupabaseClient)();
+        // Insert the project
+        const { data: projectData, error: projectError } = await supabase
+            .from("projects")
+            .insert([project])
+            .select()
+            .single();
+        if (projectError) {
+            console.error("Error saving project:", projectError);
+            throw new Error(projectError.message);
+        }
+        // Insert project members
+        if (selectedMemberIds.length > 0) {
+            const projectMembers = selectedMemberIds.map((userId) => ({
+                project_id: projectData.id,
+                user_id: userId,
+            }));
+            const { error: membersError } = await supabase
+                .from("project_members")
+                .insert(projectMembers);
+            if (membersError) {
+                console.error("Error saving project members:", membersError);
+                // Don't throw here, project is already saved
+            }
+        }
+        return projectData;
+    }
+    catch (error) {
+        console.error("Failed to save project to Supabase:", error);
+        throw error;
+    }
+}
+// Delete a user from Supabase
+async function deleteUserFromSupabase(userId) {
+    try {
+        const supabase = (0, supabaseConfig_1.getSupabaseClient)();
+        const { error } = await supabase.from("users").delete().eq("id", userId);
+        if (error) {
+            console.error("Error deleting user:", error);
+            throw new Error(error.message);
+        }
+    }
+    catch (error) {
+        console.error("Failed to delete user from Supabase:", error);
+        throw error;
+    }
+}
+// Delete a project from Supabase
+async function deleteProjectFromSupabase(projectId) {
+    try {
+        const supabase = (0, supabaseConfig_1.getSupabaseClient)();
+        const { error } = await supabase
+            .from("projects")
+            .delete()
+            .eq("id", projectId);
+        if (error) {
+            console.error("Error deleting project:", error);
+            throw new Error(error.message);
+        }
+    }
+    catch (error) {
+        console.error("Failed to delete project from Supabase:", error);
+        throw error;
+    }
+}
+// Call the Edge Function to generate AI response
+async function callAIEdgeFunction(project, users) {
+    try {
+        const edgeFunctionUrl = (0, supabaseConfig_1.getEdgeFunctionUrl)();
+        const supabase = (0, supabaseConfig_1.getSupabaseClient)();
+        // Use the anon key directly for authentication
+        const response = await fetch(edgeFunctionUrl, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${(0, supabaseConfig_1.getSupabaseAnonKey)()}`,
+            },
+            body: JSON.stringify({
+                project,
+                users,
+            }),
+        });
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Edge function error: ${response.status} - ${errorText}`);
+        }
+        const data = await response.json();
+        return data.message || data.response || "No response from AI";
+    }
+    catch (error) {
+        console.error("Failed to call AI edge function:", error);
+        throw error;
+    }
+}
+// Save AI prompt and response to Supabase
+async function saveAIPromptToSupabase(projectId, promptContent, aiResponse) {
+    try {
+        const supabase = (0, supabaseConfig_1.getSupabaseClient)();
+        const { error } = await supabase.from("ai_prompts").insert([
+            {
+                project_id: projectId,
+                prompt_content: promptContent,
+                ai_response: aiResponse,
+            },
+        ]);
+        if (error) {
+            console.error("Error saving AI prompt:", error);
+            // Don't throw, this is not critical
+        }
+    }
+    catch (error) {
+        console.error("Failed to save AI prompt to Supabase:", error);
     }
 }
 function activate(context) {
-    vscode.window.showInformationMessage("AI Collab Agent activated");
+    vscode.window.showInformationMessage("AI Collab Agent activated (Supabase)");
     // ---- Debug/health command
     const hello = vscode.commands.registerCommand("aiCollab.debugHello", () => {
         vscode.window.showInformationMessage("Hello from AI Collab Agent!");
@@ -111,124 +280,197 @@ function activate(context) {
         panel.webview.html = await getHtml(panel.webview, context);
         panel.webview.onDidReceiveMessage(async (msg) => {
             switch (msg.type) {
-                case "saveData": {
-                    await saveInitialData(msg.payload);
-                    vscode.window.showInformationMessage("Team data saved to .aiCollabData.json!");
+                case "loadData": {
+                    try {
+                        const data = await loadDataFromSupabase();
+                        panel.webview.postMessage({
+                            type: "dataLoaded",
+                            payload: data,
+                        });
+                    }
+                    catch (error) {
+                        vscode.window.showErrorMessage(`Failed to load data: ${error.message}`);
+                        panel.webview.postMessage({
+                            type: "dataLoaded",
+                            payload: { users: [], projects: [], promptCount: 0 },
+                        });
+                    }
                     break;
                 }
-                case "loadData": {
-                    const data = await loadInitialData();
-                    panel.webview.postMessage({
-                        type: "dataLoaded",
-                        payload: data,
-                    });
+                case "addUser": {
+                    try {
+                        const { user } = msg.payload;
+                        const savedUser = await saveUserToSupabase(user);
+                        if (savedUser) {
+                            vscode.window.showInformationMessage(`Team member ${user.name} added successfully!`);
+                            // Reload data
+                            const data = await loadDataFromSupabase();
+                            panel.webview.postMessage({
+                                type: "dataLoaded",
+                                payload: data,
+                            });
+                        }
+                    }
+                    catch (error) {
+                        vscode.window.showErrorMessage(`Failed to add user: ${error.message}`);
+                    }
+                    break;
+                }
+                case "createProject": {
+                    try {
+                        const { project, selectedMemberIds } = msg.payload;
+                        const savedProject = await saveProjectToSupabase(project, selectedMemberIds);
+                        if (savedProject) {
+                            vscode.window.showInformationMessage(`Project ${project.name} created successfully!`);
+                            // Reload data
+                            const data = await loadDataFromSupabase();
+                            panel.webview.postMessage({
+                                type: "dataLoaded",
+                                payload: data,
+                            });
+                        }
+                    }
+                    catch (error) {
+                        vscode.window.showErrorMessage(`Failed to create project: ${error.message}`);
+                    }
+                    break;
+                }
+                case "deleteUser": {
+                    try {
+                        const { userId } = msg.payload;
+                        await deleteUserFromSupabase(userId);
+                        vscode.window.showInformationMessage("Team member removed successfully!");
+                        // Reload data
+                        const data = await loadDataFromSupabase();
+                        panel.webview.postMessage({
+                            type: "dataLoaded",
+                            payload: data,
+                        });
+                    }
+                    catch (error) {
+                        vscode.window.showErrorMessage(`Failed to remove user: ${error.message}`);
+                    }
+                    break;
+                }
+                case "deleteProject": {
+                    try {
+                        const { projectId } = msg.payload;
+                        await deleteProjectFromSupabase(projectId);
+                        vscode.window.showInformationMessage("Project removed successfully!");
+                        // Reload data
+                        const data = await loadDataFromSupabase();
+                        panel.webview.postMessage({
+                            type: "dataLoaded",
+                            payload: data,
+                        });
+                    }
+                    catch (error) {
+                        vscode.window.showErrorMessage(`Failed to remove project: ${error.message}`);
+                    }
                     break;
                 }
                 case "generatePrompt": {
-                    const { projectId } = msg.payload;
-                    const currentData = await loadInitialData();
-                    const projectToPrompt = currentData.projects.find((p) => p.id == projectId);
-                    if (!projectToPrompt) {
-                        vscode.window.showErrorMessage("Project not found for AI prompt generation.");
+                    try {
+                        const { projectId } = msg.payload;
+                        // Load current data
+                        const currentData = await loadDataFromSupabase();
+                        const projectToPrompt = currentData.projects.find((p) => p.id === projectId);
+                        if (!projectToPrompt) {
+                            vscode.window.showErrorMessage("Project not found for AI prompt generation.");
+                            panel.webview.postMessage({
+                                type: "promptGenerationError",
+                                payload: { message: "Project not found." },
+                            });
+                            break;
+                        }
+                        // Filter team members for this project
+                        const teamMembersForPrompt = currentData.users.filter((user) => projectToPrompt.selectedMemberIds.includes(user.id));
+                        // Show loading state
                         panel.webview.postMessage({
-                            type: "promptGenerationError",
-                            payload: { message: "Project not found." },
+                            type: "promptGenerating",
+                            payload: { message: "Calling AI to analyze your project..." },
                         });
-                        break;
-                    }
-                    // --- FIX APPLIED HERE: Robust ID comparison ---
-                    const teamMembersForPrompt = currentData.users.filter((user) => 
-                    // Convert all IDs to string for reliable comparison
-                    projectToPrompt.selectedMemberIds
-                        .map((id) => String(id))
-                        .includes(String(user.id)));
-                    // --- END FIX ---
-                    // Create the detailed string ONLY from the filtered members
-                    const teamMemberDetails = teamMembersForPrompt
-                        .map((user, index) => `Team Member ${index + 1}:
+                        // Call the Edge Function to get AI response
+                        let aiResponse;
+                        try {
+                            aiResponse = await callAIEdgeFunction(projectToPrompt, teamMembersForPrompt);
+                        }
+                        catch (aiError) {
+                            vscode.window.showErrorMessage(`AI generation failed: ${aiError.message}`);
+                            panel.webview.postMessage({
+                                type: "promptGenerationError",
+                                payload: {
+                                    message: `AI generation failed: ${aiError.message}`,
+                                },
+                            });
+                            break;
+                        }
+                        // Create the prompt content for display
+                        const teamMemberDetails = teamMembersForPrompt
+                            .map((user, index) => `Team Member ${index + 1}:
 Name: ${user.name}
 Skills: ${user.skills}
-Programming Languages: ${user.programmingLanguages}
-Willing to work on: ${user.willingToWorkOn || "Not specified"}
+Programming Languages: ${user.programming_languages}
+Willing to work on: ${user.willing_to_work_on || "Not specified"}
 
 `)
-                        .join("");
-                    const promptContent = `PROJECT ANALYSIS AND TEAM OPTIMIZATION REQUEST
+                            .join("");
+                        const promptContent = `PROJECT ANALYSIS AND TEAM OPTIMIZATION REQUEST
 
 === PROJECT INFORMATION ===
 Project Name: ${projectToPrompt.name}
-Created: ${new Date(projectToPrompt.createdAt).toLocaleString()}
+Created: ${new Date(projectToPrompt.created_at).toLocaleString()}
 
 Project Description:
 ${projectToPrompt.description}
 
 Project Goals:
-${projectToPrompt.goals}
+${projectToPrompt.goals || "Not specified"}
 
 Project Requirements:
-${projectToPrompt.requirements}
+${projectToPrompt.requirements || "Not specified"}
 
 === TEAM COMPOSITION ===
 Team Size: ${teamMembersForPrompt.length} members
 
 ${teamMemberDetails}
 
-=== AI ANALYSIS REQUEST ===
+=== AI ANALYSIS RESPONSE ===
 
-Please analyze this project and team composition and provide:
-
-1. TEAM ANALYSIS:
-   - Evaluate if the current team has the right skill mix for the project requirements
-   - Identify any skill gaps or redundancies
-   - Assess team member compatibility based on their stated interests
-
-2. PROJECT FEASIBILITY:
-   - Analyze if the project goals are achievable with the current team
-   - Identify potential challenges based on requirements vs. available skills
-   - Suggest timeline considerations
-
-3. ROLE ASSIGNMENTS:
-   - Recommend specific roles for each team member based on their skills
-   - Suggest who should lead different aspects of the project
-   - Identify collaboration opportunities between team members
-
-4. OPTIMIZATION RECOMMENDATIONS:
-   - Suggest additional skills that might be needed
-   - Recommend training or resource allocation
-   - Propose project structure and workflow improvements
-
-5. RISK ASSESSMENT:
-   - Identify potential project risks based on team composition
-   - Suggest mitigation strategies
-   - Highlight critical success factors
-
-6. DELIVERABLES MAPPING:
-   - Break down project requirements into specific deliverables
-   - Map deliverables to team member capabilities
-   - Suggest milestone structure
-
-Give me a specific message for EACH team member, detailing them what they need to do RIGHT NOW and in the FUTURE. Give each user the exact things they need to work on according also to their skills.`;
-                    const tempFileName = `AI_Prompt_${projectToPrompt.name.replace(/[^a-zA-Z0-9]/g, "_")}_${Date.now()}.txt`;
-                    const workspaceFolders = vscode.workspace.workspaceFolders;
-                    if (workspaceFolders) {
-                        const filePath = vscode.Uri.joinPath(workspaceFolders[0].uri, tempFileName);
-                        await fs.writeFile(filePath.fsPath, promptContent, "utf-8");
-                        await vscode.window.showTextDocument(filePath, {
-                            viewColumn: vscode.ViewColumn.Beside,
-                            preview: false,
+${aiResponse}`;
+                        // Save to file
+                        const tempFileName = `AI_Prompt_${projectToPrompt.name.replace(/[^a-zA-Z0-9]/g, "_")}_${Date.now()}.txt`;
+                        const workspaceFolders = vscode.workspace.workspaceFolders;
+                        if (workspaceFolders) {
+                            const filePath = vscode.Uri.joinPath(workspaceFolders[0].uri, tempFileName);
+                            await fs.writeFile(filePath.fsPath, promptContent, "utf-8");
+                            await vscode.window.showTextDocument(filePath, {
+                                viewColumn: vscode.ViewColumn.Beside,
+                                preview: false,
+                            });
+                        }
+                        // Save to Supabase
+                        await saveAIPromptToSupabase(projectId, promptContent, aiResponse);
+                        // Send response to webview
+                        panel.webview.postMessage({
+                            type: "promptGeneratedFromExtension",
+                            payload: { prompt: aiResponse },
+                        });
+                        // Reload data to update prompt count
+                        const updatedData = await loadDataFromSupabase();
+                        panel.webview.postMessage({
+                            type: "dataLoaded",
+                            payload: updatedData,
+                        });
+                        vscode.window.showInformationMessage(`AI analysis completed for project: ${projectToPrompt.name}`);
+                    }
+                    catch (error) {
+                        vscode.window.showErrorMessage(`Failed to generate prompt: ${error.message}`);
+                        panel.webview.postMessage({
+                            type: "promptGenerationError",
+                            payload: { message: error.message },
                         });
                     }
-                    currentData.promptCount++;
-                    await saveInitialData(currentData);
-                    panel.webview.postMessage({
-                        type: "dataLoaded",
-                        payload: currentData,
-                    });
-                    panel.webview.postMessage({
-                        type: "promptGeneratedFromExtension",
-                        payload: { prompt: promptContent },
-                    });
-                    vscode.window.showInformationMessage(`AI Prompt generated for project: ${projectToPrompt.name} and saved to ${tempFileName}`);
                     break;
                 }
                 case "showError": {
@@ -258,6 +500,7 @@ async function getHtml(webview, context) {
             style-src ${webview.cspSource} 'unsafe-inline';
             img-src ${webview.cspSource} https:;
             script-src 'nonce-${nonce}';
+            connect-src https://*.supabase.co;
         ">`)
         .replace(/<script>/, `<script nonce="${nonce}">`);
     return htmlContent;
