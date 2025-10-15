@@ -318,6 +318,34 @@
                 padding: 20px;
             }
         }
+
+        /* Loading animation for AI generation */
+        .loading-dots {
+            display: inline-block;
+        }
+
+        .loading-dots span {
+            animation: loadingDot 1.4s infinite;
+            opacity: 0;
+        }
+
+        .loading-dots span:nth-child(1) {
+            animation-delay: 0s;
+        }
+
+        .loading-dots span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .loading-dots span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes loadingDot {
+            0%, 20% { opacity: 0; }
+            50% { opacity: 1; }
+            100% { opacity: 0; }
+        }
     </style>
 </head>
 <body>
@@ -599,9 +627,10 @@ The generated prompt will include:
                     payload: { projectId: projectId }
                 });
                 
-                // Update UI to show "generating" state
-                document.getElementById('promptOutput').textContent = 'Generating AI prompt... Please wait.';
-                showStatus('promptStatus', 'Generating AI prompt...', 'success');
+                // Update UI to show "generating" state with animated loading
+                const promptOutput = document.getElementById('promptOutput');
+                promptOutput.innerHTML = 'Generating AI analysis<span class="loading-dots"><span>.</span><span>.</span><span>.</span></span>';
+                showStatus('promptStatus', 'Calling AI...', 'success');
             }
 
             // Removed createComprehensivePrompt from webview as extension handles it
@@ -723,6 +752,11 @@ The generated prompt will include:
                 case 'promptGeneratedFromExtension': // NEW: Listen for generated prompt from extension
                      document.getElementById('promptOutput').textContent = message.payload.prompt;
                      showStatus('promptStatus', '🤖 AI Prompt generated! Check the editor for full details.', 'success');
+                     break;
+                case 'aiResponseReceived': // Handle AI response
+                     const fullResponse = `=== AI ANALYSIS ===\n\n${message.payload.response}`;
+                     document.getElementById('promptOutput').textContent = fullResponse;
+                     showStatus('promptStatus', '✅ AI Analysis Complete! Response saved to file.', 'success');
                      break;
                 case 'promptGenerationError': // NEW: Handle errors from extension
                     document.getElementById('promptOutput').textContent = 'Error generating prompt. Please try again.';
