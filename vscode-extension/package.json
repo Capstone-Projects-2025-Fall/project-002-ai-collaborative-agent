@@ -11,7 +11,8 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:aiCollab.openPanel"
+    "onCommand:aiCollab.openPanel",
+    "onUri"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -23,6 +24,10 @@
       {
         "command": "aiCollab.debugHello",
         "title": "AI Collab Agent: Hello (debug)"
+      },
+      {
+        "command": "aiCollab.debugAuth",
+        "title": "AI Collab Agent: Debug Auth Status"
       }
     ],
     "configuration": {
@@ -51,6 +56,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@supabase/supabase-js": "^2.74.0"
+    "@supabase/supabase-js": "^2.74.0",
+    "dotenv": "^17.2.3"
   }
 }
