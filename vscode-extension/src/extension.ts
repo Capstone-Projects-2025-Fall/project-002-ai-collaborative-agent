@@ -36,7 +36,20 @@ async function loadInitialData(): Promise<any> {
 
   try {
     // Get user's profile
-    const profile = await databaseService.getProfile(user.id);
+    let profile = await databaseService.getProfile(user.id);
+    
+    // If profile doesn't exist, create one
+    if (!profile) {
+      console.log('Creating new profile for user:', user.id);
+      console.log('User object:', user);
+      profile = await databaseService.createProfile(
+        user.id,
+        user.name || user.email || 'User',
+        '',
+        '',
+        ''
+      );
+    }
     
     // Get user's projects
     const projects = await databaseService.getProjectsForUser(user.id);
@@ -88,9 +101,9 @@ async function saveInitialData(data: any): Promise<void> {
       const userData = data.users[0];
       await databaseService.updateProfile(user.id, {
         name: userData.name || '',
-        skills: userData.skills || [],
-        languages: userData.languages || [],
-        preferences: userData.preferences || ''
+        skills: Array.isArray(userData.skills) ? userData.skills.join(', ') : (userData.skills || ''),
+        programming_languages: Array.isArray(userData.programming_languages) ? userData.programming_languages.join(', ') : (userData.programming_languages || ''),
+        willing_to_work_on: userData.willing_to_work_on || ''
       });
     }
 
@@ -629,7 +642,7 @@ Give me a specific message for EACH team member, detailing them what they need t
       }
 
       case "createProject": {
-        const { name, description } = msg.payload;
+        const { name, description, goals, requirements } = msg.payload;
         const user = authService.getCurrentUser();
         
         if (!user) {
@@ -638,8 +651,16 @@ Give me a specific message for EACH team member, detailing them what they need t
         }
 
         try {
-          const project = await databaseService.createProject(user.id, name, description);
+          console.log('Creating project:', { name, description, goals, requirements, userId: user.id });
+          const project = await databaseService.createProject(name, description, goals, requirements);
+          console.log('Project created:', project);
+          
           if (project) {
+            // Add the creator as a project member
+            console.log('Adding project member:', { projectId: project.id, userId: user.id });
+            const memberResult = await databaseService.addProjectMember(project.id, user.id);
+            console.log('Project member added:', memberResult);
+            
             vscode.window.showInformationMessage(`Project "${name}" created successfully!`);
             // Reload data to show the new project
             const data = await loadInitialData();
@@ -648,6 +669,7 @@ Give me a specific message for EACH team member, detailing them what they need t
               payload: data,
             });
           } else {
+            console.log('Project creation failed - no project returned');
             vscode.window.showErrorMessage("Failed to create project.");
           }
         } catch (error) {
@@ -667,7 +689,17 @@ Give me a specific message for EACH team member, detailing them what they need t
         }
 
         try {
+          const { inviteCode } = msg.payload;
+          const user = authService.getCurrentUser();
+          
+          if (!user) {
+            vscode.window.showErrorMessage("Please log in to join a project.");
+            break;
+          }
+
+          console.log('Joining project with code:', { inviteCode, userId: user.id });
           const project = await databaseService.joinProjectByCode(inviteCode, user.id);
+          
           if (project) {
             vscode.window.showInformationMessage(`Successfully joined project "${project.name}"!`);
             // Reload data to show the new project
@@ -699,8 +731,8 @@ Give me a specific message for EACH team member, detailing them what they need t
           const profile = await databaseService.updateProfile(user.id, {
             name,
             skills,
-            languages,
-            preferences
+            programming_languages: languages,
+            willing_to_work_on: preferences
           });
           if (profile) {
             vscode.window.showInformationMessage("Profile updated successfully!");

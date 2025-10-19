@@ -1,23 +1,22 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { AuthUser } from './authService';
 
-// Database types
+// Database types matching your actual schema
 export interface Profile {
-  id: string;
-  user_id: string;
+  id: string; // UUID from auth.users
   name: string;
-  skills: string[];
-  languages: string[];
-  preferences: string;
+  skills: string;
+  programming_languages: string;
+  willing_to_work_on: string;
   created_at: string;
-  updated_at: string;
 }
 
 export interface Project {
   id: string;
   name: string;
   description: string;
-  owner_id: string;
+  goals: string;
+  requirements: string;
   invite_code: string;
   created_at: string;
   updated_at: string;
@@ -27,25 +26,14 @@ export interface ProjectMember {
   id: string;
   project_id: string;
   user_id: string;
-  role: 'owner' | 'member';
-  joined_at: string;
-}
-
-export interface ProjectInvite {
-  id: string;
-  project_id: string;
-  email: string;
-  invited_by: string;
-  status: 'pending' | 'accepted' | 'declined';
   created_at: string;
-  expires_at: string;
 }
 
 export interface AIPrompt {
   id: string;
   project_id: string;
-  content: string;
-  generated_by: string;
+  prompt_content: string;
+  ai_response: string;
   created_at: string;
 }
 
@@ -61,44 +49,65 @@ export class DatabaseService {
     const { data, error } = await this.supabase
       .from('profiles')
       .select('*')
-      .eq('user_id', userId)
+      .eq('id', userId)
       .single();
 
     if (error) {
+      if (error.code === 'PGRST116') {
+        // Profile doesn't exist yet, return null
+        console.log('Profile not found for user:', userId);
+        return null;
+      }
       console.error('Error fetching profile:', error);
       return null;
     }
     return data;
   }
 
-  async createProfile(userId: string, name: string, skills: string[] = [], languages: string[] = [], preferences: string = ''): Promise<Profile | null> {
+  async createProfile(userId: string, name: string, skills: string = '', programming_languages: string = '', willing_to_work_on: string = ''): Promise<Profile | null> {
+    console.log('Creating profile for user ID:', userId);
+    
     const { data, error } = await this.supabase
       .from('profiles')
       .insert({
-        user_id: userId,
+        id: userId,
         name,
         skills,
-        languages,
-        preferences
+        programming_languages,
+        willing_to_work_on
       })
       .select()
       .single();
 
     if (error) {
       console.error('Error creating profile:', error);
+      console.error('User ID being used:', userId);
       return null;
     }
     return data;
   }
 
-  async updateProfile(userId: string, updates: Partial<Omit<Profile, 'id' | 'user_id' | 'created_at'>>): Promise<Profile | null> {
+  async updateProfile(userId: string, updates: Partial<Omit<Profile, 'id' | 'created_at'>>): Promise<Profile | null> {
+    // First check if profile exists
+    const existingProfile = await this.getProfile(userId);
+    
+    if (!existingProfile) {
+      // Profile doesn't exist, create it
+      console.log('Profile not found, creating new profile for user:', userId);
+      return await this.createProfile(
+        userId,
+        updates.name || 'User',
+        updates.skills || '',
+        updates.programming_languages || '',
+        updates.willing_to_work_on || ''
+      );
+    }
+
+    // Profile exists, update it
     const { data, error } = await this.supabase
       .from('profiles')
-      .update({
-        ...updates,
-        updated_at: new Date().toISOString()
-      })
-      .eq('user_id', userId)
+      .update(updates)
+      .eq('id', userId)
       .select()
       .single();
 
@@ -112,99 +121,54 @@ export class DatabaseService {
   // Project Operations
   async getProjectsForUser(userId: string): Promise<Project[]> {
     const { data, error } = await this.supabase
-      .from('projects')
+      .from('project_members')
       .select(`
-        *,
-        project_members!inner(user_id)
+        projects(*)
       `)
-      .eq('project_members.user_id', userId);
+      .eq('user_id', userId);
 
     if (error) {
-      console.error('Error fetching projects:', error);
+      console.error('Error fetching projects for user:', error);
       return [];
     }
-    return data || [];
+    return data?.map((item: any) => item.projects) || [];
   }
 
-  async getOwnedProjects(userId: string): Promise<Project[]> {
-    const { data, error } = await this.supabase
-      .from('projects')
-      .select('*')
-      .eq('owner_id', userId);
-
-    if (error) {
-      console.error('Error fetching owned projects:', error);
-      return [];
-    }
-    return data || [];
-  }
-
-  async createProject(ownerId: string, name: string, description: string): Promise<Project | null> {
+  async createProject(name: string, description: string, goals: string = '', requirements: string = ''): Promise<Project | null> {
+    console.log('DatabaseService: Creating project:', { name, description, goals, requirements });
+    
     const inviteCode = this.generateInviteCode();
+    
+    const insertData = {
+      name,
+      description,
+      goals,
+      requirements,
+      invite_code: inviteCode
+    };
+    
+    console.log('DatabaseService: Inserting data:', insertData);
     
     const { data, error } = await this.supabase
       .from('projects')
-      .insert({
-        name,
-        description,
-        owner_id: ownerId,
-        invite_code: inviteCode
-      })
+      .insert(insertData)
       .select()
       .single();
 
     if (error) {
       console.error('Error creating project:', error);
+      console.error('Error details:', error.message);
       return null;
     }
-
-    // Add owner as project member
-    await this.addProjectMember(data.id, ownerId, 'owner');
     
+    console.log('DatabaseService: Project created successfully:', data);
     return data;
   }
 
-  async updateProject(projectId: string, ownerId: string, updates: Partial<Omit<Project, 'id' | 'owner_id' | 'created_at'>>): Promise<Project | null> {
-    const { data, error } = await this.supabase
-      .from('projects')
-      .update({
-        ...updates,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', projectId)
-      .eq('owner_id', ownerId)
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error updating project:', error);
-      return null;
-    }
-    return data;
-  }
-
-  async deleteProject(projectId: string, ownerId: string): Promise<boolean> {
-    const { error } = await this.supabase
-      .from('projects')
-      .delete()
-      .eq('id', projectId)
-      .eq('owner_id', ownerId);
-
-    if (error) {
-      console.error('Error deleting project:', error);
-      return false;
-    }
-    return true;
-  }
-
-  // Project Member Operations
   async getProjectMembers(projectId: string): Promise<ProjectMember[]> {
     const { data, error } = await this.supabase
       .from('project_members')
-      .select(`
-        *,
-        profiles!inner(name)
-      `)
+      .select('*')
       .eq('project_id', projectId);
 
     if (error) {
@@ -214,103 +178,90 @@ export class DatabaseService {
     return data || [];
   }
 
-  async addProjectMember(projectId: string, userId: string, role: 'owner' | 'member' = 'member'): Promise<boolean> {
+  async addProjectMember(projectId: string, userId: string): Promise<boolean> {
+    console.log('DatabaseService: Adding project member:', { projectId, userId });
+    
+    // First, check if the user profile exists
+    const { data: profile, error: profileError } = await this.supabase
+      .from('profiles')
+      .select('id')
+      .eq('id', userId)
+      .single();
+
+    if (profileError || !profile) {
+      console.log('User profile not found, checking if user exists in auth.users...');
+      
+      // Check if user exists in auth.users first
+      const { data: authUser, error: authError } = await this.supabase.auth.getUser();
+      
+      if (authError || !authUser.user || authUser.user.id !== userId) {
+        console.error('User not found in auth.users or ID mismatch:', { 
+          requestedUserId: userId, 
+          authUserId: authUser?.user?.id,
+          authError 
+        });
+        return false;
+      }
+      
+      console.log('User exists in auth.users, creating profile...');
+      // Create a basic profile for the user using their auth data
+      const { data: newProfile, error: createError } = await this.supabase
+        .from('profiles')
+        .insert({
+          id: userId,
+          name: authUser.user.user_metadata?.full_name || authUser.user.user_metadata?.name || 'User',
+          skills: '',
+          programming_languages: '',
+          willing_to_work_on: ''
+        })
+        .select()
+        .single();
+
+      if (createError || !newProfile) {
+        console.error('Error creating user profile:', createError);
+        if (createError) {
+          console.error('Profile creation error details:', createError.message);
+          console.error('Profile creation error code:', createError.code);
+          console.error('Profile creation error hint:', createError.hint);
+        }
+        return false;
+      }
+      
+      console.log('User profile created successfully');
+    } else {
+      console.log('User profile found:', profile);
+    }
+
     const { error } = await this.supabase
       .from('project_members')
       .insert({
         project_id: projectId,
-        user_id: userId,
-        role
+        user_id: userId
       });
 
     if (error) {
       console.error('Error adding project member:', error);
       return false;
     }
-    return true;
-  }
-
-  async removeProjectMember(projectId: string, userId: string): Promise<boolean> {
-    const { error } = await this.supabase
-      .from('project_members')
-      .delete()
-      .eq('project_id', projectId)
-      .eq('user_id', userId);
-
-    if (error) {
-      console.error('Error removing project member:', error);
-      return false;
-    }
-    return true;
-  }
-
-  // Invite Code Operations
-  async joinProjectByCode(inviteCode: string, userId: string): Promise<Project | null> {
-    // First, find the project by invite code
-    const { data: project, error: projectError } = await this.supabase
-      .from('projects')
-      .select('*')
-      .eq('invite_code', inviteCode)
-      .single();
-
-    if (projectError || !project) {
-      console.error('Invalid invite code:', projectError);
-      return null;
-    }
-
-    // Check if user is already a member
-    const { data: existingMember } = await this.supabase
-      .from('project_members')
-      .select('id')
-      .eq('project_id', project.id)
-      .eq('user_id', userId)
-      .single();
-
-    if (existingMember) {
-      console.log('User is already a member of this project');
-      return project;
-    }
-
-    // Add user as project member
-    const success = await this.addProjectMember(project.id, userId, 'member');
-    if (!success) {
-      return null;
-    }
-
-    return project;
-  }
-
-  async generateNewInviteCode(projectId: string, ownerId: string): Promise<string | null> {
-    const newCode = this.generateInviteCode();
     
-    const { error } = await this.supabase
-      .from('projects')
-      .update({ invite_code: newCode })
-      .eq('id', projectId)
-      .eq('owner_id', ownerId);
-
-    if (error) {
-      console.error('Error generating new invite code:', error);
-      return null;
-    }
-
-    return newCode;
+    console.log('DatabaseService: Project member added successfully');
+    return true;
   }
 
   // AI Prompt Operations
-  async saveAIPrompt(projectId: string, content: string, generatedBy: string): Promise<AIPrompt | null> {
+  async createAIPrompt(projectId: string, promptContent: string, aiResponse: string): Promise<AIPrompt | null> {
     const { data, error } = await this.supabase
       .from('ai_prompts')
       .insert({
         project_id: projectId,
-        content,
-        generated_by: generatedBy
+        prompt_content: promptContent,
+        ai_response: aiResponse
       })
       .select()
       .single();
 
     if (error) {
-      console.error('Error saving AI prompt:', error);
+      console.error('Error creating AI prompt:', error);
       return null;
     }
     return data;
@@ -337,13 +288,13 @@ export class DatabaseService {
       let profile = await this.getProfile(userId);
       if (!profile) {
         // Create profile from JSON data or defaults
-        const userData = jsonData.users?.find((u: any) => u.id === userId) || {};
+        const userData = jsonData.users?.[0] || {};
         profile = await this.createProfile(
           userId,
           userData.name || 'User',
-          userData.skills || [],
-          userData.languages || [],
-          userData.preferences || ''
+          userData.skills || '',
+          userData.programming_languages || '',
+          userData.willing_to_work_on || ''
         );
       }
 
@@ -357,16 +308,22 @@ export class DatabaseService {
         for (const projectData of jsonData.projects) {
           // Create project
           const project = await this.createProject(
-            userId,
             projectData.name || 'Migrated Project',
-            projectData.description || ''
+            projectData.description || '',
+            projectData.goals || '',
+            projectData.requirements || ''
           );
 
-          if (project && projectData.selectedMemberIds) {
-            // Add members to project
-            for (const memberId of projectData.selectedMemberIds) {
-              if (memberId !== userId) {
-                await this.addProjectMember(project.id, memberId, 'member');
+          if (project) {
+            // Add the current user as a member
+            await this.addProjectMember(project.id, userId);
+            
+            // Add other members if they exist
+            if (projectData.selectedMemberIds && Array.isArray(projectData.selectedMemberIds)) {
+              for (const memberId of projectData.selectedMemberIds) {
+                if (memberId !== userId) {
+                  await this.addProjectMember(project.id, memberId);
+                }
               }
             }
           }
@@ -378,6 +335,45 @@ export class DatabaseService {
       console.error('Error during migration:', error);
       return false;
     }
+  }
+
+  // Invite Code Operations
+  async joinProjectByCode(inviteCode: string, userId: string): Promise<Project | null> {
+    console.log('DatabaseService: Joining project with code:', { inviteCode, userId });
+    
+    // First, find the project by invite code
+    const { data: project, error: projectError } = await this.supabase
+      .from('projects')
+      .select('*')
+      .eq('invite_code', inviteCode)
+      .single();
+
+    if (projectError || !project) {
+      console.error('Invalid invite code:', projectError);
+      return null;
+    }
+
+    // Check if user is already a member
+    const { data: existingMember } = await this.supabase
+      .from('project_members')
+      .select('id')
+      .eq('project_id', project.id)
+      .eq('user_id', userId)
+      .single();
+
+    if (existingMember) {
+      console.log('User is already a member of this project');
+      return project;
+    }
+
+    // Add user as project member
+    const success = await this.addProjectMember(project.id, userId);
+    if (!success) {
+      return null;
+    }
+
+    console.log('DatabaseService: Successfully joined project:', project.name);
+    return project;
   }
 
   // Utility Methods

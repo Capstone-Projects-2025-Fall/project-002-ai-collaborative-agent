@@ -40,10 +40,12 @@ const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
 const dotenv_1 = require("dotenv");
 const authService_1 = require("./authService");
+const databaseService_1 = require("./databaseService");
 // Load environment variables from .env file in project root
 (0, dotenv_1.config)({ path: path.join(__dirname, "../../.env") });
 // Global variables for OAuth callback handling
 let authService;
+let databaseService;
 let extensionContext;
 // Helper function to get the full path to our data file
 function getDataFilePath() {
@@ -54,49 +56,77 @@ function getDataFilePath() {
     // We'll store our data in a hidden file in the root of the workspace
     return path.join(workspaceFolder.uri.fsPath, ".aiCollabData.json");
 }
-// Helper function to load all data from the file
+// Helper function to load all data from the database
 async function loadInitialData() {
-    const filePath = getDataFilePath();
-    let data = {
-        users: [],
-        projects: [],
-        promptCount: 0,
-    };
-    if (filePath) {
-        try {
-            const fileContent = await fs.readFile(filePath, "utf-8");
-            const parsedData = JSON.parse(fileContent);
-            data.users = parsedData.users || [];
-            data.projects = parsedData.projects || [];
-            data.promptCount = parsedData.promptCount || 0;
-        }
-        catch (error) {
-            console.log("Data file not found or invalid, using default state.");
-        }
+    if (!authService.isAuthenticated()) {
+        return { users: [], projects: [], promptCount: 0 };
     }
-    // Ensure selectedMemberIds is an array for all projects (backward compatibility/safety)
-    data.projects = data.projects.map((projectData) => ({
-        ...projectData,
-        selectedMemberIds: Array.isArray(projectData.selectedMemberIds)
-            ? projectData.selectedMemberIds
-            : [],
-    }));
-    return data;
+    const user = authService.getCurrentUser();
+    if (!user) {
+        return { users: [], projects: [], promptCount: 0 };
+    }
+    try {
+        // Get user's profile
+        let profile = await databaseService.getProfile(user.id);
+        // If profile doesn't exist, create one
+        if (!profile) {
+            console.log('Creating new profile for user:', user.id);
+            console.log('User object:', user);
+            profile = await databaseService.createProfile(user.id, user.name || user.email || 'User', '', '', '');
+        }
+        // Get user's projects
+        const projects = await databaseService.getProjectsForUser(user.id);
+        // Get project members for each project
+        const projectsWithMembers = await Promise.all(projects.map(async (project) => {
+            const members = await databaseService.getProjectMembers(project.id);
+            return {
+                ...project,
+                selectedMemberIds: members.map(m => m.user_id)
+            };
+        }));
+        // Get AI prompts count
+        const allPrompts = await Promise.all(projects.map(project => databaseService.getAIPromptsForProject(project.id)));
+        const promptCount = allPrompts.flat().length;
+        return {
+            users: profile ? [profile] : [],
+            projects: projectsWithMembers,
+            promptCount
+        };
+    }
+    catch (error) {
+        console.error("Error loading data from database:", error);
+        return { users: [], projects: [], promptCount: 0 };
+    }
 }
-// Helper function to save all data to the file
+// Helper function to save data to the database
 async function saveInitialData(data) {
-    const filePath = getDataFilePath();
-    if (!filePath) {
-        vscode.window.showErrorMessage("Please open a folder in your workspace to save data.");
+    if (!authService.isAuthenticated()) {
+        vscode.window.showErrorMessage("Please log in to save data.");
+        return;
+    }
+    const user = authService.getCurrentUser();
+    if (!user) {
+        vscode.window.showErrorMessage("User not found. Please log in again.");
         return;
     }
     try {
-        const jsonString = JSON.stringify(data, null, 2);
-        await fs.writeFile(filePath, jsonString, "utf-8");
+        // Update user profile if provided
+        if (data.users && data.users.length > 0) {
+            const userData = data.users[0];
+            await databaseService.updateProfile(user.id, {
+                name: userData.name || '',
+                skills: Array.isArray(userData.skills) ? userData.skills.join(', ') : (userData.skills || ''),
+                programming_languages: Array.isArray(userData.programming_languages) ? userData.programming_languages.join(', ') : (userData.programming_languages || ''),
+                willing_to_work_on: userData.willing_to_work_on || ''
+            });
+        }
+        // Note: Projects are now managed individually through the database
+        // The saveInitialData function is mainly used for profile updates
+        console.log("Data saved to database successfully");
     }
     catch (error) {
-        console.error("Failed to save data:", error);
-        vscode.window.showErrorMessage("Failed to save team data to file.");
+        console.error("Failed to save data to database:", error);
+        vscode.window.showErrorMessage("Failed to save data to database.");
     }
 }
 function activate(context) {
@@ -113,6 +143,20 @@ function activate(context) {
     }
     catch (error) {
         vscode.window.showErrorMessage(`Authentication setup failed: ${error instanceof Error ? error.message : "Unknown error"}`);
+        return;
+    }
+    // Initialize database service
+    try {
+        const supabaseUrl = process.env.SUPABASE_URL;
+        const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+        if (!supabaseUrl || !supabaseAnonKey) {
+            vscode.window.showErrorMessage("Supabase configuration missing. Please check your .env file.");
+            return;
+        }
+        databaseService = new databaseService_1.DatabaseService(supabaseUrl, supabaseAnonKey);
+    }
+    catch (error) {
+        vscode.window.showErrorMessage(`Database setup failed: ${error instanceof Error ? error.message : "Unknown error"}`);
         return;
     }
     // Register URI handler for custom protocol
@@ -388,7 +432,7 @@ async function openMainPanel(context, authService) {
         switch (msg.type) {
             case "saveData": {
                 await saveInitialData(msg.payload);
-                vscode.window.showInformationMessage("Team data saved to .aiCollabData.json!");
+                vscode.window.showInformationMessage("Team data saved to database!");
                 break;
             }
             case "loadData": {
@@ -512,6 +556,153 @@ Give me a specific message for EACH team member, detailing them what they need t
             }
             case "showSuccess": {
                 vscode.window.showInformationMessage(msg.payload.message);
+                break;
+            }
+            case "createProject": {
+                const { name, description, goals, requirements } = msg.payload;
+                const user = authService.getCurrentUser();
+                if (!user) {
+                    vscode.window.showErrorMessage("Please log in to create a project.");
+                    break;
+                }
+                try {
+                    console.log('Creating project:', { name, description, goals, requirements, userId: user.id });
+                    const project = await databaseService.createProject(name, description, goals, requirements);
+                    console.log('Project created:', project);
+                    if (project) {
+                        // Add the creator as a project member
+                        console.log('Adding project member:', { projectId: project.id, userId: user.id });
+                        const memberResult = await databaseService.addProjectMember(project.id, user.id);
+                        console.log('Project member added:', memberResult);
+                        vscode.window.showInformationMessage(`Project "${name}" created successfully!`);
+                        // Reload data to show the new project
+                        const data = await loadInitialData();
+                        panel.webview.postMessage({
+                            type: "dataLoaded",
+                            payload: data,
+                        });
+                    }
+                    else {
+                        console.log('Project creation failed - no project returned');
+                        vscode.window.showErrorMessage("Failed to create project.");
+                    }
+                }
+                catch (error) {
+                    console.error("Error creating project:", error);
+                    vscode.window.showErrorMessage("Failed to create project.");
+                }
+                break;
+            }
+            case "joinProject": {
+                const { inviteCode } = msg.payload;
+                const user = authService.getCurrentUser();
+                if (!user) {
+                    vscode.window.showErrorMessage("Please log in to join a project.");
+                    break;
+                }
+                try {
+                    const { inviteCode } = msg.payload;
+                    const user = authService.getCurrentUser();
+                    if (!user) {
+                        vscode.window.showErrorMessage("Please log in to join a project.");
+                        break;
+                    }
+                    console.log('Joining project with code:', { inviteCode, userId: user.id });
+                    const project = await databaseService.joinProjectByCode(inviteCode, user.id);
+                    if (project) {
+                        vscode.window.showInformationMessage(`Successfully joined project "${project.name}"!`);
+                        // Reload data to show the new project
+                        const data = await loadInitialData();
+                        panel.webview.postMessage({
+                            type: "dataLoaded",
+                            payload: data,
+                        });
+                    }
+                    else {
+                        vscode.window.showErrorMessage("Invalid invite code or failed to join project.");
+                    }
+                }
+                catch (error) {
+                    console.error("Error joining project:", error);
+                    vscode.window.showErrorMessage("Failed to join project.");
+                }
+                break;
+            }
+            case "updateProfile": {
+                const { name, skills, languages, preferences } = msg.payload;
+                const user = authService.getCurrentUser();
+                if (!user) {
+                    vscode.window.showErrorMessage("Please log in to update your profile.");
+                    break;
+                }
+                try {
+                    const profile = await databaseService.updateProfile(user.id, {
+                        name,
+                        skills,
+                        programming_languages: languages,
+                        willing_to_work_on: preferences
+                    });
+                    if (profile) {
+                        vscode.window.showInformationMessage("Profile updated successfully!");
+                        // Reload data to show the updated profile
+                        const data = await loadInitialData();
+                        panel.webview.postMessage({
+                            type: "dataLoaded",
+                            payload: data,
+                        });
+                    }
+                    else {
+                        vscode.window.showErrorMessage("Failed to update profile.");
+                    }
+                }
+                catch (error) {
+                    console.error("Error updating profile:", error);
+                    vscode.window.showErrorMessage("Failed to update profile.");
+                }
+                break;
+            }
+            case "migrateFromJSON": {
+                const user = authService.getCurrentUser();
+                if (!user) {
+                    vscode.window.showErrorMessage("Please log in to migrate data.");
+                    break;
+                }
+                try {
+                    // Try to load existing JSON data
+                    const filePath = getDataFilePath();
+                    if (filePath) {
+                        try {
+                            const fileContent = await fs.readFile(filePath, "utf-8");
+                            const jsonData = JSON.parse(fileContent);
+                            const success = await databaseService.migrateFromJSON(jsonData, user.id);
+                            if (success) {
+                                vscode.window.showInformationMessage("Data migrated successfully from JSON file!");
+                                // Archive the old file
+                                const archivePath = filePath.replace('.json', '_archived.json');
+                                await fs.rename(filePath, archivePath);
+                                // Reload data from database
+                                const data = await loadInitialData();
+                                panel.webview.postMessage({
+                                    type: "dataLoaded",
+                                    payload: data,
+                                });
+                            }
+                            else {
+                                vscode.window.showErrorMessage("Failed to migrate data from JSON file.");
+                            }
+                        }
+                        catch (error) {
+                            vscode.window.showInformationMessage("No existing JSON data found to migrate.");
+                        }
+                    }
+                    else {
+                        vscode.window.showInformationMessage("No workspace folder open for JSON migration.");
+                    }
+                }
+                catch (error) {
+                    console.error("Error during migration:", error);
+                    vscode.window.showErrorMessage("Failed to migrate data.");
+                }
                 break;
             }
             default:

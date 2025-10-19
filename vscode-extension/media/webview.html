@@ -345,6 +345,7 @@
         <div class="tabs">
             <button class="tab-button active" data-tab="users">👥 Team Members</button>
             <button class="tab-button" data-tab="projects">📋 Projects</button>
+            <button class="tab-button" data-tab="join">🔗 Join Project</button>
             <button class="tab-button" data-tab="prompts">🤖 AI Prompts</button>
         </div>
 
@@ -429,6 +430,21 @@
             <div id="projectList" class="project-list">
                 <p style="text-align: center; color: #64748b; padding: 15px;">No projects yet</p>
             </div>
+        </div>
+
+        <div id="join" class="tab-content">
+            <div class="section-title">Join Project</div>
+            
+            <div class="form-group">
+                <label for="inviteCode">Invite Code</label>
+                <input type="text" id="inviteCode" placeholder="Enter 6-character invite code" maxlength="6" style="text-transform: uppercase;">
+            </div>
+            
+            <div class="button-group">
+                <button id="join-project-btn" class="btn btn-primary">Join Project</button>
+            </div>
+            
+            <div id="joinStatus" class="status-message" style="display: none;"></div>
         </div>
 
         <div id="prompts" class="tab-content">
@@ -637,6 +653,7 @@ The generated prompt will include:
                             <p><strong>Goals:</strong> ${project.goals || 'Not specified'}</p>
                             <p><strong>Requirements:</strong> ${project.requirements || 'Not specified'}</p>
                             <p><strong>Team:</strong> ${teamMemberNames}</p>
+                            <p><strong>Invite Code:</strong> <code style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-family: monospace;">${project.invite_code || 'N/A'}</code></p>
                             <p><strong>Created:</strong> ${new Date(project.createdAt).toLocaleString()}</p>
                             <button class="btn btn-secondary remove-project-btn" data-project-id="${project.id}" style='margin-top: 8px; padding: 6px 12px; font-size: 0.8rem;'>Remove</button>
                         </div>
@@ -770,12 +787,24 @@ The generated prompt will include:
                 const goals = document.getElementById('projectGoals').value.trim();
                 const requirements = document.getElementById('projectRequirements').value.trim();
                 
-                const selectedCheckboxes = document.querySelectorAll('#userSelection input[type="checkbox"]:checked');
-                const selectedUserIds = Array.from(selectedCheckboxes).map(cb => cb.value);
+                if (!name || !description) {
+                    showStatus('projectStatus', 'Error: Project name and description are required', 'error');
+                    return;
+                }
 
-                const project = app.createProject(name, description, goals, requirements, selectedUserIds);
+                // Send createProject message to extension
+                vscode.postMessage({
+                    type: 'createProject',
+                    payload: {
+                        name,
+                        description,
+                        goals,
+                        requirements
+                    }
+                });
+
                 clearProjectForm();
-                showStatus('projectStatus', '🚀 ' + project.name + ' created successfully! Total: ' + app.projects.length, 'success');
+                showStatus('projectStatus', '🚀 Creating project...', 'info');
             } catch (error) {
                 showStatus('projectStatus', 'Error: ' + error.message, 'error');
             }
@@ -790,6 +819,30 @@ The generated prompt will include:
             document.querySelectorAll('#userSelection input[type="checkbox"]').forEach(cb => {
                 cb.checked = false;
             });
+        }
+
+        function joinProject() {
+            try {
+                const inviteCode = document.getElementById('inviteCode').value.trim().toUpperCase();
+                
+                if (!inviteCode || inviteCode.length !== 6) {
+                    showStatus('joinStatus', 'Error: Please enter a valid 6-character invite code', 'error');
+                    return;
+                }
+
+                // Send joinProject message to extension
+                vscode.postMessage({
+                    type: 'joinProject',
+                    payload: {
+                        inviteCode
+                    }
+                });
+
+                document.getElementById('inviteCode').value = '';
+                showStatus('joinStatus', '🔗 Joining project...', 'info');
+            } catch (error) {
+                showStatus('joinStatus', 'Error: ' + error.message, 'error');
+            }
         }
 
         function generatePrompt() {
@@ -842,6 +895,7 @@ The generated prompt will include:
             document.getElementById('clear-user-form-btn')?.addEventListener('click', clearUserForm);
             document.getElementById('create-project-btn')?.addEventListener('click', createProject);
             document.getElementById('clear-project-form-btn')?.addEventListener('click', clearProjectForm);
+            document.getElementById('join-project-btn')?.addEventListener('click', joinProject);
             document.getElementById('generate-prompt-btn')?.addEventListener('click', generatePrompt);
             document.getElementById('copy-prompt-btn')?.addEventListener('click', copyPrompt);
 
