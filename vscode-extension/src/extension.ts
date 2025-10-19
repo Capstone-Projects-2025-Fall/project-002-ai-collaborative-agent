@@ -1,6 +1,15 @@
 import * as vscode from "vscode";
 import * as fs from "fs/promises";
 import * as path from "path";
+import { config } from "dotenv";
+import { AuthService, AuthUser } from "./authService";
+
+// Load environment variables from .env file in project root
+config({ path: path.join(__dirname, "../../.env") });
+
+// Global variables for OAuth callback handling
+let authService: AuthService;
+let extensionContext: vscode.ExtensionContext;
 
 // Helper function to get the full path to our data file
 function getDataFilePath(): string | undefined {
@@ -13,7 +22,7 @@ function getDataFilePath(): string | undefined {
 }
 
 // Helper function to load all data from the file
-export async function loadInitialData(): Promise<any> {
+async function loadInitialData(): Promise<any> {
   const filePath = getDataFilePath();
   let data: { users: any[]; projects: any[]; promptCount: number } = {
     users: [],
@@ -46,7 +55,7 @@ export async function loadInitialData(): Promise<any> {
 }
 
 // Helper function to save all data to the file
-export async function saveInitialData(data: any): Promise<void> {
+async function saveInitialData(data: any): Promise<void> {
   const filePath = getDataFilePath();
   if (!filePath) {
     vscode.window.showErrorMessage(
@@ -63,33 +72,410 @@ export async function saveInitialData(data: any): Promise<void> {
   }
 }
 
-export function createPromptForProject(
-  projectToPrompt: any,
-  allUsers: any[]
-): string {
-  if (!projectToPrompt) {
-    return ""; // Or throw an error, which we can test for!
+export function activate(context: vscode.ExtensionContext) {
+  // Load environment variables from multiple possible locations
+  config({ path: path.join(__dirname, "..", ".env") });
+  config({ path: path.join(__dirname, "../../.env") });
+
+  vscode.window.showInformationMessage("AI Collab Agent activated");
+
+  // Store context globally for callback server
+  extensionContext = context;
+
+  // Initialize authentication service
+  try {
+    authService = new AuthService();
+    authService.initialize();
+  } catch (error) {
+    vscode.window.showErrorMessage(
+      `Authentication setup failed: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`
+    );
+    return;
   }
 
-  const teamMembersForPrompt = allUsers.filter((user: any) =>
-    projectToPrompt.selectedMemberIds
-      .map((id: any) => String(id))
-      .includes(String(user.id))
+  // Register URI handler for custom protocol
+  // In your URI handler, add this additional check:
+const handleUri = vscode.window.registerUriHandler({
+  handleUri(uri: vscode.Uri) {
+    console.log("=== OAuth Callback Debug ===");
+    console.log("Full URI:", uri.toString());
+    console.log("Scheme:", uri.scheme);
+    console.log("Authority:", uri.authority);
+    console.log("Query:", uri.query);
+
+    if (uri.scheme === "vscode" && uri.authority === "ai-collab-agent.auth") {
+      console.log("OAuth callback received via VS Code URI");
+
+      // Extract tokens from query parameters
+      const urlParams = new URLSearchParams(uri.query);
+      const accessToken = urlParams.get('access_token');
+      const refreshToken = urlParams.get('refresh_token');
+
+      console.log("Parsed tokens:", {
+        accessToken: accessToken ? accessToken.substring(0, 20) + "..." : "None",
+        refreshToken: refreshToken ? refreshToken.substring(0, 20) + "..." : "None"
+      });
+
+      if (accessToken) {
+        console.log("Access token received, setting session...");
+
+        // Set the session in Supabase
+        authService
+          .setSessionFromTokens(accessToken, refreshToken || undefined)
+          .then(() => {
+            console.log("Session set successfully");
+            vscode.window.showInformationMessage(
+              "Authentication successful! Redirecting to main app..."
+            );
+
+            // Open the main panel after successful authentication
+            setTimeout(() => {
+              openMainPanel(extensionContext, authService);
+            }, 1000);
+          })
+          .catch((error) => {
+            console.error("Error setting session:", error);
+            vscode.window.showErrorMessage(
+              "Authentication failed: " + error.message
+            );
+          });
+      } else {
+        console.error("No access token found in callback");
+        vscode.window.showErrorMessage(
+          "Authentication failed: No access token received"
+        );
+      }
+    } else {
+      console.log("URI not recognized:", uri.toString());
+    }
+  },
+});
+
+  context.subscriptions.push(handleUri);
+
+  // ---- Debug/health command
+  const hello = vscode.commands.registerCommand("aiCollab.debugHello", () => {
+    vscode.window.showInformationMessage("Hello from AI Collab Agent!");
+  });
+  context.subscriptions.push(hello);
+
+  // ---- Debug authentication status
+  const debugAuth = vscode.commands.registerCommand("aiCollab.debugAuth", () => {
+    const user = authService.getCurrentUser();
+    const session = authService.getCurrentSession();
+    const isAuth = authService.isAuthenticated();
+    
+    console.log("Auth Debug Info:", {
+      user,
+      session: session ? { 
+        access_token: session.access_token?.substring(0, 20) + "...",
+        expires_at: session.expires_at,
+        user: session.user?.id 
+      } : null,
+      isAuthenticated: isAuth
+    });
+    
+    vscode.window.showInformationMessage(
+      `Auth Status: ${isAuth ? 'Authenticated' : 'Not authenticated'}\n` +
+      `User: ${user ? user.email : 'None'}\n` +
+      `Session: ${session ? 'Active' : 'None'}`
+    );
+  });
+  context.subscriptions.push(debugAuth);
+
+  // ---- Main command: opens the webview panel
+  const open = vscode.commands.registerCommand(
+    "aiCollab.openPanel",
+    async () => {
+      // Check if user is authenticated
+      if (!authService.isAuthenticated()) {
+        // Show login page
+        const loginPanel = vscode.window.createWebviewPanel(
+          "aiCollabLogin",
+          "AI Collab Agent - Login",
+          vscode.ViewColumn.Active,
+          {
+            enableScripts: true,
+            retainContextWhenHidden: true,
+            localResourceRoots: [
+              vscode.Uri.file(path.join(context.extensionPath, "media")),
+            ],
+          }
+        );
+
+        loginPanel.webview.html = await getLoginHtml(
+          loginPanel.webview,
+          context
+        );
+
+        // Handle login messages
+        loginPanel.webview.onDidReceiveMessage(async (msg: any) => {
+          switch (msg.type) {
+            case "checkAuthStatus": {
+              const user = authService.getCurrentUser();
+              loginPanel.webview.postMessage({
+                type: "authStatus",
+                payload: {
+                  authenticated: !!user,
+                  user: user,
+                },
+              });
+              break;
+            }
+
+            case "signIn": {
+              const { email, password } = msg.payload;
+              const result = await authService.signIn(email, password);
+
+              if (result.user) {
+                loginPanel.webview.postMessage({
+                  type: "authSuccess",
+                  payload: {
+                    user: result.user,
+                    message: "Successfully signed in!",
+                  },
+                });
+                // Close login panel and open main panel
+                loginPanel.dispose();
+                openMainPanel(context, authService);
+              } else {
+                loginPanel.webview.postMessage({
+                  type: "authError",
+                  payload: { message: result.error || "Sign in failed" },
+                });
+              }
+              break;
+            }
+
+            case "signUp": {
+              const { email, password, name } = msg.payload;
+              const result = await authService.signUp(email, password, name);
+
+              if (result.user) {
+                loginPanel.webview.postMessage({
+                  type: "authSuccess",
+                  payload: {
+                    user: result.user,
+                    message:
+                      "Account created successfully! Please check your email to verify your account.",
+                  },
+                });
+                // Close login panel and open main panel
+                loginPanel.dispose();
+                openMainPanel(context, authService);
+              } else {
+                loginPanel.webview.postMessage({
+                  type: "authError",
+                  payload: { message: result.error || "Sign up failed" },
+                });
+              }
+              break;
+            }
+
+            case "signInWithGoogle": {
+              try {
+                console.log("Starting Google OAuth...");
+                const result = await authService.signInWithGoogle();
+                console.log("Google OAuth result:", result);
+
+                if (result.error) {
+                  console.error("Google OAuth error:", result.error);
+                  loginPanel.webview.postMessage({
+                    type: "authError",
+                    payload: { message: result.error },
+                  });
+                } else {
+                  console.log("Google OAuth URL opened successfully");
+                  // Show message that browser will open
+                  loginPanel.webview.postMessage({
+                    type: "authSuccess",
+                    payload: {
+                      user: null,
+                      message: "Opening browser for Google authentication...",
+                    },
+                  });
+                }
+              } catch (error) {
+                console.error("Google OAuth exception:", error);
+                loginPanel.webview.postMessage({
+                  type: "authError",
+                  payload: {
+                    message:
+                      error instanceof Error
+                        ? error.message
+                        : "Failed to open Google authentication",
+                  },
+                });
+              }
+              break;
+            }
+
+            case "signInWithGithub": {
+              try {
+                console.log("Starting GitHub OAuth...");
+                const result = await authService.signInWithGithub();
+                console.log("GitHub OAuth result:", result);
+
+                if (result.error) {
+                  console.error("GitHub OAuth error:", result.error);
+                  loginPanel.webview.postMessage({
+                    type: "authError",
+                    payload: { message: result.error },
+                  });
+                } else {
+                  console.log("GitHub OAuth URL opened successfully");
+                  // Show message that browser will open
+                  loginPanel.webview.postMessage({
+                    type: "authSuccess",
+                    payload: {
+                      user: null,
+                      message: "Opening browser for GitHub authentication...",
+                    },
+                  });
+                }
+              } catch (error) {
+                console.error("GitHub OAuth exception:", error);
+                loginPanel.webview.postMessage({
+                  type: "authError",
+                  payload: {
+                    message:
+                      error instanceof Error
+                        ? error.message
+                        : "Failed to open GitHub authentication",
+                  },
+                });
+              }
+              break;
+            }
+
+            case "signOut": {
+              const result = await authService.signOut();
+              if (result.error) {
+                loginPanel.webview.postMessage({
+                  type: "authError",
+                  payload: { message: result.error },
+                });
+              } else {
+                loginPanel.webview.postMessage({
+                  type: "authSignedOut",
+                  payload: {},
+                });
+              }
+              break;
+            }
+          }
+        });
+
+        // Listen for auth state changes
+        authService.onAuthStateChange((user) => {
+          if (user) {
+            loginPanel.webview.postMessage({
+              type: "authSuccess",
+              payload: {
+                user: user,
+                message: "Successfully authenticated!",
+              },
+            });
+            // Close login panel and open main panel
+            loginPanel.dispose();
+            openMainPanel(context, authService);
+          }
+        });
+
+        return;
+      }
+
+      // User is authenticated, open main panel
+      openMainPanel(context, authService);
+    }
+  );
+  context.subscriptions.push(open);
+}
+
+// Function to open the main application panel
+async function openMainPanel(
+  context: vscode.ExtensionContext,
+  authService: AuthService
+) {
+  const panel = vscode.window.createWebviewPanel(
+    "aiCollabPanel",
+    "AI Collab Agent - Team Platform",
+    vscode.ViewColumn.Active,
+    {
+      enableScripts: true,
+      retainContextWhenHidden: true,
+      localResourceRoots: [
+        vscode.Uri.file(path.join(context.extensionPath, "media")),
+      ],
+    }
   );
 
-  const teamMemberDetails = teamMembersForPrompt
-    .map(
-      (user: any, index: number) =>
-        `Team Member ${index + 1}:
-          Name: ${user.name}
-          Skills: ${user.skills}
-          Programming Languages: ${user.programmingLanguages}
-          Willing to work on: ${user.willingToWorkOn || "Not specified"}
-          `
-    )
-    .join("");
+  panel.webview.html = await getHtml(panel.webview, context);
 
-  const promptContent = `PROJECT ANALYSIS AND TEAM OPTIMIZATION REQUEST
+  panel.webview.onDidReceiveMessage(async (msg: any) => {
+    switch (msg.type) {
+      case "saveData": {
+        await saveInitialData(msg.payload);
+        vscode.window.showInformationMessage(
+          "Team data saved to .aiCollabData.json!"
+        );
+        break;
+      }
+
+      case "loadData": {
+        const data = await loadInitialData();
+        panel.webview.postMessage({
+          type: "dataLoaded",
+          payload: data,
+        });
+        break;
+      }
+
+      case "generatePrompt": {
+        const { projectId } = msg.payload;
+
+        const currentData = await loadInitialData();
+        const projectToPrompt = currentData.projects.find(
+          (p: any) => p.id == projectId
+        );
+
+        if (!projectToPrompt) {
+          vscode.window.showErrorMessage(
+            "Project not found for AI prompt generation."
+          );
+          panel.webview.postMessage({
+            type: "promptGenerationError",
+            payload: { message: "Project not found." },
+          });
+          break;
+        }
+
+        // --- FIX APPLIED HERE: Robust ID comparison ---
+        const teamMembersForPrompt = currentData.users.filter((user: any) =>
+          // Convert all IDs to string for reliable comparison
+          projectToPrompt.selectedMemberIds
+            .map((id: any) => String(id))
+            .includes(String(user.id))
+        );
+        // --- END FIX ---
+
+        // Create the detailed string ONLY from the filtered members
+        const teamMemberDetails = teamMembersForPrompt
+          .map(
+            (user: any, index: number) =>
+              `Team Member ${index + 1}:
+Name: ${user.name}
+Skills: ${user.skills}
+Programming Languages: ${user.programmingLanguages}
+Willing to work on: ${user.willingToWorkOn || "Not specified"}
+
+`
+          )
+          .join("");
+
+        const promptContent = `PROJECT ANALYSIS AND TEAM OPTIMIZATION REQUEST
 
 === PROJECT INFORMATION ===
 Project Name: ${projectToPrompt.name}
@@ -145,132 +531,84 @@ Please analyze this project and team composition and provide:
 
 Give me a specific message for EACH team member, detailing them what they need to do RIGHT NOW and in the FUTURE. Give each user the exact things they need to work on according also to their skills.`;
 
-  return promptContent;
-}
-
-export function activate(context: vscode.ExtensionContext) {
-  vscode.window.showInformationMessage("AI Collab Agent activated");
-
-  // ---- Debug/health command
-  const hello = vscode.commands.registerCommand("aiCollab.debugHello", () => {
-    vscode.window.showInformationMessage("Hello from AI Collab Agent!");
-  });
-  context.subscriptions.push(hello);
-
-  // ---- Main command: opens the webview panel
-  const open = vscode.commands.registerCommand(
-    "aiCollab.openPanel",
-    async () => {
-      const panel = vscode.window.createWebviewPanel(
-        "aiCollabPanel",
-        "AI Collab Agent - Team Platform",
-        vscode.ViewColumn.Active,
-        {
-          enableScripts: true,
-          retainContextWhenHidden: true,
-          localResourceRoots: [
-            vscode.Uri.file(path.join(context.extensionPath, "media")),
-          ],
+        const tempFileName = `AI_Prompt_${projectToPrompt.name.replace(
+          /[^a-zA-Z0-9]/g,
+          "_"
+        )}_${Date.now()}.txt`;
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (workspaceFolders) {
+          const filePath = vscode.Uri.joinPath(
+            workspaceFolders[0].uri,
+            tempFileName
+          );
+          await fs.writeFile(filePath.fsPath, promptContent, "utf-8");
+          await vscode.window.showTextDocument(filePath, {
+            viewColumn: vscode.ViewColumn.Beside,
+            preview: false,
+          });
         }
-      );
 
-      panel.webview.html = await getHtml(panel.webview, context);
+        currentData.promptCount++;
+        await saveInitialData(currentData);
 
-      panel.webview.onDidReceiveMessage(async (msg: any) => {
-        switch (msg.type) {
-          case "saveData": {
-            await saveInitialData(msg.payload);
-            vscode.window.showInformationMessage(
-              "Team data saved to .aiCollabData.json!"
-            );
-            break;
-          }
+        panel.webview.postMessage({
+          type: "dataLoaded",
+          payload: currentData,
+        });
+        panel.webview.postMessage({
+          type: "promptGeneratedFromExtension",
+          payload: { prompt: promptContent },
+        });
 
-          case "loadData": {
-            const data = await loadInitialData();
-            panel.webview.postMessage({
-              type: "dataLoaded",
-              payload: data,
-            });
-            break;
-          }
+        vscode.window.showInformationMessage(
+          `AI Prompt generated for project: ${projectToPrompt.name} and saved to ${tempFileName}`
+        );
+        break;
+      }
 
-          case "generatePrompt": {
-            const { projectId } = msg.payload;
-
-            const currentData = await loadInitialData();
-            const projectToPrompt = currentData.projects.find(
-              (p: any) => p.id == projectId
-            );
-            const promptContent = createPromptForProject(
-              projectToPrompt,
-              currentData.users
-            );
-
-            if (!projectToPrompt) {
-              vscode.window.showErrorMessage(
-                "Project not found for AI prompt generation."
-              );
-              panel.webview.postMessage({
-                type: "promptGenerationError",
-                payload: { message: "Project not found." },
-              });
-              break;
-            }
-
-            const tempFileName = `AI_Prompt_${projectToPrompt.name.replace(
-              /[^a-zA-Z0-9]/g,
-              "_"
-            )}_${Date.now()}.txt`;
-            const workspaceFolders = vscode.workspace.workspaceFolders;
-            if (workspaceFolders) {
-              const filePath = vscode.Uri.joinPath(
-                workspaceFolders[0].uri,
-                tempFileName
-              );
-              await fs.writeFile(filePath.fsPath, promptContent, "utf-8");
-              await vscode.window.showTextDocument(filePath, {
-                viewColumn: vscode.ViewColumn.Beside,
-                preview: false,
-              });
-            }
-
-            currentData.promptCount++;
-            await saveInitialData(currentData);
-
-            panel.webview.postMessage({
-              type: "dataLoaded",
-              payload: currentData,
-            });
-            panel.webview.postMessage({
-              type: "promptGeneratedFromExtension",
-              payload: { prompt: promptContent },
-            });
-
-            vscode.window.showInformationMessage(
-              `AI Prompt generated for project: ${projectToPrompt.name} and saved to ${tempFileName}`
-            );
-            break;
-          }
-
-          case "showError": {
-            vscode.window.showErrorMessage(msg.payload.message);
-            break;
-          }
-          case "showSuccess": {
-            vscode.window.showInformationMessage(msg.payload.message);
-            break;
-          }
-          default:
-            break;
-        }
-      });
+      case "showError": {
+        vscode.window.showErrorMessage(msg.payload.message);
+        break;
+      }
+      case "showSuccess": {
+        vscode.window.showInformationMessage(msg.payload.message);
+        break;
+      }
+      default:
+        break;
     }
-  );
-  context.subscriptions.push(open);
+  });
 }
 
-export function deactivate() {}
+export function deactivate() {
+  // Clean up resources if needed
+}
+
+async function getLoginHtml(
+  webview: vscode.Webview,
+  context: vscode.ExtensionContext
+): Promise<string> {
+  const nonce = getNonce();
+
+  const htmlPath = path.join(context.extensionPath, "media", "login.html");
+
+  let htmlContent = await fs.readFile(htmlPath, "utf-8");
+
+  htmlContent = htmlContent
+    .replace(
+      /<head>/,
+      `<head>
+        <meta http-equiv="Content-Security-Policy" content="
+            default-src 'none';
+            style-src ${webview.cspSource} 'unsafe-inline';
+            img-src ${webview.cspSource} https:;
+            script-src 'nonce-${nonce}';
+        ">`
+    )
+    .replace(/<script>/, `<script nonce="${nonce}">`);
+
+  return htmlContent;
+}
 
 async function getHtml(
   webview: vscode.Webview,
