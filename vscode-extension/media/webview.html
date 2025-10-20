@@ -200,6 +200,33 @@
             font-size: 0.9rem;
         }
 
+        .team-members-section {
+            margin-top: 15px;
+            padding-top: 12px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .team-member-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .team-member-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 10px;
+            font-size: 0.9rem;
+        }
+
+        .team-member-card > div:first-child {
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: #1e293b;
+        }
+
         .prompt-output {
             background: #1e293b;
             color: #e2e8f0;
@@ -343,47 +370,47 @@
         </div>
 
         <div class="tabs">
-            <button class="tab-button active" data-tab="users">👥 Team Members</button>
+            <button class="tab-button active" data-tab="users">👤 My Profile</button>
             <button class="tab-button" data-tab="projects">📋 Projects</button>
             <button class="tab-button" data-tab="join">🔗 Join Project</button>
             <button class="tab-button" data-tab="prompts">🤖 AI Prompts</button>
         </div>
 
         <div id="users" class="tab-content active">
-            <div class="section-title">Add Team Member</div>
+            <div class="section-title">My Profile</div>
             
-            <form class="form-grid">
+            <form class="form-grid" id="profile-form">
                 <div class="form-group">
-                    <label for="userName">Full Name *</label>
-                    <input type="text" id="userName" required placeholder="Enter full name">
+                    <label for="userName">Full Name</label>
+                    <input type="text" id="userName" disabled placeholder="Loaded from authentication">
                 </div>
                 
                 <div class="form-group">
-                    <label for="userSkills">Skills *</label>
-                    <input type="text" id="userSkills" required placeholder="e.g., Leadership, Design, Analysis">
+                    <label for="userSkills">Skills</label>
+                    <textarea id="userSkills" placeholder="e.g., Leadership, Design, Analysis, Problem Solving"></textarea>
                 </div>
                 
                 <div class="form-group">
-                    <label for="userLanguages">Programming Languages *</label>
-                    <input type="text" id="userLanguages" required placeholder="e.g., Python, JavaScript, TypeScript">
+                    <label for="userLanguages">Programming Languages</label>
+                    <input type="text" id="userLanguages" placeholder="e.g., Python, JavaScript, TypeScript, Java">
                 </div>
                 
                 <div class="form-group">
                     <label for="userWilling">Willing to Work On</label>
-                    <textarea id="userWilling" placeholder="Describe interests and preferred project types..."></textarea>
+                    <textarea id="userWilling" placeholder="Describe your interests and preferred project types..."></textarea>
                 </div>
             </form>
             
            <div class="button-group">
-                <button id="add-user-btn" class="btn btn-primary">Add Member</button>
-                <button id="clear-user-form-btn" class="btn btn-secondary">Clear Form</button>
+                <button id="update-profile-btn" class="btn btn-primary">Update Profile</button>
+                <button id="clear-profile-form-btn" class="btn btn-secondary">Reset Form</button>
             </div>
             
             <div id="userStatus" class="status-message" style="display: none;"></div>
             
-            <div class="section-title">Team Members</div>
-            <div id="userList" class="user-list">
-                <p style="text-align: center; color: #64748b; padding: 15px;">No team members yet</p>
+            <div class="section-title">Profile Information</div>
+            <div id="currentUserDisplay" class="user-list">
+                <p style="text-align: center; color: #64748b; padding: 15px;">Loading profile...</p>
             </div>
         </div>
 
@@ -510,6 +537,7 @@ The generated prompt will include:
 
         class TeamCollaborationApp {
             constructor() {
+                this.currentUser = null;
                 this.users = [];
                 this.projects = [];
                 this.promptCount = 0;
@@ -518,13 +546,26 @@ The generated prompt will include:
                 vscode.postMessage({ type: 'loadData' });
             }
 
-            // Updated to handle selectedMemberIds
+            // Updated to handle currentUser separately
             loadData(data) {
+                // Load current user's profile
+                if (data.currentUser) {
+                    this.currentUser = {
+                        id: data.currentUser.id,
+                        name: data.currentUser.name,
+                        skills: data.currentUser.skills || '',
+                        programmingLanguages: data.currentUser.programming_languages || '',
+                        willingToWorkOn: data.currentUser.willing_to_work_on || '',
+                        createdAt: data.currentUser.created_at
+                    };
+                    this.loadCurrentUserProfile();
+                }
+
                 if (data.users) {
                     this.users = data.users.map(userData => {
-                        const user = new TeamMember(userData.name, userData.skills, userData.programmingLanguages, userData.willingToWorkOn);
+                        const user = new TeamMember(userData.name, userData.skills, userData.programming_languages, userData.willing_to_work_on);
                         user.id = userData.id;
-                        user.createdAt = userData.createdAt;
+                        user.createdAt = userData.created_at;
                         return user;
                     });
                 }
@@ -542,7 +583,7 @@ The generated prompt will include:
                             projectData.invite_code || ''
                         );
                         project.id = projectData.id;
-                        project.createdAt = projectData.createdAt;
+                        project.createdAt = projectData.created_at;
                         return project;
                     });
                 }
@@ -552,6 +593,38 @@ The generated prompt will include:
                 }
 
                 this.updateUI();
+            }
+
+            loadCurrentUserProfile() {
+                if (!this.currentUser) return;
+                
+                document.getElementById('userName').value = this.currentUser.name;
+                document.getElementById('userSkills').value = this.currentUser.skills;
+                document.getElementById('userLanguages').value = this.currentUser.programmingLanguages;
+                document.getElementById('userWilling').value = this.currentUser.willingToWorkOn;
+            }
+
+            updateProfile() {
+                const skills = document.getElementById('userSkills').value.trim();
+                const programmingLanguages = document.getElementById('userLanguages').value.trim();
+                const willingToWorkOn = document.getElementById('userWilling').value.trim();
+
+                // Send update to extension
+                vscode.postMessage({
+                    type: 'updateProfile',
+                    payload: {
+                        skills,
+                        programmingLanguages,
+                        willingToWorkOn
+                    }
+                });
+
+                showStatus('userStatus', 'Updating profile...', 'info');
+            }
+
+            resetProfileForm() {
+                this.loadCurrentUserProfile();
+                showStatus('userStatus', 'Form reset to saved values', 'info');
             }
 
             saveData() {
@@ -611,7 +684,7 @@ The generated prompt will include:
 
             updateUI() {
                 this.updateStats();
-                this.updateUserList();
+                this.updateCurrentUserDisplay();
                 this.updateProjectList();
                 this.updateUserSelection();
                 this.updateProjectSelection();
@@ -623,23 +696,22 @@ The generated prompt will include:
                 document.getElementById('promptCount').textContent = this.promptCount.toString();
             }
 
-            updateUserList() {
-                const userList = document.getElementById('userList');
-                if (this.users.length === 0) {
-                    userList.innerHTML = '<p style="text-align: center; color: #64748b; padding: 15px;">No team members yet</p>';
+            updateCurrentUserDisplay() {
+                const userDisplay = document.getElementById('currentUserDisplay');
+                if (!this.currentUser) {
+                    userDisplay.innerHTML = '<p style="text-align: center; color: #64748b; padding: 15px;">Please log in to view your profile</p>';
                     return;
                 }
 
-                userList.innerHTML = this.users.map(user => `
+                userDisplay.innerHTML = `
                     <div class="user-item">
-                        <h3>👤 ${user.name}</h3>
-                        <p><strong>Skills:</strong> ${user.skills}</p>
-                        <p><strong>Languages:</strong> ${user.programmingLanguages}</p>
-                        <p><strong>Interests:</strong> ${user.willingToWorkOn || 'Not specified'}</p>
-                        <p><strong>Added:</strong> ${new Date(user.createdAt).toLocaleString()}</p>
-                        <button class="btn btn-secondary remove-user-btn" data-user-id="${user.id}" style='margin-top: 8px; padding: 6px 12px; font-size: 0.8rem;'>Remove</button>
+                        <h3>👤 ${this.currentUser.name}</h3>
+                        <p><strong>Skills:</strong> ${this.currentUser.skills || 'Not specified'}</p>
+                        <p><strong>Languages:</strong> ${this.currentUser.programmingLanguages || 'Not specified'}</p>
+                        <p><strong>Interests:</strong> ${this.currentUser.willingToWorkOn || 'Not specified'}</p>
+                        <p><strong>Member Since:</strong> ${new Date(this.currentUser.createdAt).toLocaleString()}</p>
                     </div>
-                `).join('');
+                `;
             }
 
             updateProjectList() {
@@ -652,7 +724,17 @@ The generated prompt will include:
                 projectList.innerHTML = this.projects.map(project => {
                     // Filter this.users by IDs stored in project.selectedMemberIds
                     const teamMembers = this.users.filter(user => project.selectedMemberIds.includes(user.id));
-                    const teamMemberNames = teamMembers.map(m => m.name).join(', ') || 'No members assigned';
+                    
+                    // Create detailed team member cards
+                    const teamMemberCards = teamMembers.length > 0 ? teamMembers.map(member => `
+                        <div class="team-member-card">
+                            <div style="font-weight: 600; margin-bottom: 4px;">👤 ${member.name}</div>
+                            <div style="font-size: 0.85rem; color: #64748b;">
+                                <div><strong>Skills:</strong> ${member.skills || 'Not specified'}</div>
+                                <div><strong>Languages:</strong> ${member.programmingLanguages || 'Not specified'}</div>
+                            </div>
+                        </div>
+                    `).join('') : '<p style="color: #64748b; font-size: 0.9rem;">No members yet</p>';
 
                     return `
                         <div class="project-item">
@@ -660,9 +742,14 @@ The generated prompt will include:
                             <p><strong>Description:</strong> ${project.description}</p>
                             <p><strong>Goals:</strong> ${project.goals || 'Not specified'}</p>
                             <p><strong>Requirements:</strong> ${project.requirements || 'Not specified'}</p>
-                            <p><strong>Team:</strong> ${teamMemberNames}</p>
                             <p><strong>Invite Code:</strong> <code style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-family: monospace;">${project.invite_code || 'N/A'}</code></p>
-                            <p><strong>Created:</strong> ${new Date(project.createdAt).toLocaleString()}</p>
+                            <div class="team-members-section" style="margin-top: 15px;">
+                                <strong>Team Members:</strong>
+                                <div class="team-member-cards" style="margin-top: 8px;">
+                                    ${teamMemberCards}
+                                </div>
+                            </div>
+                            <p style="margin-top: 10px;"><strong>Created:</strong> ${new Date(project.createdAt).toLocaleString()}</p>
                             <button class="btn btn-secondary remove-project-btn" data-project-id="${project.id}" style='margin-top: 8px; padding: 6px 12px; font-size: 0.8rem;'>Remove</button>
                         </div>
                     `;
@@ -721,6 +808,14 @@ The generated prompt will include:
                     break;
                 case 'dataLoaded':
                     app.loadData(message.payload); // This will re-render everything
+                    break;
+                case 'profileUpdated':
+                    showStatus('userStatus', '✅ Profile updated successfully!', 'success');
+                    // Reload data to get fresh profile
+                    vscode.postMessage({ type: 'loadData' });
+                    break;
+                case 'profileUpdateError':
+                    showStatus('userStatus', `❌ Error: ${message.payload.message}`, 'error');
                     break;
                 case 'promptGeneratedFromExtension': // NEW: Listen for generated prompt from extension
                      document.getElementById('promptOutput').textContent = message.payload.prompt;
@@ -899,8 +994,8 @@ The generated prompt will include:
 
         // Centralized Event Handling & Initialization
         document.addEventListener('DOMContentLoaded', () => { // Ensure DOM is loaded
-            document.getElementById('add-user-btn')?.addEventListener('click', addUser);
-            document.getElementById('clear-user-form-btn')?.addEventListener('click', clearUserForm);
+            document.getElementById('update-profile-btn')?.addEventListener('click', () => app.updateProfile());
+            document.getElementById('clear-profile-form-btn')?.addEventListener('click', () => app.resetProfileForm());
             document.getElementById('create-project-btn')?.addEventListener('click', createProject);
             document.getElementById('clear-project-form-btn')?.addEventListener('click', clearProjectForm);
             document.getElementById('join-project-btn')?.addEventListener('click', joinProject);

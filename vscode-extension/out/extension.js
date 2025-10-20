@@ -90,7 +90,8 @@ async function loadInitialData() {
         const allPrompts = await Promise.all(projects.map(project => databaseService.getAIPromptsForProject(project.id)));
         const promptCount = allPrompts.flat().length;
         return {
-            users: allProfiles, // Now returns all team members from user's projects
+            currentUser: profile, // Current user's profile for editing
+            users: allProfiles, // All team members from user's projects
             projects: projectsWithMembers,
             promptCount
         };
@@ -468,9 +469,9 @@ async function openMainPanel(context, authService) {
                 const teamMemberDetails = teamMembersForPrompt
                     .map((user, index) => `Team Member ${index + 1}:
 Name: ${user.name}
-Skills: ${user.skills}
-Programming Languages: ${user.programmingLanguages}
-Willing to work on: ${user.willingToWorkOn || "Not specified"}
+Skills: ${user.skills || "Not specified"}
+Programming Languages: ${user.programming_languages || "Not specified"}
+Willing to work on: ${user.willing_to_work_on || "Not specified"}
 
 `)
                     .join("");
@@ -478,7 +479,7 @@ Willing to work on: ${user.willingToWorkOn || "Not specified"}
 
 === PROJECT INFORMATION ===
 Project Name: ${projectToPrompt.name}
-Created: ${new Date(projectToPrompt.createdAt).toLocaleString()}
+Created: ${new Date(projectToPrompt.created_at).toLocaleString()}
 
 Project Description:
 ${projectToPrompt.description}
@@ -631,6 +632,47 @@ Give me a specific message for EACH team member, detailing them what they need t
                 break;
             }
             case "updateProfile": {
+                const { skills, programmingLanguages, willingToWorkOn } = msg.payload;
+                const user = authService.getCurrentUser();
+                if (!user) {
+                    vscode.window.showErrorMessage("Please log in to update your profile.");
+                    panel.webview.postMessage({
+                        type: 'profileUpdateError',
+                        payload: { message: 'Please log in to update your profile' }
+                    });
+                    break;
+                }
+                try {
+                    const profile = await databaseService.updateProfile(user.id, {
+                        skills,
+                        programming_languages: programmingLanguages,
+                        willing_to_work_on: willingToWorkOn
+                    });
+                    if (profile) {
+                        vscode.window.showInformationMessage("Profile updated successfully!");
+                        // Send success message to webview
+                        panel.webview.postMessage({
+                            type: 'profileUpdated',
+                            payload: { profile }
+                        });
+                    }
+                    else {
+                        panel.webview.postMessage({
+                            type: 'profileUpdateError',
+                            payload: { message: 'Failed to update profile' }
+                        });
+                    }
+                }
+                catch (error) {
+                    console.error('Error updating profile:', error);
+                    panel.webview.postMessage({
+                        type: 'profileUpdateError',
+                        payload: { message: error.message || 'Failed to update profile' }
+                    });
+                }
+                break;
+            }
+            case "oldUpdateProfile": {
                 const { name, skills, languages, preferences } = msg.payload;
                 const user = authService.getCurrentUser();
                 if (!user) {
