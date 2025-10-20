@@ -495,13 +495,14 @@ The generated prompt will include:
         }
 
         class Project {
-            // Constructor now takes selectedMemberIds
-            constructor(name, description, goals, requirements, selectedMemberIds = []) {
+            // Constructor now takes selectedMemberIds and invite_code
+            constructor(name, description, goals, requirements, selectedMemberIds = [], invite_code = '') {
                 this.name = name;
                 this.description = description;
                 this.goals = goals;
                 this.requirements = requirements;
                 this.selectedMemberIds = selectedMemberIds; // Store IDs
+                this.invite_code = invite_code; // Store invite code
                 this.id = Date.now() + Math.random();
                 this.createdAt = new Date().toISOString();
             }
@@ -532,7 +533,14 @@ The generated prompt will include:
                     this.projects = data.projects.map(projectData => {
                         // Ensure selectedMemberIds is an array
                         const memberIds = Array.isArray(projectData.selectedMemberIds) ? projectData.selectedMemberIds : [];
-                        const project = new Project(projectData.name, projectData.description, projectData.goals, projectData.requirements, memberIds);
+                        const project = new Project(
+                            projectData.name, 
+                            projectData.description, 
+                            projectData.goals, 
+                            projectData.requirements, 
+                            memberIds,
+                            projectData.invite_code || ''
+                        );
                         project.id = projectData.id;
                         project.createdAt = projectData.createdAt;
                         return project;

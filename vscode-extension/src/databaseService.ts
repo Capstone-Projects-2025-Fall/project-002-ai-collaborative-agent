@@ -134,6 +134,38 @@ export class DatabaseService {
     return data?.map((item: any) => item.projects) || [];
   }
 
+  async getProfilesForProject(projectId: string): Promise<Profile[]> {
+    const { data, error } = await this.supabase
+      .from('project_members')
+      .select(`
+        profiles(*)
+      `)
+      .eq('project_id', projectId);
+
+    if (error) {
+      console.error('Error fetching profiles for project:', error);
+      return [];
+    }
+    return data?.map((item: any) => item.profiles).filter(Boolean) || [];
+  }
+
+  async getAllProfilesForUserProjects(userId: string): Promise<Profile[]> {
+    // Get all unique profiles from all projects the user is a member of
+    const projects = await this.getProjectsForUser(userId);
+    const profilesPromises = projects.map(project => 
+      this.getProfilesForProject(project.id)
+    );
+    const profilesArrays = await Promise.all(profilesPromises);
+    
+    // Flatten and deduplicate profiles
+    const allProfiles = profilesArrays.flat();
+    const uniqueProfiles = allProfiles.filter((profile, index, self) => 
+      index === self.findIndex(p => p.id === profile.id)
+    );
+    
+    return uniqueProfiles;
+  }
+
   async createProject(name: string, description: string, goals: string = '', requirements: string = ''): Promise<Project | null> {
     console.log('DatabaseService: Creating project:', { name, description, goals, requirements });
     

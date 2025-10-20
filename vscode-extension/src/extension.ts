@@ -51,7 +51,7 @@ async function loadInitialData(): Promise<any> {
       );
     }
     
-    // Get user's projects
+    // Get user's projects (RLS will filter to only their projects)
     const projects = await databaseService.getProjectsForUser(user.id);
     
     // Get project members for each project
@@ -65,6 +65,9 @@ async function loadInitialData(): Promise<any> {
       })
     );
 
+    // Get all profiles from user's projects (for team members display)
+    const allProfiles = await databaseService.getAllProfilesForUserProjects(user.id);
+
     // Get AI prompts count
     const allPrompts = await Promise.all(
       projects.map(project => databaseService.getAIPromptsForProject(project.id))
@@ -72,7 +75,7 @@ async function loadInitialData(): Promise<any> {
     const promptCount = allPrompts.flat().length;
 
     return {
-      users: profile ? [profile] : [],
+      users: allProfiles, // Now returns all team members from user's projects
       projects: projectsWithMembers,
       promptCount
     };
