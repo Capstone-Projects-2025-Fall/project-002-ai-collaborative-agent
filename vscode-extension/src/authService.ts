@@ -22,19 +22,19 @@ export class AuthService {
   private currentSession: Session | null = null;
   private localServer: http.Server | null = null;
 
-  constructor() {
-    // Get Supabase configuration from environment variables
-    const supabaseUrl = process.env.SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_ANON_KEY;
+  constructor(supabaseUrl?: string, supabaseKey?: string) {
+    // Get Supabase configuration from parameters or environment variables
+    const url = supabaseUrl || process.env.SUPABASE_URL;
+    const key = supabaseKey || process.env.SUPABASE_ANON_KEY;
 
-    if (!supabaseUrl || !supabaseKey) {
+    if (!url || !key) {
       throw new Error(
         "Supabase configuration missing. Please set SUPABASE_URL and SUPABASE_ANON_KEY in your .env file."
       );
     }
 
-    this.supabaseUrl = supabaseUrl;
-    this.supabase = createClient(supabaseUrl, supabaseKey);
+    this.supabaseUrl = url;
+    this.supabase = createClient(url, key);
   }
 
   async initialize(): Promise<void> {

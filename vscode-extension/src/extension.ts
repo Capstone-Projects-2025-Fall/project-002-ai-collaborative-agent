@@ -121,18 +121,51 @@ async function saveInitialData(data: any): Promise<void> {
 }
 
 export function activate(context: vscode.ExtensionContext) {
-  // Load environment variables from multiple possible locations
   config({ path: path.join(__dirname, "..", ".env") });
   config({ path: path.join(__dirname, "../../.env") });
 
   vscode.window.showInformationMessage("AI Collab Agent activated");
-
-  // Store context globally for callback server
   extensionContext = context;
 
-  // Initialize authentication service
+  // Register commands FIRST, before any initialization
+  const openCommand = vscode.commands.registerCommand("aiCollab.openPanel", () => {
+    if (!authService || !databaseService) {
+      vscode.window.showErrorMessage("Extension not properly initialized. Check your .env file.");
+      return;
+    }
+    openMainPanel(context, authService);
+  });
+  context.subscriptions.push(openCommand);
+
+  // THEN do initialization
   try {
     authService = new AuthService();
+    authService.initialize();
+  } catch (error) {
+    vscode.window.showErrorMessage(
+      `Authentication setup failed: ${error instanceof Error ? error.message : "Unknown error"}`
+    );
+    return;
+  }
+
+  // Initialize database service
+  try {
+    const vsConfig = vscode.workspace.getConfiguration('aiCollab');
+    const supabaseUrl = vsConfig.get<string>('supabaseUrl') || process.env.SUPABASE_URL;
+    const supabaseAnonKey = vsConfig.get<string>('supabaseAnonKey') || process.env.SUPABASE_ANON_KEY;
+    
+    console.log('=== Configuration Check ===');
+    console.log('URL:', supabaseUrl ? 'present' : 'missing');
+    console.log('Key:', supabaseAnonKey ? 'present' : 'missing');
+    
+    if (!supabaseUrl || !supabaseAnonKey) {
+      vscode.window.showErrorMessage(
+        "Supabase configuration missing. Please configure in Settings: Search 'AI Collab' and set Supabase URL and Anon Key"
+      );
+      return;
+    }
+    
+    authService = new AuthService(supabaseUrl, supabaseAnonKey);
     authService.initialize();
   } catch (error) {
     vscode.window.showErrorMessage(
@@ -143,19 +176,13 @@ export function activate(context: vscode.ExtensionContext) {
     return;
   }
 
-  // Initialize database service
-  try {
-    const supabaseUrl = process.env.SUPABASE_URL;
-    const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
-    
-    if (!supabaseUrl || !supabaseAnonKey) {
-      vscode.window.showErrorMessage(
-        "Supabase configuration missing. Please check your .env file."
-      );
-      return;
-    }
-    
-    databaseService = new DatabaseService(supabaseUrl, supabaseAnonKey);
+// Initialize database service
+try {
+  const vsConfig = vscode.workspace.getConfiguration('aiCollab');
+  const supabaseUrl = vsConfig.get<string>('supabaseUrl') || process.env.SUPABASE_URL;
+  const supabaseAnonKey = vsConfig.get<string>('supabaseAnonKey') || process.env.SUPABASE_ANON_KEY;
+  
+  databaseService = new DatabaseService(supabaseUrl!, supabaseAnonKey!);
   } catch (error) {
     vscode.window.showErrorMessage(
       `Database setup failed: ${

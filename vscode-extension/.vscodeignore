@@ -1,0 +1,12 @@
+.vscode/**
+.vscode-test/**
+src/**
+.dockerignore
+Dockerfile
+tsconfig.json
+node_modules/@types/**
+**/*.ts
+**/*.map
+.gitignore
+.env
+**/.env
