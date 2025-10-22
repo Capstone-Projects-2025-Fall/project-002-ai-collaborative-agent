@@ -41,6 +41,7 @@ const path = __importStar(require("path"));
 const ai_analyze_1 = require("./ai_analyze");
 const dotenv_1 = require("dotenv");
 const authService_1 = require("./authService");
+const supabaseConfig_1 = require("./supabaseConfig");
 // Load environment variables from .env file in project root
 (0, dotenv_1.config)({ path: path.join(__dirname, "../../.env") });
 // Global variables for OAuth callback handling
@@ -485,27 +486,64 @@ Please analyze this project and team composition and provide:
    - Suggest milestone structure
 
 Give me a specific message for EACH team member, detailing them what they need to do RIGHT NOW and in the FUTURE. Give each user the exact things they need to work on according also to their skills.`;
-                const tempFileName = `AI_Prompt_${projectToPrompt.name.replace(/[^a-zA-Z0-9]/g, "_")}_${Date.now()}.txt`;
-                const workspaceFolders = vscode.workspace.workspaceFolders;
-                if (workspaceFolders) {
-                    const filePath = vscode.Uri.joinPath(workspaceFolders[0].uri, tempFileName);
-                    await fs.writeFile(filePath.fsPath, promptContent, "utf-8");
-                    await vscode.window.showTextDocument(filePath, {
-                        viewColumn: vscode.ViewColumn.Beside,
-                        preview: false,
+                // Call the Supabase Edge Function to get AI response
+                try {
+                    vscode.window.showInformationMessage("Generating AI analysis...");
+                    const edgeFunctionUrl = (0, supabaseConfig_1.getEdgeFunctionUrl)();
+                    const anonKey = (0, supabaseConfig_1.getSupabaseAnonKey)();
+                    // Send in the format the edge function expects: { project, users }
+                    const response = await fetch(edgeFunctionUrl, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "Authorization": `Bearer ${anonKey}`,
+                        },
+                        body: JSON.stringify({
+                            project: projectToPrompt,
+                            users: teamMembersForPrompt
+                        }),
+                    });
+                    if (!response.ok) {
+                        throw new Error(`Edge function error: ${response.statusText}`);
+                    }
+                    const aiResult = await response.json();
+                    const aiResponse = aiResult.message || aiResult.response || "No response received";
+                    // Save to database
+                    const supabase = (0, supabaseConfig_1.getSupabaseClient)();
+                    await supabase.from("ai_prompts").insert([{
+                            project_id: projectToPrompt.id,
+                            prompt_content: promptContent,
+                            ai_response: aiResponse,
+                        }]);
+                    // Save to file
+                    const tempFileName = `AI_Response_${projectToPrompt.name.replace(/[^a-zA-Z0-9]/g, "_")}_${Date.now()}.txt`;
+                    const workspaceFolders = vscode.workspace.workspaceFolders;
+                    if (workspaceFolders) {
+                        const fullContent = `${promptContent}\n\n${"=".repeat(80)}\nAI RESPONSE:\n${"=".repeat(80)}\n\n${aiResponse}`;
+                        const filePath = vscode.Uri.joinPath(workspaceFolders[0].uri, tempFileName);
+                        await fs.writeFile(filePath.fsPath, fullContent, "utf-8");
+                        await vscode.window.showTextDocument(filePath, {
+                            viewColumn: vscode.ViewColumn.Beside,
+                            preview: false,
+                        });
+                    }
+                    // Send response back to webview
+                    panel.webview.postMessage({
+                        type: "aiResponseReceived",
+                        payload: {
+                            prompt: promptContent,
+                            response: aiResponse
+                        },
+                    });
+                    vscode.window.showInformationMessage(`✅ AI analysis complete for project: ${projectToPrompt.name}`);
+                }
+                catch (error) {
+                    vscode.window.showErrorMessage(`Failed to generate AI response: ${error.message}`);
+                    panel.webview.postMessage({
+                        type: "promptGenerationError",
+                        payload: { message: error.message },
                     });
                 }
-                currentData.promptCount++;
-                await saveInitialData(currentData);
-                panel.webview.postMessage({
-                    type: "dataLoaded",
-                    payload: currentData,
-                });
-                panel.webview.postMessage({
-                    type: "promptGeneratedFromExtension",
-                    payload: { prompt: promptContent },
-                });
-                vscode.window.showInformationMessage(`AI Prompt generated for project: ${projectToPrompt.name} and saved to ${tempFileName}`);
                 break;
             }
             case "showError": {
