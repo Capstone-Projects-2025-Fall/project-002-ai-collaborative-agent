@@ -11,6 +11,7 @@
     "Other"
   ],
   "activationEvents": [
+    "onStartupFinished",
     "onCommand:aiCollab.openPanel",
     "onUri"
   ],
@@ -28,7 +29,27 @@
       {
         "command": "aiCollab.debugAuth",
         "title": "AI Collab Agent: Debug Auth Status"
-      }
+      },
+      { "command": "ai-code-reviewer.analyzeCode",
+      "title": "Analyze Current Folder",
+      "category": "AI Code Reviewer"
+    },
+    {
+      "command": "ai-code-reviewer.configure",
+      "title": "Configure Settings",
+      "category": "AI Code Reviewer"
+    },
+    {
+      "command": "ai-code-reviewer.showResults",
+      "title": "Show Analysis Results",
+      "category": "AI Code Reviewer"
+    },
+    {
+      "command": "ai-code-reviewer.toggleAutoAnalyze",
+      "title": "Toggle Auto-Analyze (On/Off)",
+      "category": "AI Code Reviewer"
+    }
+      
     ],
     "configuration": {
       "title": "AI Collab Agent",
@@ -37,9 +58,38 @@
           "type": "string",
           "default": "http://localhost:4000",
           "description": "Base URL of your Agent API (future use)."
+        },
+        "aiCodeReviewer.apiEndpoint": {
+          "type": "string",
+          "default": "",
+          "description": "Your Supabase function URL for code analysis"
+        },
+        "aiCodeReviewer.autoAnalyzeInterval": {
+          "type": "number",
+          "default": 1,
+          "description": "Auto-analyze interval in minutes (default: 1 minutes)",
+          "minimum": 1,
+          "maximum": 60
+        },
+        "aiCodeReviewer.autoAnalyzeEnabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable automatic code analysis"
         }
       }
-    }
+    },
+    "keybindings": [
+      {
+        "command": "ai-code-reviewer.analyzeCode",
+        "key": "ctrl+shift+a",
+        "mac": "cmd+shift+a"
+      },
+      {
+        "command": "ai-code-reviewer.toggleAutoAnalyze",
+        "key": "ctrl+shift+t",
+        "mac": "cmd+shift+t"
+      }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
