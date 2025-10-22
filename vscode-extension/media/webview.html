@@ -701,6 +701,13 @@ The generated prompt will include:
                      document.getElementById('promptOutput').textContent = message.payload.prompt;
                      showStatus('promptStatus', '🤖 AI Prompt generated! See editor for markdown.', 'success');
                      break;
+                case 'aiResponseReceived': // NEW: Handle AI response with task delegation
+                     const promptOutput = document.getElementById('promptOutput');
+                     if (promptOutput) {
+                         promptOutput.textContent = `${message.payload.prompt}\n\n${"=".repeat(80)}\nAI RESPONSE:\n${"=".repeat(80)}\n\n${message.payload.response}`;
+                     }
+                     showStatus('promptStatus', '✅ AI analysis complete! Tasks delegated to team members. Check editor for details.', 'success');
+                     break;
                 case 'promptGenerationError': // NEW: Handle errors from extension
                     showStatus('promptStatus', `Error: ${message.payload.message}`, 'error');
                     break;
