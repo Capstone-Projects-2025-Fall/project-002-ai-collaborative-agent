@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import * as fs from "fs/promises";
 import * as path from "path";
+import { activateCodeReviewer } from "./ai_analyze";
 import { config } from "dotenv";
 import { AuthService, AuthUser } from "./authService";
 
@@ -73,6 +74,7 @@ async function saveInitialData(data: any): Promise<void> {
 }
 
 export function activate(context: vscode.ExtensionContext) {
+  activateCodeReviewer(context);
   // Load environment variables from multiple possible locations
   config({ path: path.join(__dirname, "..", ".env") });
   config({ path: path.join(__dirname, "../../.env") });

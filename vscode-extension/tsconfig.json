@@ -8,7 +8,9 @@
     "lib": ["ES2022", "DOM"],
     "types": ["vscode", "node"],
     "esModuleInterop": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "sourceMap": true,
+    "rootDir": "src"
   },
   "include": ["src"]
 }

@@ -38,6 +38,7 @@ exports.deactivate = deactivate;
 const vscode = __importStar(require("vscode"));
 const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
+const ai_analyze_1 = require("./ai_analyze");
 const dotenv_1 = require("dotenv");
 const authService_1 = require("./authService");
 // Load environment variables from .env file in project root
@@ -100,6 +101,7 @@ async function saveInitialData(data) {
     }
 }
 function activate(context) {
+    (0, ai_analyze_1.activateCodeReviewer)(context);
     // Load environment variables from multiple possible locations
     (0, dotenv_1.config)({ path: path.join(__dirname, "..", ".env") });
     (0, dotenv_1.config)({ path: path.join(__dirname, "../../.env") });
@@ -560,3 +562,4 @@ function getNonce() {
     }
     return text;
 }
+//# sourceMappingURL=extension.js.map
