@@ -3,7 +3,7 @@
     "@types/node": "^24.6.1"
   },
   "dependencies": {
-    "vsls": "^1.0.4753"
+    "vsls": "^1.0.4753",
     "@supabase/supabase-js": "^2.74.0",
     "dotenv": "^17.2.3",
     "nanoid": "^5.1.6",
