@@ -102,7 +102,7 @@ async function saveInitialData(data) {
         vscode.window.showErrorMessage("Failed to save team data to file.");
     }
 }
-function activate(context) {
+async function activate(context) {
     (0, ai_analyze_1.activateCodeReviewer)(context);
     // Load environment variables from multiple possible locations
     (0, dotenv_1.config)({ path: path.join(__dirname, "..", ".env") });
@@ -172,134 +172,6 @@ function activate(context) {
         vscode.window.showInformationMessage("Hello from AI Collab Agent!");
     });
     context.subscriptions.push(hello);
-
-    const liveShare = (await vsls.getApi());
-    liveShare?.onDidChangeSession((e) => console.log("[AI Collab] Live Share role:", e.session?.role));
-    // Add status bar button
-    const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 1);
-    statusBarItem.text = "$(squirrel) AI Collab Agent";
-    statusBarItem.tooltip = "Open AI Collab Panel";
-    statusBarItem.command = "aiCollab.openPanel";
-    statusBarItem.show();
-    context.subscriptions.push(statusBarItem);
-  
-    
-    // ---- Main command: opens the webview panel
-    async function openMainPanel(context: vscode.ExtensionContext, authService: AuthService) {
-        const panel = vscode.window.createWebviewPanel("aiCollabPanel", "AI Collab Agent - Team Platform", vscode.ViewColumn.Active, {
-            enableScripts: true,
-            retainContextWhenHidden: true,
-            localResourceRoots: [
-                vscode.Uri.file(path.join(context.extensionPath, "media")),
-            ],
-        });
-        panel.webview.html = await getHtml(panel.webview, context);
-        // Handle messages from the webview
-        panel.webview.onDidReceiveMessage(async (message) => {
-            if (message.type === "openFile") {
-                try {
-                    // Open a folder selection dialog
-                    const options = {
-                        canSelectFiles: false,
-                        canSelectFolders: true,
-                        canSelectMany: false,
-                        openLabel: "Open Folder",
-                        defaultUri: vscode.Uri.file(require("os").homedir()), // Default to the user's home directory
-                    };
-                    const folderUri = await vscode.window.showOpenDialog(options);
-                    if (folderUri && folderUri.length > 0) {
-                        const selectedFolder = folderUri[0].fsPath;
-                        // List files in the selected folder
-                        const files = await vscode.workspace.fs.readDirectory(vscode.Uri.file(selectedFolder));
-                        // Open the first file in the folder (or prompt the user to select one)
-                        const firstFile = files.find(([name, type]) => type === vscode.FileType.File);
-                        if (firstFile) {
-                            const filePath = path.join(selectedFolder, firstFile[0]);
-                            const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(filePath));
-                            await vscode.window.showTextDocument(doc);
-                            vscode.window.showInformationMessage(`Opened file: ${filePath}`);
-                            try {
-                                /// Start a Live Share session
-                                const liveShare = await vsls.getApi(); // Get the Live Share API
-                                if (!liveShare) {
-                                    vscode.window.showErrorMessage("Live Share extension is not installed or not available.");
-                                    return;
-                                }
-                                await liveShare.share(); // May return undefined even if successful
-                                // Check if session is active
-                                if (liveShare.session && liveShare.session.id) {
-                                    vscode.window.showInformationMessage("Live Share session started!");
-                                    console.log("Live Share session info:", liveShare.session);
-                                }
-                                else {
-                                    vscode.window.showErrorMessage("Failed to start Live Share session.");
-                                }
-                            }
-                            catch (error) {
-                                console.error("Error starting Live Share session:", error);
-                                vscode.window.showErrorMessage("An error occurred while starting Live Share.");
-                            }
-                        }
-                        else {
-                            vscode.window.showWarningMessage("No files found in the selected folder.");
-                        }
-                    }
-                    else {
-                        vscode.window.showWarningMessage("No folder selected.");
-                    }
-                }
-                catch (error) {
-                    vscode.window.showErrorMessage(`Failed to open file: ${error instanceof Error ? error.message : "Unknown error"}`);
-                }
-            }
-        });
-        // Live Share service setup
-        let hostService = null;
-        let guestService = null;
-        if (liveShare?.session?.role === vsls.Role.Host) {
-            hostService = await liveShare.shareService("aiCollab.service");
-            if (!hostService) {
-                vscode.window.showWarningMessage("Could not share Live Share service. Start a Live Share session as Host.");
-            }
-            else {
-                hostService.onRequest("allocate", (args) => {
-                    const [payload] = args;
-                    return mockAllocate(payload);
-                });
-                hostService.onRequest("createTeam", async (args) => {
-                    const [payload] = args;
-                    await context.workspaceState.update("aiCollab.team", payload);
-                    hostService.notify("teamUpdated", payload);
-                    return { ok: true };
-                });
-            }
-        }
-        else if (liveShare?.session?.role === vsls.Role.Guest) {
-            guestService = await liveShare.getSharedService("aiCollab.service");
-            if (!guestService) {
-                vscode.window.showWarningMessage("Host service not found. Ask the host to open the panel.");
-            }
-            else {
-                guestService.onNotify("teamUpdated", (payload) => {
-                    panel.webview.postMessage({ type: "teamSaved", payload });
-                });
-            }
-        }
-        async function pushTeamToWebview() {
-            const team = await context.workspaceState.get("aiCollab.team");
-            panel.webview.postMessage({
-                type: "teamLoaded",
-                payload: team ?? null,
-            });
-        }
-        await pushTeamToWebview();
-        panel.webview.onDidReceiveMessage(async (msg) => {
-            switch (msg.type) {
-                case "saveData": {
-                    await saveInitialData(msg.payload);
-                    vscode.window.showInformationMessage("Team data saved to .aiCollabData.json!");
-                    break;
-
     // ---- Debug authentication status
     const debugAuth = vscode.commands.registerCommand("aiCollab.debugAuth", () => {
         const user = authService.getCurrentUser();
@@ -319,6 +191,15 @@ function activate(context) {
             `Session: ${session ? 'Active' : 'None'}`);
     });
     context.subscriptions.push(debugAuth);
+    const liveShare = (await vsls.getApi());
+    liveShare?.onDidChangeSession((e) => console.log("[AI Collab] Live Share role:", e.session?.role));
+    // Add status bar button
+    const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 1);
+    statusBarItem.text = "$(squirrel) AI Collab Agent";
+    statusBarItem.tooltip = "Open AI Collab Panel";
+    statusBarItem.command = "aiCollab.openPanel";
+    statusBarItem.show();
+    context.subscriptions.push(statusBarItem);
     // ---- Main command: opens the webview panel
     const open = vscode.commands.registerCommand("aiCollab.openPanel", async () => {
         // Check if user is authenticated
@@ -497,7 +378,6 @@ function activate(context) {
                     // Close login panel and open main panel
                     loginPanel.dispose();
                     openMainPanel(context, authService);
-
                 }
             });
             return;
@@ -519,6 +399,63 @@ async function openMainPanel(context, authService) {
     panel.webview.html = await getHtml(panel.webview, context);
     panel.webview.onDidReceiveMessage(async (msg) => {
         switch (msg.type) {
+            case "openFile": {
+                try {
+                    // Open a folder selection dialog
+                    const options = {
+                        canSelectFiles: false,
+                        canSelectFolders: true,
+                        canSelectMany: false,
+                        openLabel: "Open Folder",
+                        defaultUri: vscode.Uri.file(require("os").homedir()), // Default to the user's home directory
+                    };
+                    const folderUri = await vscode.window.showOpenDialog(options);
+                    if (folderUri && folderUri.length > 0) {
+                        const selectedFolder = folderUri[0].fsPath;
+                        // List files in the selected folder
+                        const files = await vscode.workspace.fs.readDirectory(vscode.Uri.file(selectedFolder));
+                        // Open the first file in the folder (or prompt the user to select one)
+                        const firstFile = files.find(([name, type]) => type === vscode.FileType.File);
+                        if (firstFile) {
+                            const filePath = path.join(selectedFolder, firstFile[0]);
+                            const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(filePath));
+                            await vscode.window.showTextDocument(doc);
+                            vscode.window.showInformationMessage(`Opened file: ${filePath}`);
+                            try {
+                                /// Start a Live Share session
+                                const liveShare = await vsls.getApi(); // Get the Live Share API
+                                if (!liveShare) {
+                                    vscode.window.showErrorMessage("Live Share extension is not installed or not available.");
+                                    return;
+                                }
+                                await liveShare.share(); // May return undefined even if successful
+                                // Check if session is active
+                                if (liveShare.session && liveShare.session.id) {
+                                    vscode.window.showInformationMessage("Live Share session started!");
+                                    console.log("Live Share session info:", liveShare.session);
+                                }
+                                else {
+                                    vscode.window.showErrorMessage("Failed to start Live Share session.");
+                                }
+                            }
+                            catch (error) {
+                                console.error("Error starting Live Share session:", error);
+                                vscode.window.showErrorMessage("An error occurred while starting Live Share.");
+                            }
+                        }
+                        else {
+                            vscode.window.showWarningMessage("No files found in the selected folder.");
+                        }
+                    }
+                    else {
+                        vscode.window.showWarningMessage("No folder selected.");
+                    }
+                }
+                catch (error) {
+                    vscode.window.showErrorMessage(`Failed to open file: ${error instanceof Error ? error.message : "Unknown error"}`);
+                }
+                break;
+            }
             case "saveData": {
                 await saveInitialData(msg.payload);
                 vscode.window.showInformationMessage("Team data saved to .aiCollabData.json!");
@@ -554,6 +491,7 @@ async function openMainPanel(context, authService) {
                 // Create the detailed string ONLY from the filtered members
                 const teamMemberDetails = teamMembersForPrompt
                     .map((user, index) => `Team Member ${index + 1}:
+
 Name: ${user.name}
 Skills: ${user.skills}
 Programming Languages: ${user.programmingLanguages}
@@ -689,13 +627,6 @@ Give me a specific message for EACH team member, detailing them what they need t
         }
     });
 }
-
-function ensureWorkspaceOpen() {
-    if (!vscode.workspace.workspaceFolders?.length) {
-        vscode.window.showErrorMessage("Open a folder/workspace first.");
-        return false;
-    }
-    return true;
 function deactivate() {
     // Clean up resources if needed
 }
@@ -713,6 +644,13 @@ async function getLoginHtml(webview, context) {
         ">`)
         .replace(/<script>/, `<script nonce="${nonce}">`);
     return htmlContent;
+}
+function ensureWorkspaceOpen() {
+    if (!vscode.workspace.workspaceFolders?.length) {
+        vscode.window.showErrorMessage("Open a folder/workspace first.");
+        return false;
+    }
+    return true;
 }
 async function getHtml(webview, context) {
     const nonce = getNonce();
