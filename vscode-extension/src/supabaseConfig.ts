@@ -2,6 +2,11 @@
 // This file contains the Supabase client setup for AI task delegation feature
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { config } from 'dotenv';
+import * as path from 'path';
+
+// Load environment variables from .env file
+config({ path: path.join(__dirname, '../../.env') });
 
 // Get configuration from environment variables
 // These should be set in a .env file in the project root

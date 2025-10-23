@@ -230,50 +230,6 @@ const handleUri = vscode.window.registerUriHandler({
           context
         );
 
-        			// Live Share service setup
-			let hostService: vsls.SharedService | null = null;
-			let guestService: vsls.SharedServiceProxy | null = null;
-
-			if (liveShare?.session?.role === vsls.Role.Host) {
-				hostService = await liveShare.shareService("aiCollab.service");
-				if (!hostService) {
-					vscode.window.showWarningMessage(
-						"Could not share Live Share service. Start a Live Share session as Host."
-					);
-				} else {
-					hostService.onRequest("allocate", (args: any[]) => {
-						type AllocateInput = { [key: string]: any }; // Define the type or replace with the correct structure
-						const [payload] = args as [AllocateInput];
-						return mockAllocate(payload);
-					});
-					hostService.onRequest("createTeam", async (args: any[]) => {
-						const [payload] = args as [any];
-						await context.workspaceState.update("aiCollab.team", payload);
-						hostService!.notify("teamUpdated", payload);
-						return { ok: true as const };
-					});
-				}
-			} else if (liveShare?.session?.role === vsls.Role.Guest) {
-				guestService = await liveShare.getSharedService("aiCollab.service");
-				if (!guestService) {
-					vscode.window.showWarningMessage(
-						"Host service not found. Ask the host to open the panel."
-					);
-				} else {
-					guestService.onNotify("teamUpdated", (payload: any) => {
-						panel.webview.postMessage({ type: "teamSaved", payload });
-					});
-				}
-			}
-			async function pushTeamToWebview() {
-				const team = await context.workspaceState.get("aiCollab.team");
-				panel.webview.postMessage({
-					type: "teamLoaded",
-					payload: team ?? null,
-				});
-		
-			await pushTeamToWebview();
-        
         // Handle login messages
         loginPanel.webview.onDidReceiveMessage(async (msg: any) => {
           switch (msg.type) {
@@ -561,7 +517,6 @@ async function openMainPanel(
 							}`
 						);
 					}
-				}
         break;
       }
       
