@@ -8,9 +8,12 @@
     "lib": ["ES2022", "DOM"],
     "types": ["vscode", "node"],
     "esModuleInterop": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "sourceMap": true,
+    "rootDir": "src"
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": ["src/**/*.test.ts"]
 }
 
 // In your tsconfig.json file
