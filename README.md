@@ -44,6 +44,64 @@ This project addresses these needs by introducing an AI-enhanced VS Code extensi
 - OpenAI API for AI-powered task allocation and feedback
 - Supabase for backend data storage and management
 
+
+## How to Run the Project
+
+### Prerequisites
+
+- Node.js (v16 or higher)
+- Visual Studio Code (latest version)
+- Git
+
+### Installation
+
+1. Clone the repository:
+```bash
+git clone https://github.com/Capstone-Projects-2025-Fall/project-002-ai-collaborative-agent.git
+cd project-002-ai-collaborative-agent
+```
+
+2. Install root dependencies:
+```bash
+npm install
+```
+
+3. Install extension dependencies:
+```bash
+cd vscode-extension
+npm install
+```
+
+### Configuration
+
+Create a `.env` file in the project root with the following variables:
+
+```
+SUPABASE_URL=your_supabase_url
+SUPABASE_ANON_KEY=your_supabase_anon_key
+EDGE_FUNCTION_URL=your_edge_function_url
+```
+
+Contact the development team for access to the Supabase instance and credentials.
+
+### Running the Extension
+
+1. Open the `vscode-extension` folder in VS Code
+2. Press `F5` to launch the Extension Development Host
+3. In the new VS Code window, open any workspace
+4. Press `Cmd+Shift+P` (Mac) or `Ctrl+Shift+P` (Windows/Linux)
+5. Type "AI Collab Agent: Open" and press Enter
+
+### Features
+
+- **Team Management**: Add team members with their skills and programming languages
+- **Project Creation**: Create projects with goals, requirements, and assign team members
+- **AI Task Delegation**: Generate AI-powered task assignments based on team composition
+- **Live Share Integration**: Start collaborative coding sessions
+- **Code Analysis**: Automated code review and suggestions
+- **Jira Tasks Creation**: AI issues Jira tasks from user's project description entered using existing Jira credentials
+
+
 ## Collaborators
 
 <div align="center">

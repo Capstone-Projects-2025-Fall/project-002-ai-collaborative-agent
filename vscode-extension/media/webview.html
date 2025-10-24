@@ -1,11 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AI Collab Agent - Team Platform</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -143,15 +140,15 @@
       <form class="form-grid">
         <div class="form-group">
           <label for="userName">Full Name *</label>
-          <input type="text" id="userName" required placeholder="Enter full name" />
+          <input type="text" id="userName" required placeholder="Enter full name">
         </div>
         <div class="form-group">
           <label for="userSkills">Skills *</label>
-          <input type="text" id="userSkills" required placeholder="e.g., Leadership, Design, Analysis" />
+          <input type="text" id="userSkills" required placeholder="e.g., Leadership, Design, Analysis">
         </div>
         <div class="form-group">
           <label for="userLanguages">Programming Languages *</label>
-          <input type="text" id="userLanguages" required placeholder="e.g., Python, JavaScript, TypeScript" />
+          <input type="text" id="userLanguages" required placeholder="e.g., Python, JavaScript, TypeScript">
         </div>
         <div class="form-group">
           <label for="userWilling">Willing to Work On</label>
@@ -164,7 +161,7 @@
         <button id="clear-user-form-btn" class="btn btn-secondary">Clear Form</button>
       </div>
 
-      <div id="userStatus" class="status-message" style="display:none;"></div>
+      <div id="userStatus" class="status-message" style="display: none;"></div>
 
       <div class="section-title">Team Members</div>
       <div id="userList" class="user-list">
@@ -178,7 +175,7 @@
       <form class="form-grid">
         <div class="form-group">
           <label for="projectName">Project Name *</label>
-          <input type="text" id="projectName" required placeholder="Enter project name" />
+          <input type="text" id="projectName" required placeholder="Enter project name">
         </div>
         <div class="form-group">
           <label for="projectDescription">Description *</label>
@@ -205,7 +202,7 @@
         <button id="clear-project-form-btn" class="btn btn-secondary">Clear Form</button>
       </div>
 
-      <div id="projectStatus" class="status-message" style="display:none;"></div>
+      <div id="projectStatus" class="status-message" style="display: none;"></div>
 
       <div class="section-title">Projects</div>
       <div id="projectList" class="project-list">
@@ -217,7 +214,6 @@
     <div id="prompts" class="tab-content">
       <div class="section-title">AI Prompt Generator</div>
 
-      <!-- Existing "Select Project" prompt generator -->
       <div class="form-group">
         <label for="promptProject">Select Project</label>
         <select id="promptProject">
@@ -228,9 +224,9 @@
         <button id="generate-prompt-btn" class="btn btn-primary">Generate AI Prompt</button>
         <button id="copy-prompt-btn" class="btn btn-secondary">Copy Prompt</button>
       </div>
-      <div id="promptStatus" class="status-message" style="display:none;"></div>
+      <div id="promptStatus" class="status-message" style="display: none;"></div>
 
-      <!-- NEW: Freeform → Create Jira -->
+      <!-- NEW: Freeform → Create Jira Tasks -->
       <div class="section-title" style="margin-top:24px;">Create Jira Tasks from Description</div>
       <div class="form-group">
         <label for="freeformDescription">Describe your project</label>
@@ -242,14 +238,18 @@
 
       <div class="section-title" style="margin-top:24px;">Generated Prompt</div>
       <div id="promptOutput" class="prompt-output">
-Select a project above to generate an AI-optimized prompt for team analysis and task allocation.
+        Select a project above to generate an AI-optimized prompt for team analysis and task allocation.
 
-The generated prompt will include:
-• Complete project information
-• Team member skills and preferences
-• Analysis requests for AI models
-• Task assignment recommendations
-• Risk assessment guidelines
+        The generated prompt will include:
+        • Complete project information
+        • Team member skills and preferences
+        • Analysis requests for AI models
+        • Task assignment recommendations
+        • Risk assessment guidelines
+      </div>
+
+      <div class="button-group" style="justify-content: right">
+        <button id="start-project" class="btn btn-primary">Start Project</button>
       </div>
     </div>
   </div>
@@ -271,6 +271,7 @@ The generated prompt will include:
     }
 
     class Project {
+      // Store selected member IDs on the project
       constructor(name, description, goals, requirements, selectedMemberIds = []) {
         this.name = name;
         this.description = description;
@@ -287,25 +288,26 @@ The generated prompt will include:
         this.users = [];
         this.projects = [];
         this.promptCount = 0;
-
         vscode.postMessage({ type: 'loadData' });
       }
 
       loadData(data) {
         if (data.users) {
-          this.users = data.users.map(u => {
-            const user = new TeamMember(u.name, u.skills, u.programmingLanguages, u.willingToWorkOn);
-            user.id = u.id; user.createdAt = u.createdAt; return user;
+          this.users = data.users.map(d => {
+            const u = new TeamMember(d.name, d.skills, d.programmingLanguages, d.willingToWorkOn);
+            u.id = d.id; u.createdAt = d.createdAt;
+            return u;
           });
         }
         if (data.projects) {
           this.projects = data.projects.map(p => {
             const ids = Array.isArray(p.selectedMemberIds) ? p.selectedMemberIds : [];
             const proj = new Project(p.name, p.description, p.goals, p.requirements, ids);
-            proj.id = p.id; proj.createdAt = p.createdAt; return proj;
+            proj.id = p.id; proj.createdAt = p.createdAt;
+            return proj;
           });
         }
-        if (typeof data.promptCount !== 'undefined') {
+        if (data.promptCount !== undefined) {
           this.promptCount = data.promptCount;
         }
         this.updateUI();
@@ -352,9 +354,9 @@ The generated prompt will include:
       }
 
       updateStats() {
-        document.getElementById('userCount').textContent = String(this.users.length);
-        document.getElementById('projectCount').textContent = String(this.projects.length);
-        document.getElementById('promptCount').textContent = String(this.promptCount);
+        document.getElementById('userCount').textContent = this.users.length.toString();
+        document.getElementById('projectCount').textContent = this.projects.length.toString();
+        document.getElementById('promptCount').textContent = this.promptCount.toString();
       }
 
       updateUserList() {
@@ -406,7 +408,7 @@ The generated prompt will include:
         }
         wrap.innerHTML = this.users.map(u => `
           <label>
-            <input type="checkbox" value="${u.id}" />
+            <input type="checkbox" value="${u.id}">
             <span><strong>${u.name}</strong> - ${u.skills}</span>
           </label>
         `).join('');
@@ -443,15 +445,23 @@ The generated prompt will include:
           vscode.postMessage({ type: 'loadData' });
           break;
         case 'dataLoaded':
-          app.loadData(message.payload);
+          app.loadData(message.payload); // re-render
           break;
         case 'promptGeneratedFromExtension':
           document.getElementById('promptOutput').textContent = message.payload.prompt;
-          showStatus('promptStatus', '🤖 AI Prompt generated! See editor for markdown.', 'success');
+          showStatus('promptStatus', ' AI Prompt generated! See editor for markdown.', 'success');
+          break;
+        case 'aiResponseReceived': // kept from main
+          const promptOutput = document.getElementById('promptOutput');
+          if (promptOutput) {
+            promptOutput.textContent = `${message.payload.prompt}\n\n${"=".repeat(80)}\nAI RESPONSE:\n${"=".repeat(80)}\n\n${message.payload.response}`;
+          }
+          showStatus('promptStatus', ' AI analysis complete! Tasks delegated to team members. Check editor for details.', 'success');
           break;
         case 'promptGenerationError':
           showStatus('promptStatus', `Error: ${message.payload.message}`, 'error');
           break;
+        // NEW: Jira integration message cases
         case 'jiraCreated':
           showStatus('promptStatus', message.payload?.message || 'Jira issues created!', 'success');
           break;
@@ -542,29 +552,26 @@ The generated prompt will include:
       const el = document.getElementById('promptOutput');
       const text = el.textContent || '';
       if (!text.trim() || text.includes('Select a project above') || text.includes('Generating AI prompt')) {
-        showStatus('promptStatus', '❌ No prompt to copy. Generate a prompt first.', 'error');
+        showStatus('promptStatus', ' No prompt to copy. Generate a prompt first.', 'error');
         return;
       }
       navigator.clipboard.writeText(text)
-        .then(() => showStatus('promptStatus', '📋 Prompt copied to clipboard!', 'success'))
-        .catch(() => showStatus('promptStatus', '❌ Failed to copy to clipboard', 'error'));
+        .then(() => showStatus('promptStatus', ' Prompt copied to clipboard!', 'success'))
+        .catch(() => showStatus('promptStatus', ' Failed to copy to clipboard', 'error'));
     }
 
-    document.addEventListener('input', (e) => {
-      const t = e.target;
-      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) {
-        if (t.value.trim() !== '') {
-          t.style.borderColor = '#10b981';
-          t.style.boxShadow = '0 0 0 3px rgba(16,185,129,0.1)';
-        } else if (t.hasAttribute('required')) {
-          t.style.borderColor = '#ef4444';
-          t.style.boxShadow = '0 0 0 3px rgba(239,68,68,0.1)';
-        } else {
-          t.style.borderColor = '#e5e7eb';
-          t.style.boxShadow = 'none';
-        }
+    function startProject() {
+      try {
+        const projectId = document.getElementById('promptProject').value;
+        const project = app.projects.find(p => p.id == projectId);
+        if (!projectId) throw new Error('Please select a project to start');
+        vscode.postMessage({ type: 'startProject', payload: { projectId } });
+        vscode.postMessage({ type: 'openFile', payload: { filePath: `projects/${projectId}/README.md` } });
+        showStatus('promptStatus', 'Starting ' + (project ? project.name : 'Unknown Project'), 'success');
+      } catch (error) {
+        showStatus('promptStatus', 'Error: ' + error.message, 'error');
       }
-    });
+    }
 
     // Event wiring
     document.addEventListener('DOMContentLoaded', () => {
@@ -574,6 +581,7 @@ The generated prompt will include:
       document.getElementById('clear-project-form-btn')?.addEventListener('click', clearProjectForm);
       document.getElementById('generate-prompt-btn')?.addEventListener('click', generatePrompt);
       document.getElementById('copy-prompt-btn')?.addEventListener('click', copyPrompt);
+      document.getElementById('start-project')?.addEventListener('click', startProject);
 
       // NEW: freeform → create Jira tasks
       document.getElementById('create-jira-from-text-btn')?.addEventListener('click', () => {
@@ -584,7 +592,7 @@ The generated prompt will include:
         showStatus('promptStatus', 'Creating Jira tasks from your description…', 'success');
       });
 
-      // Tabs
+      // Tabs + delegated click handlers
       document.body.addEventListener('click', (event) => {
         const target = event.target;
         if (target && target.matches('.tab-button')) {

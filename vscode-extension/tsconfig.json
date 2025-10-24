@@ -1,24 +1,21 @@
 {
   "compilerOptions": {
-    // Target a modern enough runtime for VS Code extension host
     "target": "ES2022",
-    // Use CommonJS modules (VS Code extension host expects this)
     "module": "CommonJS",
     "moduleResolution": "node",
-    // Quality-of-life flags
     "strict": true,
-    // Compile from src → out so launch.json can find code
-    "rootDir": "src",//folder where TypeScript source files start
-    "outDir": "out", //folder where compiled JavaScript files will be placed after build
-    "baseUrl": ".",                       // safe default
-    "paths": {                            //  optional but helpful later(helps TypeScript know where to find files)
-      "*": ["src/*", "*"] //first look inside src/, then root folder
-    },
-    "lib": ["ES2022", "DOM"],//include built-in JavaScript features (ES2022) and browser types (DOM)
-    "types": ["vscode", "node"], //tell TypeScript to load type definitions for VS Code and Node.js APIs
-    "esModuleInterop": true, //default import syntax to work for CommonJS modules
-    "skipLibCheck": true //skip type-checking for external libraries in node_modules to speed up build
+    "rootDir": "src",
+    "outDir": "out",
+    "lib": ["ES2022", "DOM"],
+    "types": ["vscode", "node"],
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "sourceMap": true,
+    "baseUrl": ".",
+    "paths": {
+      "*": ["src/*", "*"]
+    }
   },
-  "include": ["src/**/*", "ts/**/*"] //include these folders when compiling (all .ts files under src and ts)
+  "include": ["src/**/*", "ts/**/*"],
+  "exclude": ["src/**/*.test.ts"]
 }
-
