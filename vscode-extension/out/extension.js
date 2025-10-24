@@ -43,11 +43,16 @@ const ai_analyze_1 = require("./ai_analyze");
 const dotenv_1 = require("dotenv");
 const authService_1 = require("./authService");
 const supabaseConfig_1 = require("./supabaseConfig");
+// NEW (Jira): command module import
+const createJiraTasks_1 = require("./commands/createJiraTasks");
+
 // Load environment variables from .env file in project root
 (0, dotenv_1.config)({ path: path.join(__dirname, "../../.env") });
+
 // Global variables for OAuth callback handling
 let authService;
 let extensionContext;
+
 // Helper function to get the full path to our data file
 function getDataFilePath() {
     const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
@@ -57,6 +62,7 @@ function getDataFilePath() {
     // We'll store our data in a hidden file in the root of the workspace
     return path.join(workspaceFolder.uri.fsPath, ".aiCollabData.json");
 }
+
 // Helper function to load all data from the file
 async function loadInitialData() {
     const filePath = getDataFilePath();
@@ -86,6 +92,7 @@ async function loadInitialData() {
     }));
     return data;
 }
+
 // Helper function to save all data to the file
 async function saveInitialData(data) {
     const filePath = getDataFilePath();
@@ -102,14 +109,19 @@ async function saveInitialData(data) {
         vscode.window.showErrorMessage("Failed to save team data to file.");
     }
 }
+
 async function activate(context) {
     (0, ai_analyze_1.activateCodeReviewer)(context);
+
     // Load environment variables from multiple possible locations
     (0, dotenv_1.config)({ path: path.join(__dirname, "..", ".env") });
     (0, dotenv_1.config)({ path: path.join(__dirname, "../../.env") });
+
     vscode.window.showInformationMessage("AI Collab Agent activated");
+
     // Store context globally for callback server
     extensionContext = context;
+
     // Initialize authentication service
     try {
         authService = new authService_1.AuthService();
@@ -119,8 +131,8 @@ async function activate(context) {
         vscode.window.showErrorMessage(`Authentication setup failed: ${error instanceof Error ? error.message : "Unknown error"}`);
         return;
     }
+
     // Register URI handler for custom protocol
-    // In your URI handler, add this additional check:
     const handleUri = vscode.window.registerUriHandler({
         handleUri(uri) {
             console.log("=== OAuth Callback Debug ===");
@@ -140,13 +152,11 @@ async function activate(context) {
                 });
                 if (accessToken) {
                     console.log("Access token received, setting session...");
-                    // Set the session in Supabase
                     authService
                         .setSessionFromTokens(accessToken, refreshToken || undefined)
                         .then(() => {
                         console.log("Session set successfully");
                         vscode.window.showInformationMessage("Authentication successful! Redirecting to main app...");
-                        // Open the main panel after successful authentication
                         setTimeout(() => {
                             openMainPanel(extensionContext, authService);
                         }, 1000);
@@ -167,11 +177,13 @@ async function activate(context) {
         },
     });
     context.subscriptions.push(handleUri);
+
     // ---- Debug/health command
     const hello = vscode.commands.registerCommand("aiCollab.debugHello", () => {
         vscode.window.showInformationMessage("Hello from AI Collab Agent!");
     });
     context.subscriptions.push(hello);
+
     // ---- Debug authentication status
     const debugAuth = vscode.commands.registerCommand("aiCollab.debugAuth", () => {
         const user = authService.getCurrentUser();
@@ -191,8 +203,10 @@ async function activate(context) {
             `Session: ${session ? 'Active' : 'None'}`);
     });
     context.subscriptions.push(debugAuth);
+
     const liveShare = (await vsls.getApi());
     liveShare?.onDidChangeSession((e) => console.log("[AI Collab] Live Share role:", e.session?.role));
+
     // Add status bar button
     const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 1);
     statusBarItem.text = "$(squirrel) AI Collab Agent";
@@ -200,6 +214,7 @@ async function activate(context) {
     statusBarItem.command = "aiCollab.openPanel";
     statusBarItem.show();
     context.subscriptions.push(statusBarItem);
+
     // ---- Main command: opens the webview panel
     const open = vscode.commands.registerCommand("aiCollab.openPanel", async () => {
         // Check if user is authenticated
@@ -238,7 +253,6 @@ async function activate(context) {
                                     message: "Successfully signed in!",
                                 },
                             });
-                            // Close login panel and open main panel
                             loginPanel.dispose();
                             openMainPanel(context, authService);
                         }
@@ -261,7 +275,6 @@ async function activate(context) {
                                     message: "Account created successfully! Please check your email to verify your account.",
                                 },
                             });
-                            // Close login panel and open main panel
                             loginPanel.dispose();
                             openMainPanel(context, authService);
                         }
@@ -275,19 +288,14 @@ async function activate(context) {
                     }
                     case "signInWithGoogle": {
                         try {
-                            console.log("Starting Google OAuth...");
                             const result = await authService.signInWithGoogle();
-                            console.log("Google OAuth result:", result);
                             if (result.error) {
-                                console.error("Google OAuth error:", result.error);
                                 loginPanel.webview.postMessage({
                                     type: "authError",
                                     payload: { message: result.error },
                                 });
                             }
                             else {
-                                console.log("Google OAuth URL opened successfully");
-                                // Show message that browser will open
                                 loginPanel.webview.postMessage({
                                     type: "authSuccess",
                                     payload: {
@@ -298,7 +306,6 @@ async function activate(context) {
                             }
                         }
                         catch (error) {
-                            console.error("Google OAuth exception:", error);
                             loginPanel.webview.postMessage({
                                 type: "authError",
                                 payload: {
@@ -312,19 +319,14 @@ async function activate(context) {
                     }
                     case "signInWithGithub": {
                         try {
-                            console.log("Starting GitHub OAuth...");
                             const result = await authService.signInWithGithub();
-                            console.log("GitHub OAuth result:", result);
                             if (result.error) {
-                                console.error("GitHub OAuth error:", result.error);
                                 loginPanel.webview.postMessage({
                                     type: "authError",
                                     payload: { message: result.error },
                                 });
                             }
                             else {
-                                console.log("GitHub OAuth URL opened successfully");
-                                // Show message that browser will open
                                 loginPanel.webview.postMessage({
                                     type: "authSuccess",
                                     payload: {
@@ -335,7 +337,6 @@ async function activate(context) {
                             }
                         }
                         catch (error) {
-                            console.error("GitHub OAuth exception:", error);
                             loginPanel.webview.postMessage({
                                 type: "authError",
                                 payload: {
@@ -375,7 +376,6 @@ async function activate(context) {
                             message: "Successfully authenticated!",
                         },
                     });
-                    // Close login panel and open main panel
                     loginPanel.dispose();
                     openMainPanel(context, authService);
                 }
@@ -386,7 +386,15 @@ async function activate(context) {
         openMainPanel(context, authService);
     });
     context.subscriptions.push(open);
+
+    // NEW (Jira): palette command to create Jira tasks
+    const createJira = vscode.commands.registerCommand(
+        "ai.createJiraTasks",
+        (...args) => (0, createJiraTasks_1.createJiraTasksCmd)(context, ...(args || []))
+    );
+    context.subscriptions.push(createJira);
 }
+
 // Function to open the main application panel
 async function openMainPanel(context, authService) {
     const panel = vscode.window.createWebviewPanel("aiCollabPanel", "AI Collab Agent - Team Platform", vscode.ViewColumn.Active, {
@@ -401,20 +409,17 @@ async function openMainPanel(context, authService) {
         switch (msg.type) {
             case "openFile": {
                 try {
-                    // Open a folder selection dialog
                     const options = {
                         canSelectFiles: false,
                         canSelectFolders: true,
                         canSelectMany: false,
                         openLabel: "Open Folder",
-                        defaultUri: vscode.Uri.file(require("os").homedir()), // Default to the user's home directory
+                        defaultUri: vscode.Uri.file(require("os").homedir()),
                     };
                     const folderUri = await vscode.window.showOpenDialog(options);
                     if (folderUri && folderUri.length > 0) {
                         const selectedFolder = folderUri[0].fsPath;
-                        // List files in the selected folder
                         const files = await vscode.workspace.fs.readDirectory(vscode.Uri.file(selectedFolder));
-                        // Open the first file in the folder (or prompt the user to select one)
                         const firstFile = files.find(([name, type]) => type === vscode.FileType.File);
                         if (firstFile) {
                             const filePath = path.join(selectedFolder, firstFile[0]);
@@ -422,14 +427,12 @@ async function openMainPanel(context, authService) {
                             await vscode.window.showTextDocument(doc);
                             vscode.window.showInformationMessage(`Opened file: ${filePath}`);
                             try {
-                                /// Start a Live Share session
-                                const liveShare = await vsls.getApi(); // Get the Live Share API
+                                const liveShare = await vsls.getApi();
                                 if (!liveShare) {
                                     vscode.window.showErrorMessage("Live Share extension is not installed or not available.");
                                     return;
                                 }
-                                await liveShare.share(); // May return undefined even if successful
-                                // Check if session is active
+                                await liveShare.share();
                                 if (liveShare.session && liveShare.session.id) {
                                     vscode.window.showInformationMessage("Live Share session started!");
                                     console.log("Live Share session info:", liveShare.session);
@@ -481,14 +484,10 @@ async function openMainPanel(context, authService) {
                     });
                     break;
                 }
-                // --- FIX APPLIED HERE: Robust ID comparison ---
-                const teamMembersForPrompt = currentData.users.filter((user) => 
-                // Convert all IDs to string for reliable comparison
-                projectToPrompt.selectedMemberIds
-                    .map((id) => String(id))
-                    .includes(String(user.id)));
-                // --- END FIX ---
-                // Create the detailed string ONLY from the filtered members
+                const teamMembersForPrompt = currentData.users.filter((user) =>
+                    projectToPrompt.selectedMemberIds
+                        .map((id) => String(id))
+                        .includes(String(user.id)));
                 const teamMemberDetails = teamMembersForPrompt
                     .map((user, index) => `Team Member ${index + 1}:
 
@@ -554,12 +553,10 @@ Please analyze this project and team composition and provide:
    - Suggest milestone structure
 
 Give me a specific message for EACH team member, detailing them what they need to do RIGHT NOW and in the FUTURE. Give each user the exact things they need to work on according also to their skills.`;
-                // Call the Supabase Edge Function to get AI response
                 try {
                     vscode.window.showInformationMessage("Generating AI analysis...");
                     const edgeFunctionUrl = (0, supabaseConfig_1.getEdgeFunctionUrl)();
                     const anonKey = (0, supabaseConfig_1.getSupabaseAnonKey)();
-                    // Send in the format the edge function expects: { project, users }
                     const response = await fetch(edgeFunctionUrl, {
                         method: "POST",
                         headers: {
@@ -576,14 +573,12 @@ Give me a specific message for EACH team member, detailing them what they need t
                     }
                     const aiResult = await response.json();
                     const aiResponse = aiResult.message || aiResult.response || "No response received";
-                    // Save to database
                     const supabase = (0, supabaseConfig_1.getSupabaseClient)();
                     await supabase.from("ai_prompts").insert([{
                             project_id: projectToPrompt.id,
                             prompt_content: promptContent,
                             ai_response: aiResponse,
                         }]);
-                    // Save to file
                     const tempFileName = `AI_Response_${projectToPrompt.name.replace(/[^a-zA-Z0-9]/g, "_")}_${Date.now()}.txt`;
                     const workspaceFolders = vscode.workspace.workspaceFolders;
                     if (workspaceFolders) {
@@ -595,7 +590,6 @@ Give me a specific message for EACH team member, detailing them what they need t
                             preview: false,
                         });
                     }
-                    // Send response back to webview
                     panel.webview.postMessage({
                         type: "aiResponseReceived",
                         payload: {
@@ -614,6 +608,31 @@ Give me a specific message for EACH team member, detailing them what they need t
                 }
                 break;
             }
+
+            // NEW (Jira): webview freeform → create Jira tasks
+            case "createJiraFromDescription": {
+                try {
+                    const description = msg?.payload?.description || "";
+                    if (!description.trim()) {
+                        throw new Error("No description provided.");
+                    }
+                    const result = await (0, createJiraTasks_1.createJiraTasksCmd)(extensionContext, { description });
+                    panel.webview.postMessage({
+                        type: "jiraCreated",
+                        payload: {
+                            message: result?.message || "Jira issues created!",
+                            issues: result?.issues || []
+                        }
+                    });
+                } catch (err) {
+                    panel.webview.postMessage({
+                        type: "jiraError",
+                        payload: { message: err instanceof Error ? err.message : "Failed to create Jira issues." }
+                    });
+                }
+                break;
+            }
+
             case "showError": {
                 vscode.window.showErrorMessage(msg.payload.message);
                 break;
@@ -627,9 +646,11 @@ Give me a specific message for EACH team member, detailing them what they need t
         }
     });
 }
+
 function deactivate() {
     // Clean up resources if needed
 }
+
 async function getLoginHtml(webview, context) {
     const nonce = getNonce();
     const htmlPath = path.join(context.extensionPath, "media", "login.html");
@@ -645,6 +666,7 @@ async function getLoginHtml(webview, context) {
         .replace(/<script>/, `<script nonce="${nonce}">`);
     return htmlContent;
 }
+
 function ensureWorkspaceOpen() {
     if (!vscode.workspace.workspaceFolders?.length) {
         vscode.window.showErrorMessage("Open a folder/workspace first.");
@@ -652,6 +674,7 @@ function ensureWorkspaceOpen() {
     }
     return true;
 }
+
 async function getHtml(webview, context) {
     const nonce = getNonce();
     const htmlPath = path.join(context.extensionPath, "media", "webview.html");
@@ -667,6 +690,7 @@ async function getHtml(webview, context) {
         .replace(/<script>/, `<script nonce="${nonce}">`);
     return htmlContent;
 }
+
 function getNonce() {
     let text = "";
     const possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -675,6 +699,7 @@ function getNonce() {
     }
     return text;
 }
+
 function mockAllocate(payload) {
     throw new Error("Function not implemented.");
 }

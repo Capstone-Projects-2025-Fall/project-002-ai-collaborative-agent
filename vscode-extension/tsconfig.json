@@ -4,42 +4,18 @@
     "module": "CommonJS",
     "moduleResolution": "node",
     "strict": true,
+    "rootDir": "src",
     "outDir": "out",
     "lib": ["ES2022", "DOM"],
     "types": ["vscode", "node"],
     "esModuleInterop": true,
     "skipLibCheck": true,
     "sourceMap": true,
-    "rootDir": "src"
+    "baseUrl": ".",
+    "paths": {
+      "*": ["src/*", "*"]
+    }
   },
-  "include": ["src"],
+  "include": ["src/**/*", "ts/**/*"],
   "exclude": ["src/**/*.test.ts"]
 }
-
-// In your tsconfig.json file
-
-// {
-//   "compilerOptions": {
-//     "module": "commonjs",
-//     "target": "es2020", // <-- CHANGE THIS LINE
-//     "outDir": "out",
-//     "lib": ["es2020"],
-//     "sourceMap": true,
-//     "strict": true,
-//     "rootDir": "src"
-//   }
-// }
-
-// {
-//   "compilerOptions": {
-//     "module": "commonjs",
-//     "target": "es2020",
-//     "outDir": "out",
-//     "lib": ["es2020"],
-//     "sourceMap": true,
-//     "strict": true,
-//     "rootDir": "src"
-//     // Other options might be here
-//   }
-//   // "include" or "exclude" might be here
-// }

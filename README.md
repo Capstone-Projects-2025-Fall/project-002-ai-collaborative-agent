@@ -44,6 +44,7 @@ This project addresses these needs by introducing an AI-enhanced VS Code extensi
 - OpenAI API for AI-powered task allocation and feedback
 - Supabase for backend data storage and management
 
+
 ## How to Run the Project
 
 ### Prerequisites
@@ -98,6 +99,8 @@ Contact the development team for access to the Supabase instance and credentials
 - **AI Task Delegation**: Generate AI-powered task assignments based on team composition
 - **Live Share Integration**: Start collaborative coding sessions
 - **Code Analysis**: Automated code review and suggestions
+- **Jira Tasks Creation**: AI issues Jira tasks from user's project description entered using existing Jira credentials
+
 
 ## Collaborators
 
