@@ -1,0 +1,6 @@
+.vscode/settings.json
+
+# === Secrets (do not commit) ===
+.env
+.env.*
+.vscode/settings.json

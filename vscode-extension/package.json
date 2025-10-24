@@ -1,17 +1,17 @@
 {
   "name": "ai-collab-agent",
   "displayName": "AI Collab Agent",
-  "description": "Minimal starter: opens a webview to kick off team setup and task allocation.",
+  "description": "Opens a webview to kick off team setup and task allocation.",
   "publisher": "your-publisher-id",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.70.0"
   },
-  "categories": [
-    "Other"
-  ],
+  "categories": ["Other"],
   "activationEvents": [
-    "onCommand:aiCollab.openPanel"
+    "onCommand:aiCollab.openPanel",
+    "onCommand:aiCollab.debugHello",
+    "onCommand:ai.createJiraTasks"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -23,6 +23,10 @@
       {
         "command": "aiCollab.debugHello",
         "title": "AI Collab Agent: Hello (debug)"
+      },
+      {
+        "command": "ai.createJiraTasks",
+        "title": "AI: Create Jira Tasks"
       }
     ],
     "configuration": {
@@ -32,6 +36,42 @@
           "type": "string",
           "default": "http://localhost:4000",
           "description": "Base URL of your Agent API (future use)."
+        },
+        "aiTasks.apiEndpoint": {
+          "type": "string",
+          "default": "http://127.0.0.1:8000/",
+          "description": "HTTP endpoint of the local AI backlog generator (POST /)."
+        },
+        "ai.openaiApiKey": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "OpenAI API key used as a fallback when the local AI endpoint is unreachable."
+        },
+        "ai.openaiProject": {
+          "type": "string",
+          "default": "gpt-5", 
+          "markdownDescription": "OpenAI project (optional). If set, requests are scoped to this project."
+        },
+        "ai.openaiModel": {
+          "type": "string",
+          "default": "gpt-5",
+          "markdownDescription": "OpenAI model to use for fallback (e.g., `gpt-5` if your project has access)."  
+        },
+        "jira.baseUrl": {
+          "type": "string",
+          "description": "Your Jira Cloud base URL (e.g., https://your-domain.atlassian.net)."
+        },
+        "jira.projectKey": {
+          "type": "string",
+          "description": "Jira project key to create issues in (e.g., PROJ)."
+        },
+        "jira.email": {
+          "type": "string",
+          "description": "Jira account email (paired with API token)."
+        },
+        "jira.apiToken": {
+          "type": "string",
+          "description": "Jira API token. On first use this is copied into VS Code Secret Storage."
         }
       }
     }
@@ -40,6 +80,10 @@
     "compile": "tsc -p .",
     "watch": "tsc -w",
     "package": "vsce package"
+  },
+  "dependencies": {
+    "@types/node-fetch": "^2.6.13",
+    "node-fetch": "^2.7.0"
   },
   "devDependencies": {
     "@types/node": "^22.18.6",
