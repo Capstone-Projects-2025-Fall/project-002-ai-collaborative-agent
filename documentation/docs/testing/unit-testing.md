@@ -12,7 +12,7 @@ _Describe:_ Normal print statements explaining what is happening
 
 _Expect:_ The actual test where it makes sure everything is working properly
 
-## Execution of Tests:.
+## Execution of Tests:
 
 _loadInitialData()_: Loads data from .aiCollabData.json and returns structured info
 	
@@ -21,62 +21,13 @@ _loadInitialData()_: Loads data from .aiCollabData.json and returns structured i
 _saveInitialData(data)_ : Saves Json to .aiCollabData.json
 	
   Dependencies: fs.promises.writeFile
+              
+## Running the Tests:
 
-## Integration tests:
-Tests to demonstrate each use-case based on the use-case descriptions and the sequence diagrams. External input should be provided via mock objects and results verified via mock objects. Integration tests should not require manual entry of data nor require manual interpretation of results.
-
-_Tests for empty object as a default:_
-
-
-        
-expect(result).toEqual({
-        users: [],
-        projects: [],
-        promptCount: 0
-      });
-                
-        
-
-
-## Acceptance test:
-Demonstration of all of the functional and non-functional requirements. This can be a combination of automated tests derived from the use-cases (user stories) and manual tests with recorded observation of the results.
-
-_Tests Mock Data_
-
-const mockData = {
-        users: [{ id: 1, name: "Alex" }],
-        projects: [{ id: 101, name: "Test Project" }],
-        promptCount: 5,
-      };
-
-
-_Tests to check if the result is what we expect_
-
-expect(result.users).toHaveLength(1);
-
-expect(result.projects).toHaveLength(1);
-
-expect(result.promptCount).toBe(5);
-
-
-_Tests Failed Mock Data_
-
-const mockData = { 
-        users: [{ id: 1, name: "John", name: “Alex” }],
-        projects: [{ id: 111, name: "Project Test" }],
-        promptCount: 10,
-      };
-
-
-_Tests to check if the result is what we expect_
-
-expect(result.users).toHaveLength(1);
-
-expect(result.projects).toHaveLength(1);
-
-expect(result.promptCount).toBe(5);
-
-
+```
+npm i -D @vitest/coverage-v8
+npx vitest run --coverage
+```
 ## QA Testing Table
 
 ID  | Requirement | Test Steps | Expected Result 
