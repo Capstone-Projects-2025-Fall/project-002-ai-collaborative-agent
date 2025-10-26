@@ -38,9 +38,12 @@ exports.deactivate = deactivate;
 const vscode = __importStar(require("vscode"));
 const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
+const vsls = __importStar(require("vsls/vscode"));
+const ai_analyze_1 = require("./ai_analyze");
 const dotenv_1 = require("dotenv");
 const authService_1 = require("./authService");
 const databaseService_1 = require("./databaseService");
+const supabaseConfig_1 = require("./supabaseConfig");
 // Load environment variables from .env file in project root
 (0, dotenv_1.config)({ path: path.join(__dirname, "../../.env") });
 // Global variables for OAuth callback handling
@@ -132,7 +135,8 @@ async function saveInitialData(data) {
         vscode.window.showErrorMessage("Failed to save data to database.");
     }
 }
-function activate(context) {
+async function activate(context) {
+    (0, ai_analyze_1.activateCodeReviewer)(context);
     // Load environment variables from multiple possible locations
     (0, dotenv_1.config)({ path: path.join(__dirname, "..", ".env") });
     (0, dotenv_1.config)({ path: path.join(__dirname, "../../.env") });
@@ -234,6 +238,15 @@ function activate(context) {
             `Session: ${session ? 'Active' : 'None'}`);
     });
     context.subscriptions.push(debugAuth);
+    const liveShare = (await vsls.getApi());
+    liveShare?.onDidChangeSession((e) => console.log("[AI Collab] Live Share role:", e.session?.role));
+    // Add status bar button
+    const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 1);
+    statusBarItem.text = "$(squirrel) AI Collab Agent";
+    statusBarItem.tooltip = "Open AI Collab Panel";
+    statusBarItem.command = "aiCollab.openPanel";
+    statusBarItem.show();
+    context.subscriptions.push(statusBarItem);
     // ---- Main command: opens the webview panel
     const open = vscode.commands.registerCommand("aiCollab.openPanel", async () => {
         // Check if user is authenticated
@@ -433,6 +446,63 @@ async function openMainPanel(context, authService) {
     panel.webview.html = await getHtml(panel.webview, context);
     panel.webview.onDidReceiveMessage(async (msg) => {
         switch (msg.type) {
+            case "openFile": {
+                try {
+                    // Open a folder selection dialog
+                    const options = {
+                        canSelectFiles: false,
+                        canSelectFolders: true,
+                        canSelectMany: false,
+                        openLabel: "Open Folder",
+                        defaultUri: vscode.Uri.file(require("os").homedir()), // Default to the user's home directory
+                    };
+                    const folderUri = await vscode.window.showOpenDialog(options);
+                    if (folderUri && folderUri.length > 0) {
+                        const selectedFolder = folderUri[0].fsPath;
+                        // List files in the selected folder
+                        const files = await vscode.workspace.fs.readDirectory(vscode.Uri.file(selectedFolder));
+                        // Open the first file in the folder (or prompt the user to select one)
+                        const firstFile = files.find(([name, type]) => type === vscode.FileType.File);
+                        if (firstFile) {
+                            const filePath = path.join(selectedFolder, firstFile[0]);
+                            const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(filePath));
+                            await vscode.window.showTextDocument(doc);
+                            vscode.window.showInformationMessage(`Opened file: ${filePath}`);
+                            try {
+                                /// Start a Live Share session
+                                const liveShare = await vsls.getApi(); // Get the Live Share API
+                                if (!liveShare) {
+                                    vscode.window.showErrorMessage("Live Share extension is not installed or not available.");
+                                    return;
+                                }
+                                await liveShare.share(); // May return undefined even if successful
+                                // Check if session is active
+                                if (liveShare.session && liveShare.session.id) {
+                                    vscode.window.showInformationMessage("Live Share session started!");
+                                    console.log("Live Share session info:", liveShare.session);
+                                }
+                                else {
+                                    vscode.window.showErrorMessage("Failed to start Live Share session.");
+                                }
+                            }
+                            catch (error) {
+                                console.error("Error starting Live Share session:", error);
+                                vscode.window.showErrorMessage("An error occurred while starting Live Share.");
+                            }
+                        }
+                        else {
+                            vscode.window.showWarningMessage("No files found in the selected folder.");
+                        }
+                    }
+                    else {
+                        vscode.window.showWarningMessage("No folder selected.");
+                    }
+                }
+                catch (error) {
+                    vscode.window.showErrorMessage(`Failed to open file: ${error instanceof Error ? error.message : "Unknown error"}`);
+                }
+                break;
+            }
             case "saveData": {
                 await saveInitialData(msg.payload);
                 vscode.window.showInformationMessage("Team data saved to database!");
@@ -468,6 +538,7 @@ async function openMainPanel(context, authService) {
                 // Create the detailed string ONLY from the filtered members
                 const teamMemberDetails = teamMembersForPrompt
                     .map((user, index) => `Team Member ${index + 1}:
+
 Name: ${user.name}
 Skills: ${user.skills || "Not specified"}
 Programming Languages: ${user.programming_languages || "Not specified"}
@@ -530,27 +601,64 @@ Please analyze this project and team composition and provide:
    - Suggest milestone structure
 
 Give me a specific message for EACH team member, detailing them what they need to do RIGHT NOW and in the FUTURE. Give each user the exact things they need to work on according also to their skills.`;
-                const tempFileName = `AI_Prompt_${projectToPrompt.name.replace(/[^a-zA-Z0-9]/g, "_")}_${Date.now()}.txt`;
-                const workspaceFolders = vscode.workspace.workspaceFolders;
-                if (workspaceFolders) {
-                    const filePath = vscode.Uri.joinPath(workspaceFolders[0].uri, tempFileName);
-                    await fs.writeFile(filePath.fsPath, promptContent, "utf-8");
-                    await vscode.window.showTextDocument(filePath, {
-                        viewColumn: vscode.ViewColumn.Beside,
-                        preview: false,
+                // Call the Supabase Edge Function to get AI response
+                try {
+                    vscode.window.showInformationMessage("Generating AI analysis...");
+                    const edgeFunctionUrl = (0, supabaseConfig_1.getEdgeFunctionUrl)();
+                    const anonKey = (0, supabaseConfig_1.getSupabaseAnonKey)();
+                    // Send in the format the edge function expects: { project, users }
+                    const response = await fetch(edgeFunctionUrl, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "Authorization": `Bearer ${anonKey}`,
+                        },
+                        body: JSON.stringify({
+                            project: projectToPrompt,
+                            users: teamMembersForPrompt
+                        }),
+                    });
+                    if (!response.ok) {
+                        throw new Error(`Edge function error: ${response.statusText}`);
+                    }
+                    const aiResult = await response.json();
+                    const aiResponse = aiResult.message || aiResult.response || "No response received";
+                    // Save to database
+                    const supabase = (0, supabaseConfig_1.getSupabaseClient)();
+                    await supabase.from("ai_prompts").insert([{
+                            project_id: projectToPrompt.id,
+                            prompt_content: promptContent,
+                            ai_response: aiResponse,
+                        }]);
+                    // Save to file
+                    const tempFileName = `AI_Response_${projectToPrompt.name.replace(/[^a-zA-Z0-9]/g, "_")}_${Date.now()}.txt`;
+                    const workspaceFolders = vscode.workspace.workspaceFolders;
+                    if (workspaceFolders) {
+                        const fullContent = `${promptContent}\n\n${"=".repeat(80)}\nAI RESPONSE:\n${"=".repeat(80)}\n\n${aiResponse}`;
+                        const filePath = vscode.Uri.joinPath(workspaceFolders[0].uri, tempFileName);
+                        await fs.writeFile(filePath.fsPath, fullContent, "utf-8");
+                        await vscode.window.showTextDocument(filePath, {
+                            viewColumn: vscode.ViewColumn.Beside,
+                            preview: false,
+                        });
+                    }
+                    // Send response back to webview
+                    panel.webview.postMessage({
+                        type: "aiResponseReceived",
+                        payload: {
+                            prompt: promptContent,
+                            response: aiResponse
+                        },
+                    });
+                    vscode.window.showInformationMessage(`✅ AI analysis complete for project: ${projectToPrompt.name}`);
+                }
+                catch (error) {
+                    vscode.window.showErrorMessage(`Failed to generate AI response: ${error.message}`);
+                    panel.webview.postMessage({
+                        type: "promptGenerationError",
+                        payload: { message: error.message },
                     });
                 }
-                currentData.promptCount++;
-                await saveInitialData(currentData);
-                panel.webview.postMessage({
-                    type: "dataLoaded",
-                    payload: currentData,
-                });
-                panel.webview.postMessage({
-                    type: "promptGeneratedFromExtension",
-                    payload: { prompt: promptContent },
-                });
-                vscode.window.showInformationMessage(`AI Prompt generated for project: ${projectToPrompt.name} and saved to ${tempFileName}`);
                 break;
             }
             case "showError": {
@@ -772,6 +880,13 @@ async function getLoginHtml(webview, context) {
         .replace(/<script>/, `<script nonce="${nonce}">`);
     return htmlContent;
 }
+function ensureWorkspaceOpen() {
+    if (!vscode.workspace.workspaceFolders?.length) {
+        vscode.window.showErrorMessage("Open a folder/workspace first.");
+        return false;
+    }
+    return true;
+}
 async function getHtml(webview, context) {
     const nonce = getNonce();
     const htmlPath = path.join(context.extensionPath, "media", "webview.html");
@@ -795,3 +910,7 @@ function getNonce() {
     }
     return text;
 }
+function mockAllocate(payload) {
+    throw new Error("Function not implemented.");
+}
+//# sourceMappingURL=extension.js.map

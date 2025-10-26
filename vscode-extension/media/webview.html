@@ -502,6 +502,10 @@ The generated prompt will include:
 • Task assignment recommendations
 • Risk assessment guidelines
             </div>
+
+            <div class="button-group" style="justify-content: right">
+                <button id="start-project" class="btn btn-primary">Start Project</button>
+            </div>
         </div>
     </div>
 
@@ -821,6 +825,13 @@ The generated prompt will include:
                      document.getElementById('promptOutput').textContent = message.payload.prompt;
                      showStatus('promptStatus', '🤖 AI Prompt generated! See editor for markdown.', 'success');
                      break;
+                case 'aiResponseReceived': // NEW: Handle AI response with task delegation
+                     const promptOutput = document.getElementById('promptOutput');
+                     if (promptOutput) {
+                         promptOutput.textContent = `${message.payload.prompt}\n\n${"=".repeat(80)}\nAI RESPONSE:\n${"=".repeat(80)}\n\n${message.payload.response}`;
+                     }
+                     showStatus('promptStatus', '✅ AI analysis complete! Tasks delegated to team members. Check editor for details.', 'success');
+                     break;
                 case 'promptGenerationError': // NEW: Handle errors from extension
                     showStatus('promptStatus', `Error: ${message.payload.message}`, 'error');
                     break;
@@ -976,6 +987,27 @@ The generated prompt will include:
             });
         }
 
+       function startProject() {
+            try {
+                const projectId = document.getElementById('promptProject').value;
+                const project = app.projects.find(p => p.id == projectId);
+
+                if (!projectId) {
+                    throw new Error('Please select a project to start');
+                }
+
+                // Notify the extension to start the project
+                vscode.postMessage({ type: 'startProject', payload: { projectId } });
+
+                // Notify the extension to open a new file (e.g., a welcome file or project-specific file)
+                vscode.postMessage({ type: 'openFile', payload: { filePath: `projects/${projectId}/README.md` } });
+
+                showStatus('promptStatus', 'Starting ' + (project ? project.name : 'Unknown Project'), 'success');
+            } catch (error) {
+                showStatus('promptStatus', 'Error: ' + error.message, 'error');
+            }
+        }
+
         // Add form validation animations
         document.addEventListener('input', (e) => {
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
@@ -1001,6 +1033,7 @@ The generated prompt will include:
             document.getElementById('join-project-btn')?.addEventListener('click', joinProject);
             document.getElementById('generate-prompt-btn')?.addEventListener('click', generatePrompt);
             document.getElementById('copy-prompt-btn')?.addEventListener('click', copyPrompt);
+            document.getElementById('start-project')?.addEventListener('click', startProject);
 
             document.body.addEventListener('click', (event) => {
                 const target = event.target;
