@@ -490,18 +490,7 @@
             </div>
             
             <div id="promptStatus" class="status-message" style="display: none;"></div>
-
-            <!-- ⭐ NEW: Freeform → Create Jira Tasks -->
-            <div class="section-title" style="margin-top:24px;">Create Jira Tasks from Description</div>
-            <div class="form-group">
-                <label for="freeformDescription">Describe your project</label>
-                <textarea id="freeformDescription" placeholder="Type your project idea..."></textarea>
-            </div>
-            <div class="button-group">
-                <button id="create-jira-from-text-btn" class="btn btn-primary">Create Jira Tasks</button>
-            </div>
-            <!-- end Jira block -->
-
+            
             <div class="section-title">Generated Prompt</div>
             <div id="promptOutput" class="prompt-output">
 Select a project above to generate an AI-optimized prompt for team analysis and task allocation.
@@ -832,26 +821,19 @@ The generated prompt will include:
                 case 'profileUpdateError':
                     showStatus('userStatus', `❌ Error: ${message.payload.message}`, 'error');
                     break;
-                case 'promptGeneratedFromExtension': // Listen for generated prompt from extension
+                case 'promptGeneratedFromExtension': // NEW: Listen for generated prompt from extension
                      document.getElementById('promptOutput').textContent = message.payload.prompt;
                      showStatus('promptStatus', '🤖 AI Prompt generated! See editor for markdown.', 'success');
                      break;
-                case 'aiResponseReceived': // Handle AI response with task delegation
+                case 'aiResponseReceived': // NEW: Handle AI response with task delegation
                      const promptOutput = document.getElementById('promptOutput');
                      if (promptOutput) {
                          promptOutput.textContent = `${message.payload.prompt}\n\n${"=".repeat(80)}\nAI RESPONSE:\n${"=".repeat(80)}\n\n${message.payload.response}`;
                      }
                      showStatus('promptStatus', '✅ AI analysis complete! Tasks delegated to team members. Check editor for details.', 'success');
                      break;
-                case 'promptGenerationError': // Handle errors from extension
+                case 'promptGenerationError': // NEW: Handle errors from extension
                     showStatus('promptStatus', `Error: ${message.payload.message}`, 'error');
-                    break;
-                // ⭐ NEW: Jira results from extension
-                case 'jiraCreated':
-                    showStatus('promptStatus', message.payload?.message || 'Jira issues created!', 'success');
-                    break;
-                case 'jiraError':
-                    showStatus('promptStatus', message.payload?.message || 'Failed to create Jira issues.', 'error');
                     break;
             }
         });
@@ -973,7 +955,7 @@ The generated prompt will include:
                 document.getElementById('inviteCode').value = '';
                 showStatus('joinStatus', '🔗 Joining project...', 'info');
             } catch (error) {
-                showStatus('joinStatus', 'Error: ' + error.message', 'error');
+                showStatus('joinStatus', 'Error: ' + error.message, 'error');
             }
         }
 
@@ -1005,7 +987,7 @@ The generated prompt will include:
             });
         }
 
-        function startProject() {
+       function startProject() {
             try {
                 const projectId = document.getElementById('promptProject').value;
                 const project = app.projects.find(p => p.id == projectId);
@@ -1052,21 +1034,6 @@ The generated prompt will include:
             document.getElementById('generate-prompt-btn')?.addEventListener('click', generatePrompt);
             document.getElementById('copy-prompt-btn')?.addEventListener('click', copyPrompt);
             document.getElementById('start-project')?.addEventListener('click', startProject);
-
-            // ⭐ NEW: hook up Jira "Create Jira Tasks" button
-            document.getElementById('create-jira-from-text-btn')?.addEventListener('click', () => {
-                const textarea = document.getElementById('freeformDescription');
-                const text = textarea ? textarea.value.trim() : '';
-                if (!text) {
-                    showStatus('promptStatus', 'Please enter a description', 'error');
-                    return;
-                }
-                vscode.postMessage({
-                    type: 'createJiraFromDescription',
-                    payload: { description: text }
-                });
-                showStatus('promptStatus', 'Creating Jira tasks from your description…', 'success');
-            });
 
             document.body.addEventListener('click', (event) => {
                 const target = event.target;

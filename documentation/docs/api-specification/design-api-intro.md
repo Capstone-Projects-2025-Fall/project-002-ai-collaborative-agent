@@ -462,8 +462,6 @@ This file contains the HTML, CSS, and JavaScript that renders and manages the us
   * **Parameters & Data Types:** TypeScript-like annotations (`: string`, `: number`, `: any[]`, `: Promise<void>`) are used to indicate data types.
   * **Documentation Generation:** Tools like JSDoc (for JavaScript/TypeScript) can parse comments structured like the ones described here (e.g., using `@param`, `@returns`, `@throws`) to automatically generate HTML documentation. This document serves as the *content* that would typically go into those comments.
 
-
-
 -----
 
 ### Module: `ai-analyze-code.ts` (AI Code Analyzer)
@@ -473,4 +471,3 @@ This file implements the "AI Analyze Code" feature of the VS Code extension. It 
 #### Class: `AnalyzeCodeLensProvider`
 
   * **Purpose:** Provides and manages dynamic entries (inline buttons) in the editor when the user highlights a block of code eligible for AI analysis.
-
