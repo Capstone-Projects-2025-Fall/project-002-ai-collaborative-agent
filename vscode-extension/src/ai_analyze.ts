@@ -6,6 +6,8 @@ let extensionContext: vscode.ExtensionContext;
 let autoAnalyzeTimer: NodeJS.Timeout | undefined;
 let isAutoAnalyzeEnabled = true;
 
+const SUPABASE_EDGE_FUNCTION_URL="https://ptthofpfrmhhmvmbzgxx.supabase.co/functions/v1/ai-analyze";
+const SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB0dGhvZnBmcm1oaG12bWJ6Z3h4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxMjIzMTUsImV4cCI6MjA3MzY5ODMxNX0.vmIQd2JlfigERJTG5tkFGpoRgqBOj0FudEvGDzNd5Ko"
 export function activateCodeReviewer(context: vscode.ExtensionContext) {
     try {
         console.log('AI Code Reviewer extension is now active!');
@@ -28,9 +30,9 @@ export function activateCodeReviewer(context: vscode.ExtensionContext) {
             showResultsPanel();
         });
 
-        // Opens setup dialog
+        // Opens setup dialog (kept for potential future configuration needs)
         const configureCommand = vscode.commands.registerCommand('ai-code-reviewer.configure', async () => {
-            await configureApiEndpoint();
+            vscode.window.showInformationMessage('API credentials are pre-configured. No setup needed!');
         });
 
         // Toggle auto-analyze on/off
@@ -105,14 +107,13 @@ async function analyzeCurrentFile() {
         return;
     }
 
-    const config = vscode.workspace.getConfiguration('aiCodeReviewer');
-    const apiEndpoint = config.get<string>('apiEndpoint');
-    
-    // Get API key from secure storage
-    const apiKey = await extensionContext.secrets.get('supabaseApiKey');
+    // Use hardcoded credentials
+    const apiEndpoint = SUPABASE_EDGE_FUNCTION_URL;
+    const apiKey = SUPABASE_ANON_KEY;
 
     if (!apiEndpoint || !apiKey) {
-        console.log('API not configured, skipping auto-analyze');
+        console.log('API credentials not configured in code');
+        vscode.window.showErrorMessage('API credentials missing. Please check extension configuration.');
         return;
     }
 
@@ -444,76 +445,16 @@ function formatAnalysisResult(result: string): string {
         .replace(/\n/g, '<br>');
 }
 
-async function configureApiEndpoint() {
-    const config = vscode.workspace.getConfiguration('aiCodeReviewer');
-    const currentEndpoint = config.get<string>('apiEndpoint', '');
-
-    const newEndpoint = await vscode.window.showInputBox({
-        prompt: 'Enter your Supabase function URL',
-        placeHolder: 'Get this from your Supabase dashboard > Settings > API',
-        value: currentEndpoint,
-        validateInput: (value) => {
-            if (!value.trim()) {
-                return 'URL cannot be empty';
-            }
-            if (!value.startsWith('https://')) {
-                return 'URL must start with https://';
-            }
-            return null;
-        }
-    });
-
-    if (newEndpoint) {
-        await config.update('apiEndpoint', newEndpoint, vscode.ConfigurationTarget.Global);
-        
-        // API key will be stored in VS code's secure storage
-        const newApiKey = await vscode.window.showInputBox({
-            prompt: 'Enter your Supabase API key (anon or service_role)',
-            placeHolder: 'Get this from your Supabase dashboard > Settings > API',
-            password: true,
-            validateInput: (value) => {
-                if (!value.trim()) {
-                    return 'API key cannot be empty';
-                }
-                return null;
-            }
-        });
-
-        if (newApiKey) {
-            await extensionContext.secrets.store('supabaseApiKey', newApiKey);
-            vscode.window.showInformationMessage('API endpoint and key configured successfully!');
-            
-            // Start auto-analyze after configuration
-            if (isAutoAnalyzeEnabled) {
-                startAutoAnalyze();
-            }
-        } else {
-            vscode.window.showInformationMessage('API endpoint configured (but no API key provided)');
-        }
-        
-        updateStatusBar();
-    }
-}
-
 async function updateStatusBar() {
-    const config = vscode.workspace.getConfiguration('aiCodeReviewer');
-    const apiEndpoint = config.get<string>('apiEndpoint');
-    const apiKey = await extensionContext.secrets.get('supabaseApiKey');
-    
-    if (apiEndpoint && apiKey) {
-        if (isAutoAnalyzeEnabled) {
-            statusBarItem.text = '$(sync~spin) AI Reviewer (Auto)';
-            statusBarItem.tooltip = 'AI Code Reviewer - Auto-analyzing every 5 minutes\nClick to configure';
-        } else {
-            statusBarItem.text = '$(circle-slash) AI Reviewer (Off)';
-            statusBarItem.tooltip = 'AI Code Reviewer - Auto-analyze disabled\nClick to configure';
-        }
-        statusBarItem.backgroundColor = undefined;
+    // Always show as configured since credentials are hardcoded
+    if (isAutoAnalyzeEnabled) {
+        statusBarItem.text = '$(sync~spin) AI Reviewer (Auto)';
+        statusBarItem.tooltip = 'AI Code Reviewer - Auto-analyzing every 5 minutes\nClick for info';
     } else {
-        statusBarItem.text = '$(warning) Setup Required';
-        statusBarItem.tooltip = 'Click to configure AI Code Reviewer';
-        statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
+        statusBarItem.text = '$(circle-slash) AI Reviewer (Off)';
+        statusBarItem.tooltip = 'AI Code Reviewer - Auto-analyze disabled\nClick for info';
     }
+    statusBarItem.backgroundColor = undefined;
     statusBarItem.show();
 }
 
