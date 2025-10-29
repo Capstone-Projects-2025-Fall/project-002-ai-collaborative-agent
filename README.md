@@ -73,15 +73,7 @@ npm install
 
 ### Configuration
 
-Create a `.env` file in the project root with the following variables:
-
-```
-SUPABASE_URL=your_supabase_url
-SUPABASE_ANON_KEY=your_supabase_anon_key
-EDGE_FUNCTION_URL=your_edge_function_url
-```
-
-Contact the development team for access to the Supabase instance and credentials.
+No configuration is required for local development. Supabase settings are embedded in the extension code, so a `.env` file is not needed.
 
 ### Running the Extension
 
@@ -90,6 +82,16 @@ Contact the development team for access to the Supabase instance and credentials
 3. In the new VS Code window, open any workspace
 4. Press `Cmd+Shift+P` (Mac) or `Ctrl+Shift+P` (Windows/Linux)
 5. Type "AI Collab Agent: Open" and press Enter
+   - If prompted to log in, follow the on-screen flow. No environment variables are required.
+
+#### Join a Project via Invite Code
+
+If you want to join an existing project from the UI using an invite code:
+
+1. Open the extension panel (see steps above)
+2. In the app UI, choose the option to join a project
+3. Enter the invite code: `748FDF`
+4. Confirm to join the project
 
 ### Features
 

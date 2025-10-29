@@ -34,24 +34,17 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AuthService = void 0;
-const supabase_js_1 = require("@supabase/supabase-js");
 const http = __importStar(require("http"));
 const url = __importStar(require("url"));
+const supabaseConfig_1 = require("./supabaseConfig");
 class AuthService {
     supabase;
-    supabaseUrl;
     currentUser = null;
     currentSession = null;
     localServer = null;
     constructor() {
-        // Get Supabase configuration from environment variables
-        const supabaseUrl = process.env.SUPABASE_URL;
-        const supabaseKey = process.env.SUPABASE_ANON_KEY;
-        if (!supabaseUrl || !supabaseKey) {
-            throw new Error("Supabase configuration missing. Please set SUPABASE_URL and SUPABASE_ANON_KEY in your .env file.");
-        }
-        this.supabaseUrl = supabaseUrl;
-        this.supabase = (0, supabase_js_1.createClient)(supabaseUrl, supabaseKey);
+        // Use shared Supabase client configured in supabaseConfig
+        this.supabase = (0, supabaseConfig_1.getSupabaseClient)();
     }
     async initialize() {
         try {
