@@ -1,5 +1,5 @@
 "use strict";
-// src/extension.ts — VS Code entry (registers commands)
+// VS Code entry (registers commands)
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     var desc = Object.getOwnPropertyDescriptor(m, k);
@@ -36,16 +36,19 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.activate = activate;
 exports.deactivate = deactivate;
-const vscode = __importStar(require("vscode"));
-const createJiraTasks_1 = require("./commands/createJiraTasks"); // ← was ./commands/createJiraTasks.ts
+const vscode = __importStar(require("vscode")); //imports VS Code API so we can access commands, windows, settings, etc...
+const createJiraTasks_1 = require("./commands/createJiraTasks"); // imports main command function that generates Jira tasks using AI
 function activate(context) {
     // Primary command: “AI: Create Jira Tasks”
-    const createJira = vscode.commands.registerCommand("ai.createJiraTasks", () => (0, createJiraTasks_1.createJiraTasksCmd)(context) // run the end-to-end flow
+    const createJira = vscode.commands.registerCommand(//register the main command: appears as “AI: Create Jira Tasks” in VS Code’s Command Palette (f5)
+    "ai.createJiraTasks", //// command ID (must match package.json)
+    () => (0, createJiraTasks_1.createJiraTasksCmd)(context) // calls main function
     );
-    // Optional helper
-    const hello = vscode.commands.registerCommand("aiCollab.debugHello", () => vscode.window.showInformationMessage("AI Collab Agent is active!"));
-    context.subscriptions.push(createJira, hello);
+    // Optional helper/test command to confirm the extension is active (helpful for debuging )
+    const hello = vscode.commands.registerCommand("aiCollab.debugHello", // command ID (must match package.json)
+    () => vscode.window.showInformationMessage("AI Collab Agent is active!") //confirms extension is work 
+    );
+    context.subscriptions.push(createJira, hello); //Add both commands to the extension’s subscriptions
 }
 function deactivate() {
-    // no-op
 }
