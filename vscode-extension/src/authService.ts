@@ -1,12 +1,8 @@
-import {
-  createClient,
-  SupabaseClient,
-  User,
-  Session,
-} from "@supabase/supabase-js";
+import { SupabaseClient, User, Session } from "@supabase/supabase-js";
 import * as vscode from "vscode";
 import * as http from "http";
 import * as url from "url";
+import { getSupabaseClient } from "./supabaseConfig";
 
 export interface AuthUser {
   id: string;
@@ -17,24 +13,13 @@ export interface AuthUser {
 
 export class AuthService {
   private supabase: SupabaseClient;
-  private supabaseUrl: string;
   private currentUser: AuthUser | null = null;
   private currentSession: Session | null = null;
   private localServer: http.Server | null = null;
 
   constructor() {
-    // Get Supabase configuration from environment variables
-    const supabaseUrl = process.env.SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_ANON_KEY;
-
-    if (!supabaseUrl || !supabaseKey) {
-      throw new Error(
-        "Supabase configuration missing. Please set SUPABASE_URL and SUPABASE_ANON_KEY in your .env file."
-      );
-    }
-
-    this.supabaseUrl = supabaseUrl;
-    this.supabase = createClient(supabaseUrl, supabaseKey);
+    // Use shared Supabase client configured in supabaseConfig
+    this.supabase = getSupabaseClient();
   }
 
   async initialize(): Promise<void> {

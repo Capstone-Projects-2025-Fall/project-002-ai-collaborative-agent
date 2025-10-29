@@ -2,21 +2,15 @@
 // This file contains the Supabase client setup for AI task delegation feature
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { config } from 'dotenv';
-import * as path from 'path';
 
-// Load environment variables from .env file
-config({ path: path.join(__dirname, '../../.env') });
-
-// Get configuration from environment variables
-// These should be set in a .env file in the project root
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
-const EDGE_FUNCTION_URL = process.env.EDGE_FUNCTION_URL;
+// Hardcoded Supabase configuration
+const SUPABASE_URL = 'https://ptthofpfrmhhmvmbzgxx.supabase.co/';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB0dGhvZnBmcm1oaG12bWJ6Z3h4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxMjIzMTUsImV4cCI6MjA3MzY5ODMxNX0.vmIQd2JlfigERJTG5tkFGpoRgqBOj0FudEvGDzNd5Ko';
+const EDGE_FUNCTION_URL = 'https://ptthofpfrmhhmvmbzgxx.supabase.co/functions/v1/super-function';
 
 // Validate configuration
 if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !EDGE_FUNCTION_URL) {
-  console.error('Missing Supabase configuration. Please set SUPABASE_URL, SUPABASE_ANON_KEY, and EDGE_FUNCTION_URL in your .env file');
+  console.error('Missing Supabase configuration.');
 }
 
 // Create and export Supabase client
@@ -24,7 +18,7 @@ let supabase: SupabaseClient | null = null;
 
 export function getSupabaseClient(): SupabaseClient {
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-    throw new Error('Supabase configuration is missing. Please check your .env file.');
+    throw new Error('Supabase configuration is missing.');
   }
   
   if (!supabase) {
@@ -35,16 +29,23 @@ export function getSupabaseClient(): SupabaseClient {
 
 export function getEdgeFunctionUrl(): string {
   if (!EDGE_FUNCTION_URL) {
-    throw new Error('EDGE_FUNCTION_URL is not configured. Please check your .env file.');
+    throw new Error('EDGE_FUNCTION_URL is not configured.');
   }
   return EDGE_FUNCTION_URL;
 }
 
 export function getSupabaseAnonKey(): string {
   if (!SUPABASE_ANON_KEY) {
-    throw new Error('SUPABASE_ANON_KEY is not configured. Please check your .env file.');
+    throw new Error('SUPABASE_ANON_KEY is not configured.');
   }
   return SUPABASE_ANON_KEY;
+}
+
+export function getSupabaseUrl(): string {
+  if (!SUPABASE_URL) {
+    throw new Error('SUPABASE_URL is not configured.');
+  }
+  return SUPABASE_URL;
 }
 
 // Database Types

@@ -3,13 +3,11 @@ import * as fs from "fs/promises";
 import * as path from "path";
 import * as vsls from "vsls/vscode";
 import { activateCodeReviewer } from "./ai_analyze";
-import { config } from "dotenv";
 import { AuthService, AuthUser } from "./authService";
 import { DatabaseService, Profile, Project, ProjectMember, AIPrompt } from "./databaseService";
-import { getSupabaseClient, getEdgeFunctionUrl, getSupabaseAnonKey } from "./supabaseConfig";
+import { getSupabaseClient, getEdgeFunctionUrl, getSupabaseAnonKey, getSupabaseUrl } from "./supabaseConfig";
 
-// Load environment variables from .env file in project root
-config({ path: path.join(__dirname, "../../.env") });
+// No .env loading needed; using hardcoded config in supabaseConfig
 
 // Global variables for OAuth callback handling
 let authService: AuthService;
@@ -125,9 +123,7 @@ async function saveInitialData(data: any): Promise<void> {
 
 export async function activate(context: vscode.ExtensionContext) {
   activateCodeReviewer(context);
-  // Load environment variables from multiple possible locations
-  config({ path: path.join(__dirname, "..", ".env") });
-  config({ path: path.join(__dirname, "../../.env") });
+  // Environment variables are not required; configuration is hardcoded
 
   vscode.window.showInformationMessage("AI Collab Agent activated");
 
@@ -149,16 +145,8 @@ export async function activate(context: vscode.ExtensionContext) {
 
   // Initialize database service
   try {
-    const supabaseUrl = process.env.SUPABASE_URL;
-    const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
-    
-    if (!supabaseUrl || !supabaseAnonKey) {
-      vscode.window.showErrorMessage(
-        "Supabase configuration missing. Please check your .env file."
-      );
-      return;
-    }
-    
+    const supabaseUrl = getSupabaseUrl();
+    const supabaseAnonKey = getSupabaseAnonKey();
     databaseService = new DatabaseService(supabaseUrl, supabaseAnonKey);
   } catch (error) {
     vscode.window.showErrorMessage(
