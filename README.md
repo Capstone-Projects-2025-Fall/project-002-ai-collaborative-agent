@@ -1,6 +1,6 @@
 <div align="center">
 
-# Project Name
+# AI Collab Agent
 
 [![Report Issue on Jira](https://img.shields.io/badge/Report%20Issues-Jira-0052CC?style=flat&logo=jira-software)](https://temple-cis-projects-in-cs.atlassian.net/jira/software/c/projects/DT/issues)
 [![Deploy Docs](https://github.com/ApplebaumIan/tu-cis-4398-docs-template/actions/workflows/deploy.yml/badge.svg)](https://github.com/ApplebaumIan/tu-cis-4398-docs-template/actions/workflows/deploy.yml)
@@ -43,6 +43,63 @@ This project addresses these needs by introducing an AI-enhanced VS Code extensi
 - Visual Studio Live Share for real-time collaborative coding
 - OpenAI API for AI-powered task allocation and feedback
 - Supabase for backend data storage and management
+
+## How to Run the Project
+
+### Prerequisites
+
+- Node.js (v16 or higher)
+- Visual Studio Code (latest version)
+- Git
+
+### Installation
+
+1. Clone the repository:
+```bash
+git clone https://github.com/Capstone-Projects-2025-Fall/project-002-ai-collaborative-agent.git
+cd project-002-ai-collaborative-agent
+```
+
+2. Install root dependencies:
+```bash
+npm install
+```
+
+3. Install extension dependencies:
+```bash
+cd vscode-extension
+npm install
+```
+
+### Configuration
+
+No configuration is required for local development. Supabase settings are embedded in the extension code, so a `.env` file is not needed.
+
+### Running the Extension
+
+1. Open the `vscode-extension` folder in VS Code
+2. Press `F5` to launch the Extension Development Host
+3. In the new VS Code window, open any workspace
+4. Press `Cmd+Shift+P` (Mac) or `Ctrl+Shift+P` (Windows/Linux)
+5. Type "AI Collab Agent: Open" and press Enter
+   - If prompted to log in, follow the on-screen flow. No environment variables are required.
+
+#### Join a Project via Invite Code
+
+If you want to join an existing project from the UI using an invite code:
+
+1. Open the extension panel (see steps above)
+2. In the app UI, choose the option to join a project
+3. Enter the invite code: `748FDF`
+4. Confirm to join the project
+
+### Features
+
+- **Team Management**: Add team members with their skills and programming languages
+- **Project Creation**: Create projects with goals, requirements, and assign team members
+- **AI Task Delegation**: Generate AI-powered task assignments based on team composition
+- **Live Share Integration**: Start collaborative coding sessions
+- **Code Analysis**: Automated code review and suggestions
 
 ## Collaborators
 
