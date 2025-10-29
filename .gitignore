@@ -1,21 +1,10 @@
-# Generated files
-.docusaurus
-
-# Misc
-.DS_Store
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# === Secrets (do not commit) ===
-.env
-.env.*
-**/.env
-**/.env.*
-.vscode/settings.json
-**/.vscode/settings.json
-
-# build outputs
-vscode-extension/node_modules/
-vscode-extension/out/
+.vscode-devhost/
+node_modules/
+dist/
+build/
+**/GPUCache/
+**/Service Worker/
+**/Cookies
+**/logs/
+**/databases/
+*.db
