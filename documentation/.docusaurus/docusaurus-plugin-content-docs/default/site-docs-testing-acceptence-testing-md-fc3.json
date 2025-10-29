@@ -1,0 +1,24 @@
+{
+  "id": "testing/acceptence-testing",
+  "title": "Acceptance test",
+  "description": "Demonstration of all of the functional and non-functional requirements. This can be a combination of automated tests derived from the use-cases (user stories) and manual tests with recorded observation of the results.",
+  "source": "@site/docs/testing/acceptence-testing.md",
+  "sourceDirName": "testing",
+  "slug": "/testing/acceptence-testing",
+  "permalink": "/project-002-ai-collaborative-agent/docs/testing/acceptence-testing",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/undefined/project-002-ai-collaborative-agent/edit/main/documentation/docs/testing/acceptence-testing.md",
+  "tags": [],
+  "version": "current",
+  "lastUpdatedBy": "Author",
+  "sidebarPosition": 3,
+  "frontMatter": {
+    "sidebar_position": 3
+  },
+  "sidebar": "docsSidebar",
+  "previous": {
+    "title": "Integration tests",
+    "permalink": "/project-002-ai-collaborative-agent/docs/testing/integration-testing"
+  }
+}
