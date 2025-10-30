@@ -1,0 +1,28 @@
+{
+  "id": "requirements/general-requirements",
+  "title": "General Requirements",
+  "description": "* An internet connection",
+  "source": "@site/docs/requirements/general-requirements.md",
+  "sourceDirName": "requirements",
+  "slug": "/requirements/general-requirements",
+  "permalink": "/project-002-ai-collaborative-agent/docs/requirements/general-requirements",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/undefined/project-002-ai-collaborative-agent/edit/main/documentation/docs/requirements/general-requirements.md",
+  "tags": [],
+  "version": "current",
+  "lastUpdatedBy": "Author",
+  "sidebarPosition": 3,
+  "frontMatter": {
+    "sidebar_position": 3
+  },
+  "sidebar": "docsSidebar",
+  "previous": {
+    "title": "System Block Diagram",
+    "permalink": "/project-002-ai-collaborative-agent/docs/requirements/system-block-diagram"
+  },
+  "next": {
+    "title": "Features and Requirements",
+    "permalink": "/project-002-ai-collaborative-agent/docs/requirements/features-and-requirements"
+  }
+}

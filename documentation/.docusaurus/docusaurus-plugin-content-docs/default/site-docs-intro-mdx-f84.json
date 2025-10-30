@@ -1,0 +1,24 @@
+{
+  "id": "intro",
+  "title": "Introduction",
+  "description": "",
+  "source": "@site/docs/intro.mdx",
+  "sourceDirName": ".",
+  "slug": "/intro",
+  "permalink": "/project-002-ai-collaborative-agent/docs/intro",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/undefined/project-002-ai-collaborative-agent/edit/main/documentation/docs/intro.mdx",
+  "tags": [],
+  "version": "current",
+  "lastUpdatedBy": "Author",
+  "sidebarPosition": 1,
+  "frontMatter": {
+    "sidebar_position": 1
+  },
+  "sidebar": "docsSidebar",
+  "next": {
+    "title": "Requirements Specification",
+    "permalink": "/project-002-ai-collaborative-agent/docs/category/requirements-specification"
+  }
+}

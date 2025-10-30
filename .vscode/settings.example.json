@@ -1,0 +1,7 @@
+{
+  "aiTasks.apiEndpoint": "http://127.0.0.1:8000/",
+  "jira.baseUrl": "",
+  "jira.projectKey": "",
+  "jira.email": "",
+  "jira.apiToken": ""
+}

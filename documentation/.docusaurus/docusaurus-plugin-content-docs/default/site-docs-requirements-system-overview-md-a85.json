@@ -1,0 +1,28 @@
+{
+  "id": "requirements/system-overview",
+  "title": "System Overview",
+  "description": "Project Abstract",
+  "source": "@site/docs/requirements/system-overview.md",
+  "sourceDirName": "requirements",
+  "slug": "/requirements/system-overview",
+  "permalink": "/project-002-ai-collaborative-agent/docs/requirements/system-overview",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/undefined/project-002-ai-collaborative-agent/edit/main/documentation/docs/requirements/system-overview.md",
+  "tags": [],
+  "version": "current",
+  "lastUpdatedBy": "Author",
+  "sidebarPosition": 1,
+  "frontMatter": {
+    "sidebar_position": 1
+  },
+  "sidebar": "docsSidebar",
+  "previous": {
+    "title": "Requirements Specification",
+    "permalink": "/project-002-ai-collaborative-agent/docs/category/requirements-specification"
+  },
+  "next": {
+    "title": "System Block Diagram",
+    "permalink": "/project-002-ai-collaborative-agent/docs/requirements/system-block-diagram"
+  }
+}

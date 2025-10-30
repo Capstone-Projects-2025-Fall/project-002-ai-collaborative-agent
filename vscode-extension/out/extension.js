@@ -43,6 +43,7 @@ const ai_analyze_1 = require("./ai_analyze");
 const authService_1 = require("./authService");
 const databaseService_1 = require("./databaseService");
 const supabaseConfig_1 = require("./supabaseConfig");
+const createJiraTasks_1 = require("./commands/createJiraTasks"); // ✅ ADDED: Jira command import
 // No .env loading needed; using hardcoded config in supabaseConfig
 // Global variables for OAuth callback handling
 let authService;
@@ -139,6 +140,9 @@ async function activate(context) {
     vscode.window.showInformationMessage("AI Collab Agent activated");
     // Store context globally for callback server
     extensionContext = context;
+    // ✅ ADDED: register Jira command (does NOT change existing commands)
+    const createJira = vscode.commands.registerCommand("ai.createJiraTasks", () => (0, createJiraTasks_1.createJiraTasksCmd)(context));
+    context.subscriptions.push(createJira);
     // Initialize authentication service
     try {
         authService = new authService_1.AuthService();

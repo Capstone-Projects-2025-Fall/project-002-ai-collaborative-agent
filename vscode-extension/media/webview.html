@@ -490,7 +490,18 @@
             </div>
             
             <div id="promptStatus" class="status-message" style="display: none;"></div>
-            
+
+            <!-- ADDED: Jira creation UI  -->
+            <div class="section-title" style="margin-top:24px;">Create Jira Tasks from Description</div>
+            <div class="form-group">
+                <label for="freeformDescription">Describe your project</label>
+                <textarea id="freeformDescription" placeholder="Type your project idea..."></textarea>
+            </div>
+            <div class="button-group">
+                <button id="create-jira-from-text-btn" class="btn btn-primary">Create Jira Tasks</button>
+            </div>
+            <!-- END ADD -->
+
             <div class="section-title">Generated Prompt</div>
             <div id="promptOutput" class="prompt-output">
 Select a project above to generate an AI-optimized prompt for team analysis and task allocation.
@@ -835,6 +846,15 @@ The generated prompt will include:
                 case 'promptGenerationError': // NEW: Handle errors from extension
                     showStatus('promptStatus', `Error: ${message.payload.message}`, 'error');
                     break;
+
+                /* ADDED: Jira result messages */
+                case 'jiraCreated':
+                    showStatus('promptStatus', message.payload?.message || 'Jira issues created!', 'success');
+                    break;
+                case 'jiraError':
+                    showStatus('promptStatus', message.payload?.message || 'Failed to create Jira issues.', 'error');
+                    break;
+                /* END ADD */
             }
         });
 
@@ -867,7 +887,7 @@ The generated prompt will include:
 
             if (type === 'success') {
                 vscode.postMessage({ type: 'showSuccess', payload: { message } });
-            } else {
+            } else if (type === 'error') {
                 vscode.postMessage({ type: 'showError', payload: { message } });
             }
         }
@@ -920,7 +940,7 @@ The generated prompt will include:
                 clearProjectForm();
                 showStatus('projectStatus', '🚀 Creating project...', 'info');
             } catch (error) {
-                showStatus('projectStatus', 'Error: ' + error.message, 'error');
+                showStatus('projectStatus', 'Error: ' + error.message', 'error');
             }
         }
 
@@ -955,7 +975,7 @@ The generated prompt will include:
                 document.getElementById('inviteCode').value = '';
                 showStatus('joinStatus', '🔗 Joining project...', 'info');
             } catch (error) {
-                showStatus('joinStatus', 'Error: ' + error.message, 'error');
+                showStatus('joinStatus', 'Error: ' + error.message', 'error');
             }
         }
 
@@ -987,7 +1007,7 @@ The generated prompt will include:
             });
         }
 
-       function startProject() {
+        function startProject() {
             try {
                 const projectId = document.getElementById('promptProject').value;
                 const project = app.projects.find(p => p.id == projectId);
@@ -1007,6 +1027,25 @@ The generated prompt will include:
                 showStatus('promptStatus', 'Error: ' + error.message, 'error');
             }
         }
+
+        /* ADDED: minimal Jira integration helpers */
+        function createJiraFromText() {
+            const description = (document.getElementById('freeformDescription')?.value || '').trim();
+            const projectId = document.getElementById('promptProject')?.value || null;
+
+            if (!description) {
+                showStatus('promptStatus', '❌ Please enter a description for Jira tasks.', 'error');
+                return;
+            }
+
+            vscode.postMessage({
+                type: 'createJiraFromText',
+                payload: { description, projectId }
+            });
+
+            showStatus('promptStatus', '🧩 Creating Jira issues from description...', 'success');
+        }
+        /*  END ADD */
 
         // Add form validation animations
         document.addEventListener('input', (e) => {
@@ -1034,6 +1073,10 @@ The generated prompt will include:
             document.getElementById('generate-prompt-btn')?.addEventListener('click', generatePrompt);
             document.getElementById('copy-prompt-btn')?.addEventListener('click', copyPrompt);
             document.getElementById('start-project')?.addEventListener('click', startProject);
+
+            /*  ADDED: wire Jira button */
+            document.getElementById('create-jira-from-text-btn')?.addEventListener('click', createJiraFromText);
+            /* END ADD */
 
             document.body.addEventListener('click', (event) => {
                 const target = event.target;
