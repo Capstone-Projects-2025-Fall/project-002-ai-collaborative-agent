@@ -43,8 +43,7 @@ const ai_analyze_1 = require("./ai_analyze");
 const authService_1 = require("./authService");
 const databaseService_1 = require("./databaseService");
 const supabaseConfig_1 = require("./supabaseConfig");
-// --- ADDED: Jira tasks command import (non-breaking)
-const createJiraTasks_1 = require("./commands/createJiraTasks");
+const createJiraTasks_1 = require("./commands/createJiraTasks"); // ✅ ADDED: Jira command import
 // No .env loading needed; using hardcoded config in supabaseConfig
 // Global variables for OAuth callback handling
 let authService;
@@ -141,6 +140,9 @@ async function activate(context) {
     vscode.window.showInformationMessage("AI Collab Agent activated");
     // Store context globally for callback server
     extensionContext = context;
+    // ✅ ADDED: register Jira command (does NOT change existing commands)
+    const createJira = vscode.commands.registerCommand("ai.createJiraTasks", () => (0, createJiraTasks_1.createJiraTasksCmd)(context));
+    context.subscriptions.push(createJira);
     // Initialize authentication service
     try {
         authService = new authService_1.AuthService();
@@ -232,15 +234,6 @@ async function activate(context) {
             `Session: ${session ? 'Active' : 'None'}`);
     });
     context.subscriptions.push(debugAuth);
-
-    // --- ADDED: Register "AI: Create Jira Tasks" command (non-breaking) ---
-    const createJira = vscode.commands.registerCommand(
-        "ai.createJiraTasks",
-        () => (0, createJiraTasks_1.createJiraTasksCmd)(context)
-    );
-    context.subscriptions.push(createJira);
-    // ----------------------------------------------------------------------
-
     const liveShare = (await vsls.getApi());
     liveShare?.onDidChangeSession((e) => console.log("[AI Collab] Live Share role:", e.session?.role));
     // Add status bar button
@@ -639,7 +632,7 @@ Give me a specific message for EACH team member, detailing them what they need t
                     if (workspaceFolders) {
                         const fullContent = `${promptContent}\n\n${"=".repeat(80)}\nAI RESPONSE:\n${"=".repeat(80)}\n\n${aiResponse}`;
                         const filePath = vscode.Uri.joinPath(workspaceFolders[0].uri, tempFileName);
-                        await fs.writeFile(filePath.fsPath, "utf-8", fullContent);
+                        await fs.writeFile(filePath.fsPath, fullContent, "utf-8");
                         await vscode.window.showTextDocument(filePath, {
                             viewColumn: vscode.ViewColumn.Beside,
                             preview: false,

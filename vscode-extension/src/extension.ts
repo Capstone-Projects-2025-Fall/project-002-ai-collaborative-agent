@@ -6,6 +6,7 @@ import { activateCodeReviewer } from "./ai_analyze";
 import { AuthService, AuthUser } from "./authService";
 import { DatabaseService, Profile, Project, ProjectMember, AIPrompt } from "./databaseService";
 import { getSupabaseClient, getEdgeFunctionUrl, getSupabaseAnonKey, getSupabaseUrl } from "./supabaseConfig";
+import { createJiraTasksCmd } from "./commands/createJiraTasks"; // ✅ ADDED: Jira command import
 
 // No .env loading needed; using hardcoded config in supabaseConfig
 
@@ -129,6 +130,13 @@ export async function activate(context: vscode.ExtensionContext) {
 
   // Store context globally for callback server
   extensionContext = context;
+
+  // ✅ ADDED: register Jira command (does NOT change existing commands)
+  const createJira = vscode.commands.registerCommand(
+    "ai.createJiraTasks",
+    () => createJiraTasksCmd(context)
+  );
+  context.subscriptions.push(createJira);
 
   // Initialize authentication service
   try {

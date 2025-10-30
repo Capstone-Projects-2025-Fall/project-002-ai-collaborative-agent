@@ -149,3 +149,4 @@ function trimSlash(url) {
     //Prevents double slashes when joining with Jira API endpoint
     return url.replace(/\/+$/, "");
 }
+//# sourceMappingURL=jira.js.map
