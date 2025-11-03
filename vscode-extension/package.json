@@ -1,15 +1,12 @@
 {
   "name": "ai-collab-agent",
   "displayName": "AI Collab Agent",
-  "description": "Minimal starter: opens a webview to kick off team setup and task allocation.",
+  "description": "AI-powered team collaboration platform with intelligent code assistance. Manage projects, coordinate teams, and get real-time code analysis.",
   "publisher": "your-publisher-id",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.80.0"
   },
-  "categories": [
-    "Other"
-  ],
   "activationEvents": [
     "onStartupFinished",
     "onCommand:aiCollab.openPanel",
@@ -20,36 +17,49 @@
     "commands": [
       {
         "command": "aiCollab.openPanel",
-        "title": "AI Collab Agent: Open"
+        "title": "Open Team Platform",
+        "category": "AI Collab Agent",
+        "icon": "$(organization)"
       },
       {
         "command": "aiCollab.debugHello",
-        "title": "AI Collab Agent: Hello (debug)"
+        "title": "Test Extension (Debug)",
+        "category": "AI Collab Agent"
       },
       {
         "command": "aiCollab.debugAuth",
-        "title": "AI Collab Agent: Debug Auth Status"
+        "title": "Debug Auth Status",
+        "category": "AI Collab Agent"
       },
-      { "command": "ai-code-reviewer.analyzeCode",
-      "title": "Analyze Current Folder",
-      "category": "AI Code Reviewer"
-    },
-    {
-      "command": "ai-code-reviewer.configure",
-      "title": "Configure Settings",
-      "category": "AI Code Reviewer"
-    },
-    {
-      "command": "ai-code-reviewer.showResults",
-      "title": "Show Analysis Results",
-      "category": "AI Code Reviewer"
-    },
-    {
-      "command": "ai-code-reviewer.toggleAutoAnalyze",
-      "title": "Toggle Auto-Analyze (On/Off)",
-      "category": "AI Code Reviewer"
-    }
-      
+      {
+        "command": "ai-code-reviewer.analyzeCode",
+        "title": "Analyze Current Folder",
+        "category": "AI Code Assistant",
+        "icon": "$(lightbulb)"
+      },
+      {
+        "command": "ai-code-reviewer.configure",
+        "title": "Settings",
+        "category": "AI Code Assistant"
+      },
+      {
+        "command": "ai-code-reviewer.showResults",
+        "title": "Show Analysis Results",
+        "category": "AI Code Assistant",
+        "icon": "$(output)"
+      },
+      {
+        "command": "ai-code-reviewer.showChangeLog",
+        "title": "Show Change Log",
+        "category": "AI Code Assistant",
+        "icon": "$(history)"
+      },
+      {
+        "command": "ai-code-reviewer.toggleAutoAnalyze",
+        "title": "Toggle Auto-Analysis",
+        "category": "AI Code Assistant",
+        "icon": "$(debug-pause)"
+      }
     ],
     "configuration": {
       "title": "AI Collab Agent",
@@ -57,24 +67,34 @@
         "aiCollab.apiBaseUrl": {
           "type": "string",
           "default": "http://localhost:4000",
-          "description": "Base URL of your Agent API (future use)."
-        },
-        "aiCodeReviewer.apiEndpoint": {
-          "type": "string",
-          "default": "",
-          "description": "Your Supabase function URL for code analysis"
+          "description": "Base URL of your Agent API (future use).",
+          "scope": "window"
         },
         "aiCodeReviewer.autoAnalyzeInterval": {
           "type": "number",
-          "default": 1,
-          "description": "Auto-analyze interval in minutes (default: 1 minutes)",
+          "default": 5,
+          "description": "How often to automatically analyze code (in minutes)",
           "minimum": 1,
-          "maximum": 60
+          "maximum": 60,
+          "scope": "window"
         },
         "aiCodeReviewer.autoAnalyzeEnabled": {
           "type": "boolean",
           "default": true,
-          "description": "Enable automatic code analysis"
+          "description": "Automatically analyze code when files are saved or at regular intervals",
+          "scope": "window"
+        },
+        "aiCodeReviewer.showNotifications": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show status bar notifications for analysis results",
+          "scope": "window"
+        },
+        "aiCodeReviewer.autoShowPanel": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically show results panel when errors or warnings are found",
+          "scope": "window"
         }
       }
     },
@@ -82,37 +102,66 @@
       {
         "command": "ai-code-reviewer.analyzeCode",
         "key": "ctrl+shift+a",
-        "mac": "cmd+shift+a"
+        "mac": "cmd+shift+a",
+        "when": "editorTextFocus"
       },
       {
         "command": "ai-code-reviewer.toggleAutoAnalyze",
         "key": "ctrl+shift+t",
         "mac": "cmd+shift+t"
+      },
+      {
+        "command": "ai-code-reviewer.showResults",
+        "key": "ctrl+shift+r",
+        "mac": "cmd+shift+r"
       }
-    ]
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "ai-code-reviewer.analyzeCode",
+          "group": "aiCollab@1",
+          "when": "editorTextFocus"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "ai-code-reviewer.analyzeCode",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "command": "ai-code-reviewer.showResults"
+        },
+        {
+          "command": "ai-code-reviewer.toggleAutoAnalyze"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "aiCollab-sidebar",
+          "title": "AI Collab",
+          "icon": "media/collaboration.svg"
+        }
+      ]
+    },
+    "views": {
+      "aiCollab-sidebar": [
+        {
+          "id": "aiCollabView",
+          "name": "Team Panel"
+        }
+      ]
+    }
   },
-  "viewsContainers": {
-			"activitybar": [
-				{
-					"id": "aiCollab-sidebar",
-					"title": "AI Collab",
-					"icon": "media/collaboration.svg"
-				}
-			]
-		},
-		"views": {
-			"aiCollab-sidebar": [
-				{
-					"id": "aiCollabView",
-					"name": "Team Panel"
-				}
-			]
-		},
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -w -p ./",
-    "package": "vsce package"
+    "package": "vsce package",
+    "lint": "eslint src --ext ts",
+    "test": "vitest"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.8",
@@ -127,7 +176,14 @@
     "typescript": "^5.9.2",
     "vitest": "^3.2.4"
   },
-  "keywords": [],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/ai-collab-agent"
+  },
+  "bugs": {
+    "url": "https://github.com/your-username/ai-collab-agent/issues"
+  },
+  "icon": "media/icon.png",
   "author": "",
   "license": "ISC"
 }

@@ -1,6 +1,6 @@
 import java.util.*;
 
-public class BFS {
+public class BFSandDFS {
 
     public static void bfs(Map<Integer, List<Integer>> graph, int start) {
         Set<Integer> visited = new HashSet<>();
@@ -9,33 +9,40 @@ public class BFS {
         visited.add(start);
         queue.offer(start);
 
+        System.out.print("BFS Order: ");
         while (!queue.isEmpty()) {
             int node = queue.poll();
             System.out.print(node + " ");
 
-            for (int neighbor : graph.getOrDefault(node, new ArrayList<>())) {
+            for (int neighbor : graph.getOrDefault(node, Collections.emptyList())) {
                 if (!visited.contains(neighbor)) {
                     visited.add(neighbor);
                     queue.offer(neighbor);
                 }
             }
         }
+        System.out.println();
     }
-    public class something {
 
-        public static void dfsRecursive(Map<Integer, List<Integer>> graph, int start, Set<Integer> visited) {
-            // Mark the current node as visited
-            visited.add(start);
-            System.out.print(start + " ");
-    
-            // Visit all unvisited neighbors
-            for (int neighbor : graph.getOrDefault(start, new ArrayList<>())) {
-                if (!visited.contains(neighbor)) {
-                    dfsRecursive(graph, neighbor, visited);
+    public static void dfs(Map<Integer, List<Integer>> graph, int start) {
+        Set<Integer> visited = new HashSet<>();
+        Stack<Integer> stack = new Stack<>();
+        stack.push(start);
+
+        System.out.print("DFS Order: ");
+        while (!stack.isEmpty()) {
+            int node = stack.pop();
+            if (!visited.contains(node)) {
+                visited.add(node);
+                System.out.print(node + " ");
+                List<Integer> neighbors = new ArrayList<>(graph.getOrDefault(node, Collections.emptyList()));
+                Collections.reverse(neighbors);
+                for (int neighbor : neighbors) {
+                    stack.push(neighbor);
                 }
-        
             }
         }
+        System.out.println();
     }
 
     public static void main(String[] args) {
@@ -47,7 +54,7 @@ public class BFS {
         graph.put(4, Arrays.asList(1, 5));
         graph.put(5, Arrays.asList(2, 4));
 
-        System.out.print("BFS starting from node 0: ");
         bfs(graph, 0);
+        dfs(graph, 0);
     }
 }
