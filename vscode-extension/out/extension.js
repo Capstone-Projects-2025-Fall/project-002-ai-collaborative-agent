@@ -48,6 +48,8 @@ const supabaseConfig_1 = require("./supabaseConfig");
 let authService;
 let databaseService;
 let extensionContext;
+// Reopens AICollab UI when new workplace 
+const GLOBAL_STATE_KEY = "reopenAiCollabAgent";
 // Helper function to get the full path to our data file
 function getDataFilePath() {
     const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
@@ -136,6 +138,16 @@ async function saveInitialData(data) {
 async function activate(context) {
     (0, ai_analyze_1.activateCodeReviewer)(context);
     // Environment variables are not required; configuration is hardcoded
+    // Restore AI Collab panel after workspace reload 
+    const shouldReopen = context.globalState.get(GLOBAL_STATE_KEY);
+    if (shouldReopen) {
+        // Reset the flag so it doesn't loop
+        await context.globalState.update(GLOBAL_STATE_KEY, false);
+        // Wait a short moment for VS Code to finish loading workspace
+        setTimeout(() => {
+            vscode.commands.executeCommand("aiCollab.openPanel");
+        }, 1000);
+    }
     vscode.window.showInformationMessage("AI Collab Agent activated");
     // Store context globally for callback server
     extensionContext = context;
@@ -450,40 +462,32 @@ async function openMainPanel(context, authService) {
                     };
                     const folderUri = await vscode.window.showOpenDialog(options);
                     if (folderUri && folderUri.length > 0) {
-                        const selectedFolder = folderUri[0].fsPath;
-                        // List files in the selected folder
-                        const files = await vscode.workspace.fs.readDirectory(vscode.Uri.file(selectedFolder));
-                        // Open the first file in the folder (or prompt the user to select one)
-                        const firstFile = files.find(([name, type]) => type === vscode.FileType.File);
-                        if (firstFile) {
-                            const filePath = path.join(selectedFolder, firstFile[0]);
-                            const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(filePath));
-                            await vscode.window.showTextDocument(doc);
-                            vscode.window.showInformationMessage(`Opened file: ${filePath}`);
-                            try {
-                                /// Start a Live Share session
-                                const liveShare = await vsls.getApi(); // Get the Live Share API
-                                if (!liveShare) {
-                                    vscode.window.showErrorMessage("Live Share extension is not installed or not available.");
-                                    return;
-                                }
-                                await liveShare.share(); // May return undefined even if successful
-                                // Check if session is active
-                                if (liveShare.session && liveShare.session.id) {
-                                    vscode.window.showInformationMessage("Live Share session started!");
-                                    console.log("Live Share session info:", liveShare.session);
-                                }
-                                else {
-                                    vscode.window.showErrorMessage("Failed to start Live Share session.");
-                                }
+                        const selectedFolder = folderUri[0];
+                        // Before opening a new workspace, set a flag to reopen AI Collab Agent afterward
+                        await extensionContext.globalState.update(GLOBAL_STATE_KEY, true);
+                        // Open the folder as a workspace (will reload VS Code)
+                        await vscode.commands.executeCommand("vscode.openFolder", selectedFolder, false);
+                        vscode.window.showInformationMessage(`Opened folder: ${selectedFolder.fsPath}`);
+                        try {
+                            /// Start a Live Share session
+                            const liveShare = await vsls.getApi(); // Get the Live Share API
+                            if (!liveShare) {
+                                vscode.window.showErrorMessage("Live Share extension is not installed or not available.");
+                                return;
                             }
-                            catch (error) {
-                                console.error("Error starting Live Share session:", error);
-                                vscode.window.showErrorMessage("An error occurred while starting Live Share.");
+                            await liveShare.share(); // May return undefined even if successful
+                            // Check if session is active
+                            if (liveShare.session && liveShare.session.id) {
+                                vscode.window.showInformationMessage("Live Share session started!");
+                                console.log("Live Share session info:", liveShare.session);
+                            }
+                            else {
+                                vscode.window.showErrorMessage("Failed to start Live Share session.");
                             }
                         }
-                        else {
-                            vscode.window.showWarningMessage("No files found in the selected folder.");
+                        catch (error) {
+                            console.error("Error starting Live Share session:", error);
+                            vscode.window.showErrorMessage("An error occurred while starting Live Share.");
                         }
                     }
                     else {
