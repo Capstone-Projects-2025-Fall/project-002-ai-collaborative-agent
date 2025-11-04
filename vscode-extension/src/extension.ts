@@ -16,6 +16,9 @@ let extensionContext: vscode.ExtensionContext;
 
 // Reopens AICollab UI when new workplace 
 const GLOBAL_STATE_KEY = "reopenAiCollabAgent";
+// When new workspace is open, liveshare begins
+const GLOBAL_LIVESHARE_KEY = "reopenLiveShareSession";
+
 
 // Helper function to get the full path to our data file
 function getDataFilePath(): string | undefined {
@@ -140,6 +143,27 @@ export async function activate(context: vscode.ExtensionContext) {
   //     vscode.commands.executeCommand("aiCollab.openPanel");
   //   }, 1000);
   // }
+
+  // Auto-start Live Share session 
+  const shouldStartLiveShare = context.globalState.get(GLOBAL_LIVESHARE_KEY);
+  if (shouldStartLiveShare) {
+    await context.globalState.update(GLOBAL_LIVESHARE_KEY, false);
+
+    setTimeout(async () => {
+      try {
+        const liveShare = await vsls.getApi();
+        if (liveShare) {
+          await liveShare.share();
+          vscode.window.showInformationMessage("Live Share session restarted automatically!");
+          console.log("Auto Live Share session:", liveShare.session);
+        } else {
+          vscode.window.showErrorMessage("Live Share API unavailable on reload.");
+        }
+      } catch (err) {
+        console.error("Auto-Live Share restart failed:", err);
+      }
+    }, 2000); // delay to let extension host finish loading
+  }
 
   vscode.window.showInformationMessage("AI Collab Agent activated");
 
@@ -528,8 +552,9 @@ async function openMainPanel(
 						if (folderUri && folderUri.length > 0) {
 							const selectedFolder = folderUri[0];
 
-              // // Before opening a new workspace, set a flag to reopen AI Collab Agent afterward
-              // await extensionContext.globalState.update(GLOBAL_STATE_KEY, true);
+              // Remember to reopen AI Collab panel and Live Share after reload
+              await extensionContext.globalState.update(GLOBAL_STATE_KEY, true);
+              await extensionContext.globalState.update(GLOBAL_LIVESHARE_KEY, true);
 
               // Open the folder as a workspace (will reload VS Code)
               await vscode.commands.executeCommand("vscode.openFolder", selectedFolder, false);
