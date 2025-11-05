@@ -55,13 +55,15 @@ async function loadInitialData(): Promise<any> {
     // Get user's projects (RLS will filter to only their projects)
     const projects = await databaseService.getProjectsForUser(user.id);
     
-    // Get project members for each project
+    // Get project members for each project and owner info
     const projectsWithMembers = await Promise.all(
       projects.map(async (project) => {
         const members = await databaseService.getProjectMembers(project.id);
+        const ownerId = project.owner_id || await databaseService.getProjectOwner(project.id);
         return {
           ...project,
-          selectedMemberIds: members.map(m => m.user_id)
+          selectedMemberIds: members.map(m => m.user_id),
+          owner_id: ownerId
         };
       })
     );
@@ -792,7 +794,7 @@ Give me a specific message for EACH team member, detailing them what they need t
 
         try {
           console.log('Creating project:', { name, description, goals, requirements, userId: user.id });
-          const project = await databaseService.createProject(name, description, goals, requirements);
+          const project = await databaseService.createProject(name, description, goals, requirements, user.id);
           console.log('Project created:', project);
           
           if (project) {
@@ -815,6 +817,64 @@ Give me a specific message for EACH team member, detailing them what they need t
         } catch (error) {
           console.error("Error creating project:", error);
           vscode.window.showErrorMessage("Failed to create project.");
+        }
+        break;
+      }
+
+      case "deleteProject": {
+        const { projectId } = msg.payload;
+        const user = authService.getCurrentUser();
+        
+        if (!user) {
+          vscode.window.showErrorMessage("Please log in to delete a project.");
+          break;
+        }
+
+        try {
+          const success = await databaseService.deleteProject(projectId, user.id);
+          if (success) {
+            vscode.window.showInformationMessage("Project deleted successfully!");
+            // Reload data to reflect the deletion
+            const data = await loadInitialData();
+            panel.webview.postMessage({
+              type: "dataLoaded",
+              payload: data,
+            });
+          } else {
+            vscode.window.showErrorMessage("Failed to delete project. You may not be the owner.");
+          }
+        } catch (error) {
+          console.error("Error deleting project:", error);
+          vscode.window.showErrorMessage("Failed to delete project.");
+        }
+        break;
+      }
+
+      case "leaveProject": {
+        const { projectId } = msg.payload;
+        const user = authService.getCurrentUser();
+        
+        if (!user) {
+          vscode.window.showErrorMessage("Please log in to leave a project.");
+          break;
+        }
+
+        try {
+          const success = await databaseService.leaveProject(projectId, user.id);
+          if (success) {
+            vscode.window.showInformationMessage("Left project successfully!");
+            // Reload data to reflect leaving
+            const data = await loadInitialData();
+            panel.webview.postMessage({
+              type: "dataLoaded",
+              payload: data,
+            });
+          } else {
+            vscode.window.showErrorMessage("Failed to leave project. If you're the owner, you must delete the project instead.");
+          }
+        } catch (error) {
+          console.error("Error leaving project:", error);
+          vscode.window.showErrorMessage("Failed to leave project.");
         }
         break;
       }

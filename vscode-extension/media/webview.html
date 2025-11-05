@@ -740,9 +740,12 @@ The generated prompt will include:
                         </div>
                     `).join('') : '<p style="color: #64748b; font-size: 0.9rem;">No members yet</p>';
 
+                    const isOwner = this.currentUser && project.owner_id === this.currentUser.id;
+                    const ownerBadge = isOwner ? '<span style="background: #10b981; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; margin-left: 8px;">Owner</span>' : '';
+                    
                     return `
                         <div class="project-item">
-                            <h3>📋 ${project.name}</h3>
+                            <h3>📋 ${project.name}${ownerBadge}</h3>
                             <p><strong>Description:</strong> ${project.description}</p>
                             <p><strong>Goals:</strong> ${project.goals || 'Not specified'}</p>
                             <p><strong>Requirements:</strong> ${project.requirements || 'Not specified'}</p>
@@ -754,7 +757,10 @@ The generated prompt will include:
                                 </div>
                             </div>
                             <p style="margin-top: 10px;"><strong>Created:</strong> ${new Date(project.createdAt).toLocaleString()}</p>
-                            <button class="btn btn-secondary remove-project-btn" data-project-id="${project.id}" style='margin-top: 8px; padding: 6px 12px; font-size: 0.8rem;'>Remove</button>
+                            ${isOwner 
+                                ? `<button class="btn btn-danger delete-project-btn" data-project-id="${project.id}" style='margin-top: 8px; padding: 6px 12px; font-size: 0.8rem; background: #ef4444; color: white;'>Delete Project</button>`
+                                : `<button class="btn btn-secondary leave-project-btn" data-project-id="${project.id}" style='margin-top: 8px; padding: 6px 12px; font-size: 0.8rem;'>Leave Project</button>`
+                            }
                         </div>
                     `;
                 }).join('');
@@ -793,10 +799,25 @@ The generated prompt will include:
             }
 
             removeProject(projectId) {
-                this.projects = this.projects.filter(project => project.id != projectId);
-                this.saveData();
-                this.updateUI();
-                showStatus('projectStatus', 'Project removed successfully!', 'success');
+                // This method is kept for backward compatibility but now calls backend
+                const project = this.projects.find(p => p.id === projectId);
+                if (!project) return;
+                
+                const isOwner = this.currentUser && project.owner_id === this.currentUser.id;
+                
+                if (isOwner) {
+                    // Owner deletes the project
+                    vscode.postMessage({
+                        type: 'deleteProject',
+                        payload: { projectId }
+                    });
+                } else {
+                    // Non-owner leaves the project
+                    vscode.postMessage({
+                        type: 'leaveProject',
+                        payload: { projectId }
+                    });
+                }
             }
         }
 
@@ -1049,10 +1070,27 @@ The generated prompt will include:
                     }
                 }
 
-                if (target.matches('.remove-project-btn')) {
+                if (target.matches('.remove-project-btn') || target.matches('.delete-project-btn') || target.matches('.leave-project-btn')) {
                     const projectId = target.dataset.projectId;
                     if (projectId) {
-                        app.removeProject(projectId);
+                        if (target.matches('.delete-project-btn')) {
+                            if (confirm('Are you sure you want to delete this project? This action cannot be undone.')) {
+                                vscode.postMessage({
+                                    type: 'deleteProject',
+                                    payload: { projectId }
+                                });
+                            }
+                        } else if (target.matches('.leave-project-btn')) {
+                            if (confirm('Are you sure you want to leave this project?')) {
+                                vscode.postMessage({
+                                    type: 'leaveProject',
+                                    payload: { projectId }
+                                });
+                            }
+                        } else {
+                            // Fallback for old remove-project-btn
+                            app.removeProject(projectId);
+                        }
                     }
                 }
             });
