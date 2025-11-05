@@ -47,11 +47,28 @@ export class DatabaseService {
 
   // Profile Operations
   async getProfile(userId: string): Promise<Profile | null> {
-    const { data, error } = await this.supabase
+    // userId is auth.users.id, but profiles table has user_id as the foreign key
+    // However, the code assumes profiles.id === auth.users.id
+    // Try both approaches: first by id, then by user_id if needed
+    let { data, error } = await this.supabase
       .from('profiles')
       .select('*')
       .eq('id', userId)
       .single();
+
+    // If not found by id, try by user_id
+    if (error && error.code === 'PGRST116') {
+      const { data: dataByUserId, error: errorByUserId } = await this.supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+      
+      if (!errorByUserId && dataByUserId) {
+        data = dataByUserId;
+        error = null;
+      }
+    }
 
     if (error) {
       if (error.code === 'PGRST116') {
@@ -120,19 +137,42 @@ export class DatabaseService {
   }
 
   // Project Operations
-  async getProjectsForUser(userId: string): Promise<Project[]> {
-    const { data, error } = await this.supabase
+  async getProjectsForUser(profileId: string): Promise<Project[]> {
+    // Get projects where user is a member
+    const { data: memberProjects, error: memberError } = await this.supabase
       .from('project_members')
       .select(`
         projects(*)
       `)
-      .eq('user_id', userId);
+      .eq('user_id', profileId);
 
-    if (error) {
-      console.error('Error fetching projects for user:', error);
-      return [];
+    if (memberError) {
+      console.error('Error fetching projects for user (member):', memberError);
     }
-    return data?.map((item: any) => item.projects) || [];
+
+    // Get projects where user is the owner
+    const { data: ownedProjects, error: ownerError } = await this.supabase
+      .from('projects')
+      .select('*')
+      .eq('owner_id', profileId);
+
+    if (ownerError) {
+      console.error('Error fetching projects for user (owner):', ownerError);
+    }
+
+    // Combine and deduplicate projects
+    const memberProjectsList = memberProjects?.map((item: any) => item.projects).filter(Boolean) || [];
+    const ownedProjectsList = ownedProjects || [];
+    
+    // Create a map to deduplicate by project id
+    const projectsMap = new Map<string, Project>();
+    [...memberProjectsList, ...ownedProjectsList].forEach((project: Project) => {
+      if (project && project.id) {
+        projectsMap.set(project.id, project);
+      }
+    });
+
+    return Array.from(projectsMap.values());
   }
 
   async getProfilesForProject(projectId: string): Promise<Profile[]> {
@@ -426,8 +466,17 @@ export class DatabaseService {
       return false;
     }
 
-    if (project.owner_id !== userId) {
-      console.error('User is not the owner of this project');
+    // Convert both to strings for comparison (handle UUID type mismatches)
+    const ownerIdStr = String(project.owner_id);
+    const userIdStr = String(userId);
+    console.log('DatabaseService: Comparing owner IDs:', { ownerIdStr, userIdStr, match: ownerIdStr === userIdStr });
+
+    if (ownerIdStr !== userIdStr) {
+      console.error('User is not the owner of this project', { 
+        projectOwnerId: ownerIdStr, 
+        userId: userIdStr,
+        types: { owner: typeof project.owner_id, user: typeof userId }
+      });
       return false;
     }
 
@@ -461,7 +510,12 @@ export class DatabaseService {
       return false;
     }
 
-    if (project.owner_id === userId) {
+    // Convert both to strings for comparison (handle UUID type mismatches)
+    const ownerIdStr = String(project.owner_id);
+    const userIdStr = String(userId);
+    console.log('DatabaseService: Checking if user is owner (leaveProject):', { ownerIdStr, userIdStr, isOwner: ownerIdStr === userIdStr });
+
+    if (ownerIdStr === userIdStr) {
       console.error('Owner cannot leave project - must delete it instead');
       return false;
     }

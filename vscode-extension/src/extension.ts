@@ -37,6 +37,7 @@ async function loadInitialData(): Promise<any> {
 
   try {
     // Get user's profile
+    // Note: getProfile expects auth.users.id, but we need profile.id for database operations
     let profile = await databaseService.getProfile(user.id);
     
     // If profile doesn't exist, create one
@@ -52,8 +53,16 @@ async function loadInitialData(): Promise<any> {
       );
     }
     
-    // Get user's projects (RLS will filter to only their projects)
-    const projects = await databaseService.getProjectsForUser(user.id);
+    if (!profile) {
+      console.error('Failed to get or create profile');
+      return { users: [], projects: [], promptCount: 0 };
+    }
+    
+    // Use profile.id for all database operations (not user.id which is auth.users.id)
+    const profileId = profile.id;
+    
+    // Get user's projects (both as owner and as member)
+    const projects = await databaseService.getProjectsForUser(profileId);
     
     // Get project members for each project and include owner_id
     const projectsWithMembers = await Promise.all(
@@ -68,7 +77,7 @@ async function loadInitialData(): Promise<any> {
     );
 
     // Get all profiles from user's projects (for team members display)
-    const allProfiles = await databaseService.getAllProfilesForUserProjects(user.id);
+    const allProfiles = await databaseService.getAllProfilesForUserProjects(profileId);
 
     // Get AI prompts count
     const allPrompts = await Promise.all(
@@ -473,6 +482,33 @@ const handleUri = vscode.window.registerUriHandler({
   context.subscriptions.push(open);
 }
 
+// Helper function to get the current user's profile ID
+async function getCurrentUserProfileId(authService: AuthService, databaseService: DatabaseService): Promise<string | null> {
+  const user = authService.getCurrentUser();
+  if (!user) {
+    console.log('Extension: getCurrentUserProfileId - No user found');
+    return null;
+  }
+  
+  console.log('Extension: getCurrentUserProfileId - User ID:', user.id);
+  const profile = await databaseService.getProfile(user.id);
+  
+  if (!profile) {
+    console.error('Extension: getCurrentUserProfileId - No profile found for user:', user.id);
+    return null;
+  }
+  
+  console.log('Extension: getCurrentUserProfileId - Profile found:', { 
+    profileId: profile.id, 
+    authUserId: user.id 
+  });
+  
+  // Return profile.id which is used for all database operations
+  // (not user.id which is auth.users.id)
+  // Note: profiles.id is the primary key, profiles.user_id references auth.users.id
+  return profile.id;
+}
+
 // Function to open the main application panel
 async function openMainPanel(
   context: vscode.ExtensionContext,
@@ -494,7 +530,8 @@ async function openMainPanel(
   panel.webview.html = await getHtml(panel.webview, context);
 
   panel.webview.onDidReceiveMessage(async (msg: any) => {
- 
+    console.log('Extension: Received message from webview:', { type: msg.type, payload: msg.payload });
+    
     switch (msg.type) {
       
       case "openFile": {
@@ -784,22 +821,22 @@ Give me a specific message for EACH team member, detailing them what they need t
 
       case "createProject": {
         const { name, description, goals, requirements } = msg.payload;
-        const user = authService.getCurrentUser();
+        const profileId = await getCurrentUserProfileId(authService, databaseService);
         
-        if (!user) {
+        if (!profileId) {
           vscode.window.showErrorMessage("Please log in to create a project.");
           break;
         }
 
         try {
-          console.log('Creating project:', { name, description, goals, requirements, userId: user.id });
-          const project = await databaseService.createProject(name, description, goals, requirements, user.id);
+          console.log('Creating project:', { name, description, goals, requirements, profileId });
+          const project = await databaseService.createProject(name, description, goals, requirements, profileId);
           console.log('Project created:', project);
           
           if (project) {
             // Add the creator as a project member
-            console.log('Adding project member:', { projectId: project.id, userId: user.id });
-            const memberResult = await databaseService.addProjectMember(project.id, user.id);
+            console.log('Adding project member:', { projectId: project.id, profileId });
+            const memberResult = await databaseService.addProjectMember(project.id, profileId);
             console.log('Project member added:', memberResult);
             
             vscode.window.showInformationMessage(`Project "${name}" created successfully!`);
@@ -822,15 +859,35 @@ Give me a specific message for EACH team member, detailing them what they need t
 
       case "deleteProject": {
         const { projectId } = msg.payload;
-        const user = authService.getCurrentUser();
+        console.log('Extension: deleteProject received:', { projectId });
         
-        if (!user) {
+        // Show confirmation dialog using VS Code's native dialog
+        const confirmResult = await vscode.window.showWarningMessage(
+          'Are you sure you want to delete this project? This action cannot be undone.',
+          { modal: true },
+          'Delete',
+          'Cancel'
+        );
+        
+        if (confirmResult !== 'Delete') {
+          console.log('Extension: Delete cancelled by user');
+          break;
+        }
+        
+        const profileId = await getCurrentUserProfileId(authService, databaseService);
+        console.log('Extension: Profile ID for delete:', { profileId });
+        
+        if (!profileId) {
+          console.error('Extension: No profile ID found for delete');
           vscode.window.showErrorMessage("Please log in to delete a project.");
           break;
         }
 
         try {
-          const success = await databaseService.deleteProject(projectId, user.id);
+          console.log('Extension: Calling deleteProject with:', { projectId, profileId });
+          const success = await databaseService.deleteProject(projectId, profileId);
+          console.log('Extension: deleteProject result:', { success });
+          
           if (success) {
             vscode.window.showInformationMessage("Project deleted successfully!");
             // Reload data to reflect the deletion
@@ -840,26 +897,47 @@ Give me a specific message for EACH team member, detailing them what they need t
               payload: data,
             });
           } else {
+            console.error('Extension: deleteProject returned false');
             vscode.window.showErrorMessage("Failed to delete project. You may not be the owner.");
           }
         } catch (error) {
-          console.error("Error deleting project:", error);
-          vscode.window.showErrorMessage("Failed to delete project.");
+          console.error("Extension: Error deleting project:", error);
+          vscode.window.showErrorMessage(`Failed to delete project: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
         break;
       }
 
       case "leaveProject": {
         const { projectId } = msg.payload;
-        const user = authService.getCurrentUser();
+        console.log('Extension: leaveProject received:', { projectId });
         
-        if (!user) {
+        // Show confirmation dialog using VS Code's native dialog
+        const confirmResult = await vscode.window.showWarningMessage(
+          'Are you sure you want to leave this project?',
+          { modal: true },
+          'Leave',
+          'Cancel'
+        );
+        
+        if (confirmResult !== 'Leave') {
+          console.log('Extension: Leave cancelled by user');
+          break;
+        }
+        
+        const profileId = await getCurrentUserProfileId(authService, databaseService);
+        console.log('Extension: Profile ID for leave:', { profileId });
+        
+        if (!profileId) {
+          console.error('Extension: No profile ID found for leave');
           vscode.window.showErrorMessage("Please log in to leave a project.");
           break;
         }
 
         try {
-          const success = await databaseService.leaveProject(projectId, user.id);
+          console.log('Extension: Calling leaveProject with:', { projectId, profileId });
+          const success = await databaseService.leaveProject(projectId, profileId);
+          console.log('Extension: leaveProject result:', { success });
+          
           if (success) {
             vscode.window.showInformationMessage("Left project successfully!");
             // Reload data to reflect leaving
@@ -869,20 +947,21 @@ Give me a specific message for EACH team member, detailing them what they need t
               payload: data,
             });
           } else {
+            console.error('Extension: leaveProject returned false');
             vscode.window.showErrorMessage("Failed to leave project. If you're the owner, you must delete the project instead.");
           }
         } catch (error) {
-          console.error("Error leaving project:", error);
-          vscode.window.showErrorMessage("Failed to leave project.");
+          console.error("Extension: Error leaving project:", error);
+          vscode.window.showErrorMessage(`Failed to leave project: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
         break;
       }
 
       case "updateProject": {
         const { projectId, description, goals, requirements } = msg.payload;
-        const user = authService.getCurrentUser();
+        const profileId = await getCurrentUserProfileId(authService, databaseService);
         
-        if (!user) {
+        if (!profileId) {
           vscode.window.showErrorMessage("Please log in to update a project.");
           break;
         }
@@ -892,7 +971,7 @@ Give me a specific message for EACH team member, detailing them what they need t
             description,
             goals,
             requirements
-          }, user.id);
+          }, profileId);
           
           if (project) {
             vscode.window.showInformationMessage("Project updated successfully!");
@@ -914,15 +993,15 @@ Give me a specific message for EACH team member, detailing them what they need t
 
       case "removeProjectMember": {
         const { projectId, memberId } = msg.payload;
-        const user = authService.getCurrentUser();
+        const profileId = await getCurrentUserProfileId(authService, databaseService);
         
-        if (!user) {
+        if (!profileId) {
           vscode.window.showErrorMessage("Please log in to remove a member.");
           break;
         }
 
         try {
-          const success = await databaseService.removeProjectMember(projectId, memberId, user.id);
+          const success = await databaseService.removeProjectMember(projectId, memberId, profileId);
           if (success) {
             vscode.window.showInformationMessage("Member removed from project successfully!");
             // Reload data to reflect the change
@@ -959,8 +1038,14 @@ Give me a specific message for EACH team member, detailing them what they need t
             break;
           }
 
-          console.log('Joining project with code:', { inviteCode, userId: user.id });
-          const project = await databaseService.joinProjectByCode(inviteCode, user.id);
+          const profileId = await getCurrentUserProfileId(authService, databaseService);
+          if (!profileId) {
+            vscode.window.showErrorMessage("Please log in to join a project.");
+            break;
+          }
+          
+          console.log('Joining project with code:', { inviteCode, profileId });
+          const project = await databaseService.joinProjectByCode(inviteCode, profileId);
           
           if (project) {
             vscode.window.showInformationMessage(`Successfully joined project "${project.name}"!`);
@@ -1102,6 +1187,7 @@ Give me a specific message for EACH team member, detailing them what they need t
       }
 
       default:
+        console.warn('Extension: Unknown message type received:', msg.type);
         break;
     }
   });
