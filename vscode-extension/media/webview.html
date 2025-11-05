@@ -88,6 +88,23 @@
             animation: slideIn 0.3s ease-out;
         }
 
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.5);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            animation: slideIn 0.3s ease-out;
+        }
+
         @keyframes slideIn {
             from { opacity: 0; transform: translateY(15px); }
             to { opacity: 1; transform: translateY(0); }
@@ -474,6 +491,52 @@
             <div id="joinStatus" class="status-message" style="display: none;"></div>
         </div>
 
+        <!-- Edit Project Modal -->
+        <div id="editProjectModal" class="modal" style="display: none;">
+            <div class="modal-content" style="max-width: 600px; margin: 50px auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2 style="margin: 0;">Edit Project</h2>
+                    <button id="closeEditModal" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #64748b;">&times;</button>
+                </div>
+                
+                <form id="editProjectForm">
+                    <input type="hidden" id="editProjectId">
+                    
+                    <div class="form-group">
+                        <label for="editProjectName">Project Name</label>
+                        <input type="text" id="editProjectName" readonly style="background: #f1f5f9; cursor: not-allowed;" placeholder="Project name cannot be changed">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="editProjectDescription">Description *</label>
+                        <textarea id="editProjectDescription" required placeholder="Describe the project..."></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="editProjectGoals">Goals</label>
+                        <textarea id="editProjectGoals" placeholder="List main objectives..."></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="editProjectRequirements">Requirements</label>
+                        <textarea id="editProjectRequirements" placeholder="Technical requirements and constraints..."></textarea>
+                    </div>
+                    
+                    <div class="form-group" id="memberManagementSection" style="display: none;">
+                        <label>Team Members (Owner can remove members)</label>
+                        <div id="editProjectMembers" style="margin-top: 10px;">
+                            <!-- Members will be populated here -->
+                        </div>
+                    </div>
+                </form>
+                
+                <div class="button-group" style="margin-top: 20px;">
+                    <button id="saveProjectBtn" class="btn btn-primary">Save Changes</button>
+                    <button id="cancelEditBtn" class="btn btn-secondary">Cancel</button>
+                </div>
+            </div>
+        </div>
+
         <div id="prompts" class="tab-content">
             <div class="section-title">AI Prompt Generator</div>
             
@@ -740,9 +803,17 @@ The generated prompt will include:
                         </div>
                     `).join('') : '<p style="color: #64748b; font-size: 0.9rem;">No members yet</p>';
 
+                    const isOwner = this.currentUser && project.owner_id === this.currentUser.id;
+                    const isMember = this.currentUser && (project.selectedMemberIds || []).includes(this.currentUser.id);
+                    const ownerBadge = isOwner ? '<span style="background: #10b981; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; margin-left: 8px;">Owner</span>' : '';
+                    const canEdit = isOwner || isMember;
+                    
                     return `
                         <div class="project-item">
-                            <h3>📋 ${project.name}</h3>
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                                <h3 style="margin: 0;">📋 ${project.name}${ownerBadge}</h3>
+                                ${canEdit ? `<button class="btn edit-project-btn" data-project-id="${project.id}" style="padding: 4px 8px; font-size: 0.8rem; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer;">✏️ Edit</button>` : ''}
+                            </div>
                             <p><strong>Description:</strong> ${project.description}</p>
                             <p><strong>Goals:</strong> ${project.goals || 'Not specified'}</p>
                             <p><strong>Requirements:</strong> ${project.requirements || 'Not specified'}</p>
@@ -752,9 +823,13 @@ The generated prompt will include:
                                 <div class="team-member-cards" style="margin-top: 8px;">
                                     ${teamMemberCards}
                                 </div>
+                                ${isOwner ? '<p style="margin-top: 8px; font-size: 0.85rem; color: #64748b;">As owner, you can remove members by editing the project.</p>' : ''}
                             </div>
                             <p style="margin-top: 10px;"><strong>Created:</strong> ${new Date(project.createdAt).toLocaleString()}</p>
-                            <button class="btn btn-secondary remove-project-btn" data-project-id="${project.id}" style='margin-top: 8px; padding: 6px 12px; font-size: 0.8rem;'>Remove</button>
+                            ${isOwner 
+                                ? `<button class="btn btn-danger delete-project-btn" data-project-id="${project.id}" style='margin-top: 8px; padding: 6px 12px; font-size: 0.8rem; background: #ef4444; color: white;'>Delete Project</button>`
+                                : `<button class="btn btn-secondary leave-project-btn" data-project-id="${project.id}" style='margin-top: 8px; padding: 6px 12px; font-size: 0.8rem;'>Leave Project</button>`
+                            }
                         </div>
                     `;
                 }).join('');
@@ -793,10 +868,66 @@ The generated prompt will include:
             }
 
             removeProject(projectId) {
-                this.projects = this.projects.filter(project => project.id != projectId);
-                this.saveData();
-                this.updateUI();
-                showStatus('projectStatus', 'Project removed successfully!', 'success');
+                // This method is kept for backward compatibility but now calls backend
+                const project = this.projects.find(p => p.id === projectId);
+                if (!project) return;
+                
+                const isOwner = this.currentUser && project.owner_id === this.currentUser.id;
+                
+                if (isOwner) {
+                    // Owner deletes the project
+                    vscode.postMessage({
+                        type: 'deleteProject',
+                        payload: { projectId }
+                    });
+                } else {
+                    // Non-owner leaves the project
+                    vscode.postMessage({
+                        type: 'leaveProject',
+                        payload: { projectId }
+                    });
+                }
+            }
+
+            openEditModal(projectId) {
+                const project = this.projects.find(p => p.id === projectId);
+                if (!project) return;
+
+                const isOwner = this.currentUser && project.owner_id === this.currentUser.id;
+                
+                // Populate form
+                document.getElementById('editProjectId').value = project.id;
+                document.getElementById('editProjectName').value = project.name;
+                document.getElementById('editProjectDescription').value = project.description || '';
+                document.getElementById('editProjectGoals').value = project.goals || '';
+                document.getElementById('editProjectRequirements').value = project.requirements || '';
+
+                // Populate members list (only show if owner)
+                const membersSection = document.getElementById('memberManagementSection');
+                const membersContainer = document.getElementById('editProjectMembers');
+                
+                if (isOwner) {
+                    membersSection.style.display = 'block';
+                    const teamMembers = this.users.filter(user => project.selectedMemberIds && project.selectedMemberIds.includes(user.id));
+                    membersContainer.innerHTML = teamMembers.map(member => `
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; margin: 5px 0; background: #f1f5f9; border-radius: 8px;">
+                            <div>
+                                <strong>${member.name}</strong>
+                                ${member.id === project.owner_id ? '<span style="background: #10b981; color: white; padding: 2px 6px; border-radius: 12px; font-size: 0.7rem; margin-left: 8px;">Owner</span>' : ''}
+                            </div>
+                            ${member.id !== project.owner_id ? `<button class="btn remove-member-btn" data-project-id="${project.id}" data-member-id="${member.id}" style="padding: 4px 8px; font-size: 0.75rem; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer;">Remove</button>` : ''}
+                        </div>
+                    `).join('');
+                } else {
+                    membersSection.style.display = 'none';
+                }
+
+                // Show modal
+                document.getElementById('editProjectModal').style.display = 'block';
+            }
+
+            closeEditModal() {
+                document.getElementById('editProjectModal').style.display = 'none';
             }
         }
 
@@ -1049,11 +1180,77 @@ The generated prompt will include:
                     }
                 }
 
-                if (target.matches('.remove-project-btn')) {
+                if (target.matches('.remove-project-btn') || target.matches('.delete-project-btn') || target.matches('.leave-project-btn')) {
                     const projectId = target.dataset.projectId;
                     if (projectId) {
-                        app.removeProject(projectId);
+                        if (target.matches('.delete-project-btn')) {
+                            if (confirm('Are you sure you want to delete this project? This action cannot be undone.')) {
+                                vscode.postMessage({
+                                    type: 'deleteProject',
+                                    payload: { projectId }
+                                });
+                            }
+                        } else if (target.matches('.leave-project-btn')) {
+                            if (confirm('Are you sure you want to leave this project?')) {
+                                vscode.postMessage({
+                                    type: 'leaveProject',
+                                    payload: { projectId }
+                                });
+                            }
+                        } else {
+                            // Fallback for old remove-project-btn
+                            app.removeProject(projectId);
+                        }
                     }
+                }
+
+                if (target.matches('.edit-project-btn')) {
+                    const projectId = target.dataset.projectId;
+                    if (projectId) {
+                        app.openEditModal(projectId);
+                    }
+                }
+
+                if (target.matches('.remove-member-btn')) {
+                    const projectId = target.dataset.projectId;
+                    const memberId = target.dataset.memberId;
+                    if (projectId && memberId) {
+                        if (confirm('Are you sure you want to remove this member from the project?')) {
+                            vscode.postMessage({
+                                type: 'removeProjectMember',
+                                payload: { projectId, memberId }
+                            });
+                        }
+                    }
+                }
+            });
+
+            // Edit modal handlers
+            document.getElementById('closeEditModal')?.addEventListener('click', () => app.closeEditModal());
+            document.getElementById('cancelEditBtn')?.addEventListener('click', () => app.closeEditModal());
+            document.getElementById('saveProjectBtn')?.addEventListener('click', () => {
+                const projectId = document.getElementById('editProjectId').value;
+                const description = document.getElementById('editProjectDescription').value;
+                const goals = document.getElementById('editProjectGoals').value;
+                const requirements = document.getElementById('editProjectRequirements').value;
+
+                if (!description.trim()) {
+                    alert('Description is required');
+                    return;
+                }
+
+                vscode.postMessage({
+                    type: 'updateProject',
+                    payload: { projectId, description, goals, requirements }
+                });
+
+                app.closeEditModal();
+            });
+
+            // Close modal when clicking outside
+            document.getElementById('editProjectModal')?.addEventListener('click', (e) => {
+                if (e.target === document.getElementById('editProjectModal')) {
+                    app.closeEditModal();
                 }
             });
 

@@ -819,6 +819,69 @@ Give me a specific message for EACH team member, detailing them what they need t
         break;
       }
 
+      case "updateProject": {
+        const { projectId, description, goals, requirements } = msg.payload;
+        const user = authService.getCurrentUser();
+        
+        if (!user) {
+          vscode.window.showErrorMessage("Please log in to update a project.");
+          break;
+        }
+
+        try {
+          const project = await databaseService.updateProject(projectId, {
+            description,
+            goals,
+            requirements
+          }, user.id);
+          
+          if (project) {
+            vscode.window.showInformationMessage("Project updated successfully!");
+            // Reload data to show the updated project
+            const data = await loadInitialData();
+            panel.webview.postMessage({
+              type: "dataLoaded",
+              payload: data,
+            });
+          } else {
+            vscode.window.showErrorMessage("Failed to update project. You may not have permission.");
+          }
+        } catch (error) {
+          console.error("Error updating project:", error);
+          vscode.window.showErrorMessage("Failed to update project.");
+        }
+        break;
+      }
+
+      case "removeProjectMember": {
+        const { projectId, memberId } = msg.payload;
+        const user = authService.getCurrentUser();
+        
+        if (!user) {
+          vscode.window.showErrorMessage("Please log in to remove a member.");
+          break;
+        }
+
+        try {
+          const success = await databaseService.removeProjectMember(projectId, memberId, user.id);
+          if (success) {
+            vscode.window.showInformationMessage("Member removed from project successfully!");
+            // Reload data to reflect the change
+            const data = await loadInitialData();
+            panel.webview.postMessage({
+              type: "dataLoaded",
+              payload: data,
+            });
+          } else {
+            vscode.window.showErrorMessage("Failed to remove member. You must be the project owner.");
+          }
+        } catch (error) {
+          console.error("Error removing project member:", error);
+          vscode.window.showErrorMessage("Failed to remove member.");
+        }
+        break;
+      }
+
       case "joinProject": {
         const { inviteCode } = msg.payload;
         const user = authService.getCurrentUser();
