@@ -97,10 +97,22 @@ CREATE POLICY "Allow members to create AI prompts" ON public.ai_prompts
 -- Users can update AI prompts they created
 CREATE POLICY "Allow users to update their AI prompts" ON public.ai_prompts 
   FOR UPDATE 
-  USING (auth.uid() = user_id) 
-  WITH CHECK (auth.uid() = user_id);
+  USING (
+    generated_by IN (
+      SELECT id FROM public.profiles WHERE user_id = auth.uid()
+    )
+  ) 
+  WITH CHECK (
+    generated_by IN (
+      SELECT id FROM public.profiles WHERE user_id = auth.uid()
+    )
+  );
 
 -- Users can delete their own AI prompts
 CREATE POLICY "Allow users to delete their AI prompts" ON public.ai_prompts 
   FOR DELETE 
-  USING (auth.uid() = user_id);
+  USING (
+    generated_by IN (
+      SELECT id FROM public.profiles WHERE user_id = auth.uid()
+    )
+  );

@@ -35,15 +35,20 @@ ALTER TABLE public.project_members
 ADD CONSTRAINT project_members_project_id_fkey 
 FOREIGN KEY (project_id) REFERENCES public.projects(id) ON DELETE CASCADE;
 
--- 5. Ensure the user profile exists for the current user
--- This will create a profile if it doesn't exist
+-- 5. Create profiles for all authenticated users who don't have profiles yet
+-- This uses a generic approach to create profiles for any user in auth.users who doesn't have a profile
 INSERT INTO public.profiles (id, name, skills, programming_languages, willing_to_work_on)
 SELECT 
-    'f575b6cb-f437-48b7-a1fd-5f2186c6547c' as id,
-    'Thomas Ishida' as name,
+    au.id,
+    COALESCE(
+        au.raw_user_meta_data->>'full_name', 
+        au.raw_user_meta_data->>'name', 
+        SPLIT_PART(au.email, '@', 1),
+        'User'
+    ) as name,
     '' as skills,
     '' as programming_languages,
     '' as willing_to_work_on
-WHERE NOT EXISTS (
-    SELECT 1 FROM public.profiles WHERE id = 'f575b6cb-f437-48b7-a1fd-5f2186c6547c'
-);
+FROM auth.users au
+LEFT JOIN public.profiles p ON au.id = p.id
+WHERE p.id IS NULL;

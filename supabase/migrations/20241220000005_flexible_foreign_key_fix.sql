@@ -41,7 +41,12 @@ FOREIGN KEY (project_id) REFERENCES public.projects(id) ON DELETE CASCADE;
 INSERT INTO public.profiles (id, name, skills, programming_languages, willing_to_work_on)
 SELECT 
     au.id,
-    COALESCE(au.raw_user_meta_data->>'full_name', au.raw_user_meta_data->>'name', 'User') as name,
+    COALESCE(
+        au.raw_user_meta_data->>'full_name', 
+        au.raw_user_meta_data->>'name', 
+        SPLIT_PART(au.email, '@', 1),
+        'User'
+    ) as name,
     '' as skills,
     '' as programming_languages,
     '' as willing_to_work_on
