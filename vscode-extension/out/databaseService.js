@@ -103,15 +103,16 @@ class DatabaseService {
         const uniqueProfiles = allProfiles.filter((profile, index, self) => index === self.findIndex(p => p.id === profile.id));
         return uniqueProfiles;
     }
-    async createProject(name, description, goals = '', requirements = '') {
-        console.log('DatabaseService: Creating project:', { name, description, goals, requirements });
+    async createProject(name, description, goals = '', requirements = '', ownerId) {
+        console.log('DatabaseService: Creating project:', { name, description, goals, requirements, ownerId });
         const inviteCode = this.generateInviteCode();
         const insertData = {
             name,
             description,
             goals,
             requirements,
-            invite_code: inviteCode
+            invite_code: inviteCode,
+            owner_id: ownerId
         };
         console.log('DatabaseService: Inserting data:', insertData);
         const { data, error } = await this.supabase
@@ -244,8 +245,8 @@ class DatabaseService {
             // Migrate projects
             if (jsonData.projects && Array.isArray(jsonData.projects)) {
                 for (const projectData of jsonData.projects) {
-                    // Create project
-                    const project = await this.createProject(projectData.name || 'Migrated Project', projectData.description || '', projectData.goals || '', projectData.requirements || '');
+                    // Create project with current user as owner
+                    const project = await this.createProject(projectData.name || 'Migrated Project', projectData.description || '', projectData.goals || '', projectData.requirements || '', userId);
                     if (project) {
                         // Add the current user as a member
                         await this.addProjectMember(project.id, userId);
@@ -298,6 +299,151 @@ class DatabaseService {
         }
         console.log('DatabaseService: Successfully joined project:', project.name);
         return project;
+    }
+    async deleteProject(projectId, userId) {
+        console.log('DatabaseService: Deleting project:', { projectId, userId });
+        // First verify the user is the owner
+        const { data: project, error: fetchError } = await this.supabase
+            .from('projects')
+            .select('owner_id')
+            .eq('id', projectId)
+            .single();
+        if (fetchError || !project) {
+            console.error('Error fetching project:', fetchError);
+            return false;
+        }
+        if (project.owner_id !== userId) {
+            console.error('User is not the owner of this project');
+            return false;
+        }
+        // Delete the project (cascade will handle project_members)
+        const { error } = await this.supabase
+            .from('projects')
+            .delete()
+            .eq('id', projectId);
+        if (error) {
+            console.error('Error deleting project:', error);
+            return false;
+        }
+        console.log('DatabaseService: Project deleted successfully');
+        return true;
+    }
+    async leaveProject(projectId, userId) {
+        console.log('DatabaseService: Leaving project:', { projectId, userId });
+        // Check if user is the owner
+        const { data: project, error: fetchError } = await this.supabase
+            .from('projects')
+            .select('owner_id')
+            .eq('id', projectId)
+            .single();
+        if (fetchError || !project) {
+            console.error('Error fetching project:', fetchError);
+            return false;
+        }
+        if (project.owner_id === userId) {
+            console.error('Owner cannot leave project - must delete it instead');
+            return false;
+        }
+        // Remove user from project_members
+        const { error } = await this.supabase
+            .from('project_members')
+            .delete()
+            .eq('project_id', projectId)
+            .eq('user_id', userId);
+        if (error) {
+            console.error('Error leaving project:', error);
+            return false;
+        }
+        console.log('DatabaseService: User left project successfully');
+        return true;
+    }
+    async getProjectOwner(projectId) {
+        const { data, error } = await this.supabase
+            .from('projects')
+            .select('owner_id')
+            .eq('id', projectId)
+            .single();
+        if (error || !data) {
+            console.error('Error fetching project owner:', error);
+            return null;
+        }
+        return data.owner_id;
+    }
+    async updateProject(projectId, updates, userId) {
+        console.log('DatabaseService: Updating project:', { projectId, updates, userId });
+        // Verify user has permission (owner or member)
+        const { data: project, error: fetchError } = await this.supabase
+            .from('projects')
+            .select('owner_id')
+            .eq('id', projectId)
+            .single();
+        if (fetchError || !project) {
+            console.error('Error fetching project:', fetchError);
+            return null;
+        }
+        // Check if user is owner or member
+        const isOwner = project.owner_id === userId;
+        const { data: memberCheck } = await this.supabase
+            .from('project_members')
+            .select('id')
+            .eq('project_id', projectId)
+            .eq('user_id', userId)
+            .single();
+        if (!isOwner && !memberCheck) {
+            console.error('User is not owner or member of this project');
+            return null;
+        }
+        // Update the project (name cannot be changed per requirements)
+        const { data, error } = await this.supabase
+            .from('projects')
+            .update({
+            description: updates.description,
+            goals: updates.goals,
+            requirements: updates.requirements
+        })
+            .eq('id', projectId)
+            .select()
+            .single();
+        if (error) {
+            console.error('Error updating project:', error);
+            return null;
+        }
+        console.log('DatabaseService: Project updated successfully');
+        return data;
+    }
+    async removeProjectMember(projectId, memberId, userId) {
+        console.log('DatabaseService: Removing project member:', { projectId, memberId, userId });
+        // Verify user is the owner
+        const { data: project, error: fetchError } = await this.supabase
+            .from('projects')
+            .select('owner_id')
+            .eq('id', projectId)
+            .single();
+        if (fetchError || !project) {
+            console.error('Error fetching project:', fetchError);
+            return false;
+        }
+        if (project.owner_id !== userId) {
+            console.error('Only project owner can remove members');
+            return false;
+        }
+        // Cannot remove the owner
+        if (memberId === project.owner_id) {
+            console.error('Cannot remove project owner');
+            return false;
+        }
+        // Remove member from project_members
+        const { error } = await this.supabase
+            .from('project_members')
+            .delete()
+            .eq('project_id', projectId)
+            .eq('user_id', memberId);
+        if (error) {
+            console.error('Error removing project member:', error);
+            return false;
+        }
+        console.log('DatabaseService: Project member removed successfully');
+        return true;
     }
     // Utility Methods
     generateInviteCode() {

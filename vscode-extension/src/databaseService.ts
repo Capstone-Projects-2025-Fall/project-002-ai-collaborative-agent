@@ -18,6 +18,7 @@ export interface Project {
   goals: string;
   requirements: string;
   invite_code: string;
+  owner_id: string;
   created_at: string;
   updated_at: string;
 }
@@ -166,8 +167,8 @@ export class DatabaseService {
     return uniqueProfiles;
   }
 
-  async createProject(name: string, description: string, goals: string = '', requirements: string = ''): Promise<Project | null> {
-    console.log('DatabaseService: Creating project:', { name, description, goals, requirements });
+  async createProject(name: string, description: string, goals: string = '', requirements: string = '', ownerId: string): Promise<Project | null> {
+    console.log('DatabaseService: Creating project:', { name, description, goals, requirements, ownerId });
     
     const inviteCode = this.generateInviteCode();
     
@@ -176,7 +177,8 @@ export class DatabaseService {
       description,
       goals,
       requirements,
-      invite_code: inviteCode
+      invite_code: inviteCode,
+      owner_id: ownerId
     };
     
     console.log('DatabaseService: Inserting data:', insertData);
@@ -338,12 +340,13 @@ export class DatabaseService {
       // Migrate projects
       if (jsonData.projects && Array.isArray(jsonData.projects)) {
         for (const projectData of jsonData.projects) {
-          // Create project
+          // Create project with current user as owner
           const project = await this.createProject(
             projectData.name || 'Migrated Project',
             projectData.description || '',
             projectData.goals || '',
-            projectData.requirements || ''
+            projectData.requirements || '',
+            userId
           );
 
           if (project) {
