@@ -808,17 +808,26 @@ Give me a specific message for EACH team member, detailing them what they need t
                 break;
             }
             case "updateProject": {
-                const { projectId, description, goals, requirements } = msg.payload;
+                const { projectId, name, description, goals, requirements } = msg.payload;
                 const profileId = await getCurrentUserProfileId(authService, databaseService);
                 if (!profileId) {
                     vscode.window.showErrorMessage("Please log in to update a project.");
                     break;
                 }
+                if (!name || !name.trim()) {
+                    vscode.window.showErrorMessage("Project name is required.");
+                    break;
+                }
+                if (!description || !description.trim()) {
+                    vscode.window.showErrorMessage("Project description is required.");
+                    break;
+                }
                 try {
                     const project = await databaseService.updateProject(projectId, {
-                        description,
-                        goals,
-                        requirements
+                        name: name.trim(),
+                        description: description.trim(),
+                        goals: goals?.trim() || '',
+                        requirements: requirements?.trim() || ''
                     }, profileId);
                     if (project) {
                         vscode.window.showInformationMessage("Project updated successfully!");
@@ -841,6 +850,12 @@ Give me a specific message for EACH team member, detailing them what they need t
             }
             case "removeProjectMember": {
                 const { projectId, memberId } = msg.payload;
+                // Show confirmation dialog using VS Code's native dialog
+                const confirmResult = await vscode.window.showWarningMessage('Are you sure you want to remove this member from the project?', { modal: true }, 'Remove', 'Cancel');
+                if (confirmResult !== 'Remove') {
+                    console.log('Extension: Remove member cancelled by user');
+                    break;
+                }
                 const profileId = await getCurrentUserProfileId(authService, databaseService);
                 if (!profileId) {
                     vscode.window.showErrorMessage("Please log in to remove a member.");
@@ -908,7 +923,7 @@ Give me a specific message for EACH team member, detailing them what they need t
                 break;
             }
             case "updateProfile": {
-                const { skills, programmingLanguages, willingToWorkOn } = msg.payload;
+                const { name, skills, programmingLanguages, willingToWorkOn } = msg.payload;
                 const user = authService.getCurrentUser();
                 if (!user) {
                     vscode.window.showErrorMessage("Please log in to update your profile.");
@@ -918,18 +933,28 @@ Give me a specific message for EACH team member, detailing them what they need t
                     });
                     break;
                 }
+                if (!name || !name.trim()) {
+                    vscode.window.showErrorMessage("Name is required.");
+                    panel.webview.postMessage({
+                        type: 'profileUpdateError',
+                        payload: { message: 'Name is required' }
+                    });
+                    break;
+                }
                 try {
                     const profile = await databaseService.updateProfile(user.id, {
+                        name: name.trim(),
                         skills,
                         programming_languages: programmingLanguages,
                         willing_to_work_on: willingToWorkOn
                     });
                     if (profile) {
                         vscode.window.showInformationMessage("Profile updated successfully!");
-                        // Send success message to webview
+                        // Reload data to show the updated profile
+                        const data = await loadInitialData();
                         panel.webview.postMessage({
-                            type: 'profileUpdated',
-                            payload: { profile }
+                            type: "dataLoaded",
+                            payload: data,
                         });
                     }
                     else {

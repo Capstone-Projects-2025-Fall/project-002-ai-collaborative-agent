@@ -426,8 +426,10 @@ class DatabaseService {
             console.error('Error fetching project:', fetchError);
             return null;
         }
-        // Check if user is owner or member
-        const isOwner = project.owner_id === userId;
+        // Check if user is owner or member (convert to strings for comparison)
+        const ownerIdStr = String(project.owner_id);
+        const userIdStr = String(userId);
+        const isOwner = ownerIdStr === userIdStr;
         const { data: memberCheck } = await this.supabase
             .from('project_members')
             .select('id')
@@ -438,14 +440,22 @@ class DatabaseService {
             console.error('User is not owner or member of this project');
             return null;
         }
-        // Update the project (name cannot be changed per requirements)
-        const { data, error } = await this.supabase
-            .from('projects')
-            .update({
+        // Update the project - only owner can change name
+        const updateData = {
             description: updates.description,
             goals: updates.goals,
             requirements: updates.requirements
-        })
+        };
+        // Only allow name change if user is the owner
+        if (updates.name && isOwner) {
+            updateData.name = updates.name;
+        }
+        else if (updates.name && !isOwner) {
+            console.warn('Non-owner attempted to change project name, ignoring');
+        }
+        const { data, error } = await this.supabase
+            .from('projects')
+            .update(updateData)
             .eq('id', projectId)
             .select()
             .single();

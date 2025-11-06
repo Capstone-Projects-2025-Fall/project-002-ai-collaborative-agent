@@ -399,7 +399,7 @@
             <form class="form-grid" id="profile-form">
                 <div class="form-group">
                     <label for="userName">Full Name</label>
-                    <input type="text" id="userName" disabled placeholder="Loaded from authentication">
+                    <input type="text" id="userName" placeholder="Enter your name">
                 </div>
                 
                 <div class="form-group">
@@ -503,8 +503,8 @@
                     <input type="hidden" id="editProjectId">
                     
                     <div class="form-group">
-                        <label for="editProjectName">Project Name</label>
-                        <input type="text" id="editProjectName" readonly style="background: #f1f5f9; cursor: not-allowed;" placeholder="Project name cannot be changed">
+                        <label for="editProjectName">Project Name *</label>
+                        <input type="text" id="editProjectName" required placeholder="Enter project name">
                     </div>
                     
                     <div class="form-group">
@@ -674,14 +674,21 @@ The generated prompt will include:
             }
 
             updateProfile() {
+                const name = document.getElementById('userName').value.trim();
                 const skills = document.getElementById('userSkills').value.trim();
                 const programmingLanguages = document.getElementById('userLanguages').value.trim();
                 const willingToWorkOn = document.getElementById('userWilling').value.trim();
+
+                if (!name) {
+                    showStatus('userStatus', 'Error: Name is required', 'error');
+                    return;
+                }
 
                 // Send update to extension
                 vscode.postMessage({
                     type: 'updateProfile',
                     payload: {
+                        name,
                         skills,
                         programmingLanguages,
                         willingToWorkOn
@@ -1234,12 +1241,12 @@ The generated prompt will include:
                     const projectId = target.dataset.projectId;
                     const memberId = target.dataset.memberId;
                     if (projectId && memberId) {
-                        if (confirm('Are you sure you want to remove this member from the project?')) {
-                            vscode.postMessage({
-                                type: 'removeProjectMember',
-                                payload: { projectId, memberId }
-                            });
-                        }
+                        // Send message directly - extension will handle confirmation
+                        console.log('Sending removeProjectMember message:', { projectId, memberId });
+                        vscode.postMessage({
+                            type: 'removeProjectMember',
+                            payload: { projectId, memberId }
+                        });
                     }
                 }
             });
@@ -1249,18 +1256,24 @@ The generated prompt will include:
             document.getElementById('cancelEditBtn')?.addEventListener('click', () => app.closeEditModal());
             document.getElementById('saveProjectBtn')?.addEventListener('click', () => {
                 const projectId = document.getElementById('editProjectId').value;
+                const name = document.getElementById('editProjectName').value.trim();
                 const description = document.getElementById('editProjectDescription').value;
                 const goals = document.getElementById('editProjectGoals').value;
                 const requirements = document.getElementById('editProjectRequirements').value;
 
+                if (!name) {
+                    showStatus('projectStatus', 'Error: Project name is required', 'error');
+                    return;
+                }
+
                 if (!description.trim()) {
-                    alert('Description is required');
+                    showStatus('projectStatus', 'Error: Description is required', 'error');
                     return;
                 }
 
                 vscode.postMessage({
                     type: 'updateProject',
-                    payload: { projectId, description, goals, requirements }
+                    payload: { projectId, name, description, goals, requirements }
                 });
 
                 app.closeEditModal();
