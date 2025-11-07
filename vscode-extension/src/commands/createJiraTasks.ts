@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { generateBacklogFromDescription } from "../lib/ai";
+import { generateBacklogFromDescription, determineTaskRange } from "../lib/ai";
 import { createIssuesFromBacklog } from "../lib/jira";
 
 export interface JiraTaskOptions {
@@ -82,15 +82,29 @@ export async function createJiraTasksCmd(
       return;
     }
 
-    const ai = await generateBacklogFromDescription(description);
+    const created = await vscode.window.withProgress(
+      {
+        location: vscode.ProgressLocation.Notification,
+        title: "Generating Jira Tasks",
+        cancellable: false,
+      },
+      async (progress) => {
+        progress.report({ message: "Analyzing project scope..." });
+        const taskRange = determineTaskRange(description);
+        const ai = await generateBacklogFromDescription(description);
 
-    const created = await createIssuesFromBacklog({
-      baseUrl,
-      email,
-      token,
-      projectKey,
-      backlogMarkdown: ai.text,
-    });
+        progress.report({ message: "Creating issues in Jira..." });
+        return await createIssuesFromBacklog({
+          baseUrl,
+          email,
+          token,
+          projectKey,
+          backlogMarkdown: ai.text,
+          minTasks: taskRange.min,
+          maxTasks: taskRange.max,
+        });
+      }
+    );
 
     const info = `Created ${created.length} Jira issue(s) in project ${projectKey}`;
     vscode.window.showInformationMessage(info);

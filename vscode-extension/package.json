@@ -123,7 +123,9 @@
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -w -p ./",
-    "package": "vsce package"
+    "package": "vsce package",
+    "test": "vitest",
+    "test:run": "vitest run"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.8",

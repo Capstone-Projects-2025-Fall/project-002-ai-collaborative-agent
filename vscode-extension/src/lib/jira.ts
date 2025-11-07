@@ -9,6 +9,8 @@ type CreateIssuesOpts = {// Define what inputs/options from users are required t
   token: string;
   projectKey: string;
   backlogMarkdown: string; // AI output (plain/markdown-like text)
+  minTasks?: number;
+  maxTasks?: number;
 };
 
 
@@ -20,9 +22,19 @@ export async function createIssuesFromBacklog(opts: CreateIssuesOpts) {
   - Description is sent as an ADF document (required by Jira v3 API)
  */
 
-  const { baseUrl, email, token, projectKey, backlogMarkdown } = opts; // Extract each value from the options object
+  const { baseUrl, email, token, projectKey, backlogMarkdown, minTasks, maxTasks } = opts; // Extract each value from the options object
 
-  const tasks = extractTasks(backlogMarkdown); // Parse task titles from the AI Markdown list (one title per bullet)
+  const maxAllowedTasks = Math.min(Math.max(maxTasks ?? 25, 10), 25); // clamp to 10-25 window
+  const minAllowedTasks = Math.min(Math.max(minTasks ?? 10, 1), maxAllowedTasks); // ensure <= max
+
+  const tasks = extractTasks(backlogMarkdown, maxAllowedTasks); // Parse task titles from the AI Markdown list (one title per bullet)
+
+  if (tasks.length < minAllowedTasks) {
+    throw new Error(
+      `Only ${tasks.length} task(s) detected from AI, but at least ${minAllowedTasks} are required. Please provide a more detailed project description to generate additional tasks.`
+    );
+  }
+
   const auth = Buffer.from(`${email}:${token}`).toString("base64"); // this is needed because Jira’s API requires Basic Authentication: meaning that the email and token must be combined and Base64-encoded before being sent in the HTTP header for secure login
 
   const adfDoc = toAdf(backlogMarkdown); // Convert the backlog text into Jira’s ADF format for the issue description
@@ -74,7 +86,7 @@ export async function createIssuesFromBacklog(opts: CreateIssuesOpts) {
   Pulls each line that looks like "- [ ] Do something" or "- Do something"
   Returns an array of clean task titles.
  */
-function extractTasks(md: string): string[] {
+function extractTasks(md: string, limit = 25): string[] {
   const lines = md.split(/\r?\n/); // split markdown text into lines
   const tasks: string[] = [];
 
@@ -95,7 +107,7 @@ function extractTasks(md: string): string[] {
     }
   }
 
-  return tasks.slice(0, 50); // safety cap, max 50 tasks
+  return tasks.slice(0, limit); // safety cap with caller-provided limit
 }
 
 /**

@@ -88,6 +88,70 @@
             animation: slideIn 0.3s ease-out;
         }
 
+        .hidden {
+            display: none !important;
+        }
+
+        .info-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 18px;
+            height: 18px;
+            margin-left: 6px;
+            border-radius: 50%;
+            border: 1px solid #94a3b8;
+            color: #475569;
+            font-size: 0.75rem;
+            cursor: pointer;
+            position: relative;
+            background: #e2e8f0;
+            font-weight: 700;
+        }
+
+        .info-icon::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            top: 115%;
+            left: 50%;
+            transform: translate(-50%, -10px);
+            width: 250px;
+            background: #0f172a;
+            color: #f8fafc;
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            line-height: 1.35;
+            box-shadow: 0 10px 25px rgba(15, 23, 42, 0.25);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            white-space: pre-line;
+            z-index: 50;
+        }
+
+        .info-icon::before {
+            content: '';
+            position: absolute;
+            top: 105%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 12px;
+            height: 12px;
+            background: #0f172a;
+            clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .info-icon:hover::after,
+        .info-icon:hover::before,
+        .info-icon:focus-visible::after,
+        .info-icon:focus-visible::before {
+            opacity: 1;
+            transform: translate(-50%, 0);
+        }
+
         @keyframes slideIn {
             from { opacity: 0; transform: translateY(15px); }
             to { opacity: 1; transform: translateY(0); }
@@ -423,37 +487,6 @@
                     <textarea id="userWilling" placeholder="Describe your interests and preferred project types..."></textarea>
                 </div>
             </form>
-            
-            <div class="profile-card">
-                <div class="profile-card-title">Jira Credentials</div>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label for="jiraBaseUrl">Jira Cloud base URL (e.g. https://your-team.atlassian.net)</label>
-                        <input type="text" id="jiraBaseUrl" placeholder="https://your-team.atlassian.net">
-                    </div>
-                    <div class="form-group">
-                        <label for="jiraProjectKey">Jira Project Key (e.g. STAR, TUFF, ENG)</label>
-                        <input type="text" id="jiraProjectKey" placeholder="TEAM">
-                    </div>
-                    <div class="form-group">
-                        <label for="jiraEmail">Jira account email (the one tied to the API token)</label>
-                        <input type="email" id="jiraEmail" placeholder="you@company.com">
-                    </div>
-                    <div class="form-group">
-                        <label for="jiraApiToken">Jira API Token</label>
-                        <input type="password" id="jiraApiToken" placeholder="••••••••">
-                    </div>
-                    <div class="form-group" style="grid-column: 1 / -1;">
-                        <label for="jiraProjectPrompt">Project prompt (Describe your project to generate a Jira backlog)</label>
-                        <textarea id="jiraProjectPrompt" placeholder="e.g., Build a fitness app that tracks workouts and suggests plans…" rows="4"></textarea>
-                    </div>
-                </div>
-                <div class="button-group" style="justify-content: flex-end;">
-                    <button type="button" id="jira-profile-create-btn" class="btn btn-primary">Create Jira Tasks</button>
-                </div>
-                <div id="jiraStatus" class="status-message" style="display: none;"></div>
-            </div>
-            
            <div class="button-group">
                 <button id="update-profile-btn" class="btn btn-primary">Update Profile</button>
                 <button id="clear-profile-form-btn" class="btn btn-secondary">Reset Form</button>
@@ -505,6 +538,56 @@
             </div>
             
             <div id="projectStatus" class="status-message" style="display: none;"></div>
+
+            <div class="section-title">Jira Task Generator</div>
+            <p style="color: #475569; margin-bottom: 12px;">Connect to Jira Cloud to auto-generate a backlog for the selected project.</p>
+            <div class="button-group" style="justify-content: flex-start; margin-bottom: 0;">
+                <button type="button" id="toggle-jira-credentials-btn" class="btn btn-primary" aria-expanded="false">Generate Jira Tasks</button>
+            </div>
+            <div id="jiraCredentialsCard" class="profile-card hidden">
+                <div class="profile-card-title">Jira Credentials</div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="jiraBaseUrl">
+                            Jira Cloud base URL (e.g. https://your-team.atlassian.net)
+                            <span class="info-icon" tabindex="0" role="button" aria-label="How to find your Jira Cloud base URL" data-tooltip="1. Sign in to Jira Cloud in your browser.&#10;2. Copy the site URL up to atlassian.net (e.g., https://team.atlassian.net).&#10;3. Remove everything after the domain before pasting here.">?</span>
+                        </label>
+                        <input type="text" id="jiraBaseUrl" placeholder="https://your-team.atlassian.net">
+                    </div>
+                    <div class="form-group">
+                        <label for="jiraProjectKey">
+                            Jira Project Key (e.g. STAR, TUFF, ENG)
+                            <span class="info-icon" tabindex="0" role="button" aria-label="How to find your Jira Project Key" data-tooltip="1. In Jira, open Project settings &gt; Details.&#10;2. Find the Project key (2-10 uppercase letters shown under the project name).&#10;3. Paste that exact key here—do not use the project name.">?</span>
+                        </label>
+                        <input type="text" id="jiraProjectKey" placeholder="TEAM">
+                    </div>
+                    <div class="form-group">
+                        <label for="jiraEmail">
+                            Jira account email (the one tied to the API token)
+                            <span class="info-icon" tabindex="0" role="button" aria-label="Which email to use for Jira" data-tooltip="1. Use the Atlassian account email tied to your API token.&#10;2. Confirm it from https://id.atlassian.com/manage-profile.&#10;3. This email must have access to the Jira site you entered.">?</span>
+                        </label>
+                        <input type="email" id="jiraEmail" placeholder="you@company.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="jiraApiToken">
+                            Jira API Token
+                            <span class="info-icon" tabindex="0" role="button" aria-label="How to generate a Jira API token" data-tooltip="1. Go to https://id.atlassian.com/manage-profile/security/api-tokens (while logged in).&#10;2. Click Create API token, give it a label, then Create.&#10;3. Copy the token once and paste it here—store it securely because it cannot be shown again.">?</span>
+                        </label>
+                        <input type="password" id="jiraApiToken" placeholder="••••••••">
+                    </div>
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label for="jiraProjectPrompt">
+                            Project prompt (Describe your project to generate a Jira backlog)
+                            <span class="info-icon" tabindex="0" role="button" aria-label="What to include in the Jira project prompt" data-tooltip="Describe what Jira should build for you.&#10;Include the product vision, target users, tech stack, constraints, and any priority backlog items or milestones.">?</span>
+                        </label>
+                        <textarea id="jiraProjectPrompt" placeholder="e.g., Build a fitness app that tracks workouts and suggests plans…" rows="4"></textarea>
+                    </div>
+                </div>
+                <div class="button-group" style="justify-content: flex-end;">
+                    <button type="button" id="jira-profile-create-btn" class="btn btn-primary">Create Jira Tasks</button>
+                </div>
+                <div id="jiraStatus" class="status-message" style="display: none;"></div>
+            </div>
             
             <div class="section-title">Projects</div>
             <div id="projectList" class="project-list">
@@ -1201,6 +1284,17 @@ The generated prompt will include:
             document.getElementById('start-project')?.addEventListener('click', startProject);
 
             document.getElementById('jira-profile-create-btn')?.addEventListener('click', () => app.createJiraTasksFromProfile());
+            const jiraToggleBtn = document.getElementById('toggle-jira-credentials-btn');
+            const jiraCredentialsCard = document.getElementById('jiraCredentialsCard');
+            jiraToggleBtn?.addEventListener('click', () => {
+                if (!jiraCredentialsCard) return;
+                const isHidden = jiraCredentialsCard.classList.toggle('hidden');
+                jiraToggleBtn.textContent = isHidden ? 'Generate Jira Tasks' : 'Hide Jira Credentials';
+                jiraToggleBtn.setAttribute('aria-expanded', String(!isHidden));
+                if (!isHidden) {
+                    document.getElementById('jiraBaseUrl')?.focus();
+                }
+            });
 
             document.body.addEventListener('click', (event) => {
                 const target = event.target;
