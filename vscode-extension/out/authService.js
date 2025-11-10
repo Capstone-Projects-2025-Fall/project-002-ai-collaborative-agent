@@ -136,17 +136,17 @@ class AuthService {
             }
             if (data.url) {
                 console.log("Opening OAuth URL:", data.url);
-                // Open the OAuth URL in the default browser using VS Code's cross-platform API
+                // Open the OAuth URL in the default browser (cross-platform)
                 try {
                     await vscode.env.openExternal(vscode.Uri.parse(data.url));
                     return { user: null, error: null };
                 }
-                catch (openError) {
-                    console.error("Error opening browser:", openError);
+                catch (error) {
+                    console.error("Failed to open browser:", error);
                     this.stopLocalServer();
                     return {
                         user: null,
-                        error: openError instanceof Error ? openError.message : "Failed to open browser",
+                        error: error instanceof Error ? error.message : "Failed to open browser",
                     };
                 }
             }
@@ -181,17 +181,18 @@ class AuthService {
                 return { user: null, error: error.message };
             }
             if (data.url) {
-                // Open the OAuth URL in the default browser using VS Code's cross-platform API
+                console.log("Opening OAuth URL:", data.url);
+                // Open the OAuth URL in the default browser (cross-platform)
                 try {
                     await vscode.env.openExternal(vscode.Uri.parse(data.url));
                     return { user: null, error: null };
                 }
-                catch (openError) {
-                    console.error("Error opening browser:", openError);
+                catch (error) {
+                    console.error("Failed to open browser:", error);
                     this.stopLocalServer();
                     return {
                         user: null,
-                        error: openError instanceof Error ? openError.message : "Failed to open browser",
+                        error: error instanceof Error ? error.message : "Failed to open browser",
                     };
                 }
             }
@@ -256,18 +257,31 @@ class AuthService {
         }
     }
     onAuthStateChange(callback) {
-        return this.supabase.auth.onAuthStateChange((event, session) => {
-            if (event === "SIGNED_IN" && session) {
-                this.currentSession = session;
-                this.currentUser = this.mapUser(session.user);
-                callback(this.currentUser);
+        const { data } = this.supabase.auth.onAuthStateChange((event, session) => {
+            try {
+                if (event === "SIGNED_IN" && session) {
+                    this.currentSession = session;
+                    this.currentUser = this.mapUser(session.user);
+                    callback?.(this.currentUser);
+                }
+                else if (event === "SIGNED_OUT") {
+                    this.currentSession = null;
+                    this.currentUser = null;
+                    callback?.(null);
+                }
             }
-            else if (event === "SIGNED_OUT") {
-                this.currentSession = null;
-                this.currentUser = null;
-                callback(null);
+            catch (err) {
+                console.warn("Auth state callback after panel disposed", err.message);
             }
-        }).data.subscription.unsubscribe;
+        });
+        return () => {
+            try {
+                data.subscription.unsubscribe();
+            }
+            catch (err) {
+                console.warn("Error unsubscribing from auth state change:", err.message);
+            }
+        };
     }
     mapUser(user) {
         return {

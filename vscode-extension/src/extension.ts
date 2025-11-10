@@ -6,6 +6,7 @@ import { activateCodeReviewer } from "./ai_analyze";
 import { AuthService, AuthUser } from "./authService";
 import { DatabaseService, Profile, Project, ProjectMember, AIPrompt } from "./databaseService";
 import { getSupabaseClient, getEdgeFunctionUrl, getSupabaseAnonKey, getSupabaseUrl } from "./supabaseConfig";
+import { createJiraTasksCmd, JiraTaskOptions } from "./commands/createJiraTasks";
 
 // No .env loading needed; using hardcoded config in supabaseConfig
 
@@ -13,6 +14,55 @@ import { getSupabaseClient, getEdgeFunctionUrl, getSupabaseAnonKey, getSupabaseU
 let authService: AuthService;
 let databaseService: DatabaseService;
 let extensionContext: vscode.ExtensionContext;
+
+type CachedJiraProfile = {
+  baseUrl?: string;
+  projectKey?: string;
+  email?: string;
+  token?: string;
+  projectPrompt?: string;
+};
+
+const JIRA_PROFILE_KEY_PREFIX = "jiraProfile:";
+
+function getCachedJiraProfile(userId: string): CachedJiraProfile | undefined {
+  if (!extensionContext) {
+    return undefined;
+  }
+  return extensionContext.globalState.get<CachedJiraProfile>(
+    JIRA_PROFILE_KEY_PREFIX + userId
+  );
+}
+
+async function setCachedJiraProfile(
+  userId: string,
+  profile?: CachedJiraProfile
+) {
+  if (!extensionContext) {
+    return;
+  }
+  const hasValues =
+    profile &&
+    Object.values(profile).some(
+      (value) => value !== undefined && value !== null && String(value).trim() !== ""
+    );
+  if (!hasValues) {
+    await extensionContext.globalState.update(
+      JIRA_PROFILE_KEY_PREFIX + userId,
+      undefined
+    );
+    return;
+  }
+  await extensionContext.globalState.update(
+    JIRA_PROFILE_KEY_PREFIX + userId,
+    profile
+  );
+}
+// Reopens AICollab UI when new workplace 
+const GLOBAL_STATE_KEY = "reopenAiCollabAgent";
+// When new workspace is open, liveshare begins
+const GLOBAL_LIVESHARE_KEY = "reopenLiveShareSession";
+
 
 // Helper function to get the full path to our data file
 function getDataFilePath(): string | undefined {
@@ -58,6 +108,25 @@ async function loadInitialData(): Promise<any> {
       return { users: [], projects: [], promptCount: 0 };
     }
     
+    // Apply Jira profile caching if available
+    const cachedJiraProfile = getCachedJiraProfile(user.id);
+    if (profile && cachedJiraProfile) {
+      profile = {
+        ...profile,
+        jira_base_url:
+          cachedJiraProfile.baseUrl ?? profile.jira_base_url ?? null,
+        jira_project_key:
+          cachedJiraProfile.projectKey ?? profile.jira_project_key ?? null,
+        jira_email: cachedJiraProfile.email ?? profile.jira_email ?? null,
+        jira_api_token:
+          cachedJiraProfile.token ?? profile.jira_api_token ?? null,
+        jira_project_prompt:
+          cachedJiraProfile.projectPrompt ??
+          profile.jira_project_prompt ??
+          null,
+      };
+    }
+    
     // Use profile.id for all database operations (not user.id which is auth.users.id)
     const profileId = profile.id;
     
@@ -85,9 +154,25 @@ async function loadInitialData(): Promise<any> {
     );
     const promptCount = allPrompts.flat().length;
 
+    const sanitizedProfiles = allProfiles.map((profileItem: Profile) => {
+      const cached =
+        profileItem.id === user.id ? cachedJiraProfile : undefined;
+      return {
+        ...profileItem,
+        jira_base_url:
+          cached?.baseUrl ?? profileItem.jira_base_url ?? null,
+        jira_project_key:
+          cached?.projectKey ?? profileItem.jira_project_key ?? null,
+        jira_email: cached?.email ?? profileItem.jira_email ?? null,
+        jira_api_token: null,
+        jira_project_prompt:
+          cached?.projectPrompt ?? profileItem.jira_project_prompt ?? null,
+      };
+    });
+
     return {
       currentUser: profile, // Current user's profile for editing
-      users: allProfiles, // All team members from user's projects
+      users: sanitizedProfiles, // All team members from user's projects (Jira tokens stripped)
       projects: projectsWithMembers,
       promptCount
     };
@@ -133,17 +218,22 @@ async function saveInitialData(data: any): Promise<void> {
 
 export async function activate(context: vscode.ExtensionContext) {
   activateCodeReviewer(context);
-  // Environment variables are not required; configuration is hardcoded
 
-  vscode.window.showInformationMessage("AI Collab Agent activated");
-
-  // Store context globally for callback server
+  // Store context globally first
   extensionContext = context;
+
+  const createJiraCmd = vscode.commands.registerCommand(
+    "ai.createJiraTasks",
+    async (options?: Partial<JiraTaskOptions>) => {
+      return await createJiraTasksCmd(context, options);
+    }
+  );
+  context.subscriptions.push(createJiraCmd);
 
   // Initialize authentication service
   try {
     authService = new AuthService();
-    authService.initialize();
+    await authService.initialize();
   } catch (error) {
     vscode.window.showErrorMessage(
       `Authentication setup failed: ${
@@ -152,6 +242,63 @@ export async function activate(context: vscode.ExtensionContext) {
     );
     return;
   }
+
+  // Try to restore Supabase session from SecretStorage
+  const accessToken = await context.secrets.get("supabase_access_token");
+  const refreshToken = await context.secrets.get("supabase_refresh_token");
+
+  if (accessToken) {
+    try {
+      await authService.setSessionFromTokens(accessToken, refreshToken || undefined);
+      console.log("Restored Supabase session");
+    } catch (err) {
+      console.error("Failed to restore session:", err);
+      await extensionContext.secrets.delete("supabase_access_token");
+      await extensionContext.secrets.delete("supabase_refresh_token");
+    }
+  }
+
+  // keep secrets in sync when auth state changes
+  authService.onAuthStateChange(async (user) => {
+    if (user) {
+      const session = authService.getCurrentSession();
+      if (session) {
+        await extensionContext.secrets.store("supabase_access_token", session.access_token);
+        await extensionContext.secrets.store("supabase_refresh_token", session.refresh_token);
+        console.log(" Stored updated Supabase tokens");
+      }
+    } else {
+      await extensionContext.secrets.delete("supabase_access_token");
+      await extensionContext.secrets.delete("supabase_refresh_token");
+      console.log("Cleared Supabase tokens on logout");
+    }
+  });
+
+  // Auto-start Live Share session 
+  const shouldStartLiveShare = context.globalState.get(GLOBAL_LIVESHARE_KEY);
+  if (shouldStartLiveShare) {
+    await context.globalState.update(GLOBAL_LIVESHARE_KEY, false);
+
+    setTimeout(async () => {
+      try {
+        const liveShare = await vsls.getApi();
+        if (liveShare) {
+          await liveShare.share();
+          vscode.window.showInformationMessage("Live Share session restarted automatically!");
+          console.log("Auto Live Share session:", liveShare.session);
+        } else {
+          vscode.window.showErrorMessage("Live Share API unavailable on reload.");
+        }
+      } catch (err) {
+        console.error("Auto-Live Share restart failed:", err);
+      }
+    }, 2000); // delay to let extension host finish loading
+  }
+
+  vscode.window.showInformationMessage("AI Collab Agent activated");
+
+  // Store context globally for callback server
+  extensionContext = context;
 
   // Initialize database service
   try {
@@ -277,7 +424,25 @@ const handleUri = vscode.window.registerUriHandler({
   const open = vscode.commands.registerCommand(
     "aiCollab.openPanel",
     async () => {
-      // Check if user is authenticated
+       // First, try to restore session from stored tokens if not already authenticated
+      if (!authService.isAuthenticated()) {
+        const accessToken = await context.secrets.get("supabase_access_token");
+        const refreshToken = await context.secrets.get("supabase_refresh_token");
+        
+        if (accessToken) {
+          try {
+            await authService.setSessionFromTokens(accessToken, refreshToken || undefined);
+            console.log("Restored session from stored tokens");
+          } catch (err) {
+            console.error("Failed to restore session from stored tokens:", err);
+            // Clear invalid tokens
+            await context.secrets.delete("supabase_access_token");
+            await context.secrets.delete("supabase_refresh_token");
+          }
+        }
+      }
+
+      // Check if user is authenticated (after attempting restoration)
       if (!authService.isAuthenticated()) {
         // Show login page
         const loginPanel = vscode.window.createWebviewPanel(
@@ -318,6 +483,11 @@ const handleUri = vscode.window.registerUriHandler({
               const result = await authService.signIn(email, password);
 
               if (result.user) {
+                const session = authService.getCurrentSession();
+                if (session) {
+                  await context.secrets.store("supabase_access_token", session.access_token);
+                  await context.secrets.store("supabase_refresh_token", session.refresh_token);
+                }
                 loginPanel.webview.postMessage({
                   type: "authSuccess",
                   payload: {
@@ -342,6 +512,11 @@ const handleUri = vscode.window.registerUriHandler({
               const result = await authService.signUp(email, password, name);
 
               if (result.user) {
+                const session = authService.getCurrentSession();
+                if (session) {
+                  await context.secrets.store("supabase_access_token", session.access_token);
+                  await context.secrets.store("supabase_refresh_token", session.refresh_token);
+                }
                 loginPanel.webview.postMessage({
                   type: "authSuccess",
                   payload: {
@@ -363,6 +538,11 @@ const handleUri = vscode.window.registerUriHandler({
             }
 
             case "signInWithGoogle": {
+              const session = authService.getCurrentSession();
+              if (session) {
+                await context.secrets.store("supabase_access_token", session.access_token);
+                await context.secrets.store("supabase_refresh_token", session.refresh_token);
+              }
               try {
                 console.log("Starting Google OAuth...");
                 const result = await authService.signInWithGoogle();
@@ -401,6 +581,11 @@ const handleUri = vscode.window.registerUriHandler({
             }
 
             case "signInWithGithub": {
+              const session = authService.getCurrentSession();
+              if (session) {
+                await context.secrets.store("supabase_access_token", session.access_token);
+                await context.secrets.store("supabase_refresh_token", session.refresh_token);
+              }
               try {
                 console.log("Starting GitHub OAuth...");
                 const result = await authService.signInWithGithub();
@@ -446,6 +631,8 @@ const handleUri = vscode.window.registerUriHandler({
                   payload: { message: result.error },
                 });
               } else {
+                await context.secrets.delete("supabase_access_token");
+                await context.secrets.delete("supabase_refresh_token");
                 loginPanel.webview.postMessage({
                   type: "authSignedOut",
                   payload: {},
@@ -533,6 +720,33 @@ async function openMainPanel(
     console.log('Extension: Received message from webview:', { type: msg.type, payload: msg.payload });
     
     switch (msg.type) {
+      case "createJiraTasks": {
+        try {
+          const payload: Partial<JiraTaskOptions> | undefined = msg?.payload;
+          const result: any = await vscode.commands.executeCommand(
+            "ai.createJiraTasks",
+            payload
+          );
+          const createdCount = Array.isArray(result) ? result.length : 0;
+          panel.webview.postMessage({
+            type: "jiraCreated",
+            payload: {
+              message:
+                createdCount > 0
+                  ? `Created ${createdCount} Jira issue(s) for project ${payload?.projectKey ?? ""}`.trim()
+                  : "No Jira issues were created. Please verify your backlog or credentials.",
+            },
+          });
+        } catch (err: any) {
+          panel.webview.postMessage({
+            type: "jiraError",
+            payload: {
+              message: err?.message || "Failed to create Jira tasks.",
+            },
+          });
+        }
+        break;
+      }
       
       case "openFile": {
       					try {
@@ -548,61 +762,46 @@ async function openMainPanel(
 						const folderUri = await vscode.window.showOpenDialog(options);
 
 						if (folderUri && folderUri.length > 0) {
-							const selectedFolder = folderUri[0].fsPath;
+							const selectedFolder = folderUri[0];
 
-							// List files in the selected folder
-							const files = await vscode.workspace.fs.readDirectory(
-								vscode.Uri.file(selectedFolder)
-							);
+              // Remember to reopen AI Collab panel and Live Share after reload
+              await extensionContext.globalState.update(GLOBAL_STATE_KEY, true);
+              await extensionContext.globalState.update(GLOBAL_LIVESHARE_KEY, true);
 
-							// Open the first file in the folder (or prompt the user to select one)
-							const firstFile = files.find(
-								([name, type]) => type === vscode.FileType.File
-							);
-							if (firstFile) {
-								const filePath = path.join(selectedFolder, firstFile[0]);
-								const doc = await vscode.workspace.openTextDocument(
-									vscode.Uri.file(filePath)
-								);
-								await vscode.window.showTextDocument(doc);
-								vscode.window.showInformationMessage(
-									`Opened file: ${filePath}`
-								);
+              // Open the folder as a workspace (will reload VS Code)
+              await vscode.commands.executeCommand("vscode.openFolder", selectedFolder, false);
 
-								try {
-									/// Start a Live Share session
-									const liveShare = await vsls.getApi(); // Get the Live Share API
-									if (!liveShare) {
-										vscode.window.showErrorMessage(
-											"Live Share extension is not installed or not available."
-										);
-										return;
-									}
+              vscode.window.showInformationMessage(`Opened folder: ${selectedFolder.fsPath}`);
 
-									await liveShare.share(); // May return undefined even if successful
+              try {
+                /// Start a Live Share session
+                const liveShare = await vsls.getApi(); // Get the Live Share API
+                if (!liveShare) {
+                  vscode.window.showErrorMessage(
+                    "Live Share extension is not installed or not available."
+                  );
+                  return;
+                }
 
-									// Check if session is active
-									if (liveShare.session && liveShare.session.id) {
-										vscode.window.showInformationMessage(
-											"Live Share session started!"
-										);
-										console.log("Live Share session info:", liveShare.session);
-									} else {
-										vscode.window.showErrorMessage(
-											"Failed to start Live Share session."
-										);
-									}
-								} catch (error) {
-									console.error("Error starting Live Share session:", error);
-									vscode.window.showErrorMessage(
-										"An error occurred while starting Live Share."
-									);
-								}
-							} else {
-								vscode.window.showWarningMessage(
-									"No files found in the selected folder."
-								);
-							}
+                await liveShare.share(); // May return undefined even if successful
+
+                // Check if session is active
+                if (liveShare.session && liveShare.session.id) {
+                  vscode.window.showInformationMessage(
+                    "Live Share session started!"
+                  );
+                  console.log("Live Share session info:", liveShare.session);
+                } else {
+                  vscode.window.showErrorMessage(
+                    "Failed to start Live Share session."
+                  );
+                }
+              } catch (error) {
+                console.error("Error starting Live Share session:", error);
+                vscode.window.showErrorMessage(
+                  "An error occurred while starting Live Share."
+                );
+              }
 						} else {
 							vscode.window.showWarningMessage("No folder selected.");
 						}
@@ -1091,7 +1290,17 @@ Give me a specific message for EACH team member, detailing them what they need t
       }
 
       case "updateProfile": {
-        const { name, skills, programmingLanguages, willingToWorkOn } = msg.payload;
+        const {
+          name,
+          skills,
+          programmingLanguages,
+          willingToWorkOn,
+          jiraBaseUrl,
+          jiraProjectKey,
+          jiraEmail,
+          jiraApiToken,
+          jiraProjectPrompt,
+        } = msg.payload;
         const user = authService.getCurrentUser();
         
         if (!user) {
@@ -1117,10 +1326,23 @@ Give me a specific message for EACH team member, detailing them what they need t
             name: name.trim(),
             skills,
             programming_languages: programmingLanguages,
-            willing_to_work_on: willingToWorkOn
+            willing_to_work_on: willingToWorkOn,
+            jira_base_url: jiraBaseUrl,
+            jira_project_key: jiraProjectKey,
+            jira_email: jiraEmail,
+            jira_api_token: jiraApiToken,
+            jira_project_prompt: jiraProjectPrompt,
           });
           if (profile) {
             vscode.window.showInformationMessage("Profile updated successfully!");
+            // Cache Jira profile data
+            await setCachedJiraProfile(user.id, {
+              baseUrl: jiraBaseUrl,
+              projectKey: jiraProjectKey,
+              email: jiraEmail,
+              token: jiraApiToken,
+              projectPrompt: jiraProjectPrompt,
+            });
             // Reload data to show the updated profile
             const data = await loadInitialData();
             panel.webview.postMessage({
@@ -1219,6 +1441,27 @@ Give me a specific message for EACH team member, detailing them what they need t
           console.error("Error during migration:", error);
           vscode.window.showErrorMessage("Failed to migrate data.");
         }
+        break;
+      }
+
+      case "signOut": {
+        try {
+          await authService.signOut();
+        } catch (err) {
+          console.error("Error during sign out:", err);
+        }
+
+        try {
+          if (panel && panel.webview) {
+            panel.dispose();
+          }
+        } catch (err) {
+          console.warn("Panel already disposed", err);
+        }
+        vscode.window.showInformationMessage("Signed out successfully.");
+        setTimeout(() => {
+          vscode.commands.executeCommand("aiCollab.openPanel");
+        }, 200);
         break;
       }
 

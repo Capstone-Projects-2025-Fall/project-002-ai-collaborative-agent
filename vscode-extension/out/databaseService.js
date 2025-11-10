@@ -40,21 +40,55 @@ class DatabaseService {
         }
         return data;
     }
-    async createProfile(userId, name, skills = '', programming_languages = '', willing_to_work_on = '') {
+    isMissingColumnError(error) {
+        if (!error) {
+            return false;
+        }
+        const code = (error.code || "").toString();
+        const message = (error.message || "").toString().toLowerCase();
+        return code === "42703" || message.includes("column") || message.includes("does not exist");
+    }
+    async createProfile(userId, name, skills = "", programming_languages = "", willing_to_work_on = "") {
         console.log('Creating profile for user ID:', userId);
-        const { data, error } = await this.supabase
-            .from('profiles')
-            .insert({
+        const insertPayload = {
             id: userId,
             name,
             skills,
             programming_languages,
-            willing_to_work_on
-        })
+            willing_to_work_on,
+            jira_base_url: null,
+            jira_project_key: null,
+            jira_email: null,
+            jira_api_token: null,
+            jira_project_prompt: null
+        };
+        const { data, error } = await this.supabase
+            .from('profiles')
+            .insert(insertPayload)
             .select()
             .single();
         if (error) {
             console.error('Error creating profile:', error);
+            if (this.isMissingColumnError(error)) {
+                console.warn('Profiles table missing Jira credential columns; inserting base profile fields only.');
+                const fallbackPayload = {
+                    id: userId,
+                    name,
+                    skills,
+                    programming_languages,
+                    willing_to_work_on
+                };
+                const { data: fallbackData, error: fallbackError } = await this.supabase
+                    .from('profiles')
+                    .insert(fallbackPayload)
+                    .select()
+                    .single();
+                if (fallbackError) {
+                    console.error('Fallback profile insert failed:', fallbackError);
+                    return null;
+                }
+                return fallbackData;
+            }
             console.error('User ID being used:', userId);
             return null;
         }
@@ -69,14 +103,35 @@ class DatabaseService {
             return await this.createProfile(userId, updates.name || 'User', updates.skills || '', updates.programming_languages || '', updates.willing_to_work_on || '');
         }
         // Profile exists, update it
+        const updatePayload = { ...updates };
         const { data, error } = await this.supabase
             .from('profiles')
-            .update(updates)
+            .update(updatePayload)
             .eq('id', userId)
             .select()
             .single();
         if (error) {
             console.error('Error updating profile:', error);
+            if (this.isMissingColumnError(error)) {
+                console.warn('Profiles table missing Jira credential columns; applying legacy profile update.');
+                const fallbackUpdates = {
+                    name: updates.name,
+                    skills: updates.skills,
+                    programming_languages: updates.programming_languages,
+                    willing_to_work_on: updates.willing_to_work_on
+                };
+                const { data: fallbackData, error: fallbackError } = await this.supabase
+                    .from('profiles')
+                    .update(fallbackUpdates)
+                    .eq('id', userId)
+                    .select()
+                    .single();
+                if (fallbackError) {
+                    console.error('Fallback profile update failed:', fallbackError);
+                    return null;
+                }
+                return fallbackData;
+            }
             return null;
         }
         return data;
