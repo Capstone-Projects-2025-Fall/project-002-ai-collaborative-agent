@@ -204,19 +204,7 @@ async function activate(context) {
     vscode.window.showInformationMessage("AI Collab Agent activated");
     // Store context globally for callback server
     extensionContext = context;
-    // Initialize authentication service
-    // try {
-    //   authService = new AuthService();
-    //   authService.initialize();
-    // } catch (error) {
-    //   vscode.window.showErrorMessage(
-    //     `Authentication setup failed: ${
-    //       error instanceof Error ? error.message : "Unknown error"
-    //     }`
-    //   );
-    //   return;
-    // }
-    // Initialize database service
+
     try {
         const supabaseUrl = (0, supabaseConfig_1.getSupabaseUrl)();
         const supabaseAnonKey = (0, supabaseConfig_1.getSupabaseAnonKey)();
