@@ -849,6 +849,36 @@ Give me a specific message for EACH team member, detailing them what they need t
                 }
                 break;
             }
+            case "signOut": {
+                try {
+                    await authService.signOut();
+                }
+                catch (err) {
+                    console.error("Error during sign out:", err);
+                }
+                try {
+                    if (panel && panel.webview) {
+                        panel.dispose();
+                    }
+                }
+                catch (err) {
+                    console.warn("Panel already disposed", err);
+                }
+                vscode.window.showInformationMessage("Signed out successfully.");
+                setTimeout(() => {
+                    vscode.commands.executeCommand("aiCollab.openPanel");
+                }, 200);
+                // const result = await authService.signOut();
+                // if (result?.error) {
+                //   vscode.window.showErrorMessage("Sign out failed: " + result.error);
+                // } else {
+                //   vscode.window.showInformationMessage("Signed out sucessfully.");
+                //   // close current main panel
+                //   panel.dispose();
+                //   vscode.commands.executeCommand("aiCollab.openPanel");
+                // }
+                break;
+            }
             default:
                 break;
         }

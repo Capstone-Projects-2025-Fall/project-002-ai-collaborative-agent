@@ -979,6 +979,27 @@ Give me a specific message for EACH team member, detailing them what they need t
         break;
       }
 
+      case "signOut": {
+        try {
+          await authService.signOut();
+        } catch (err) {
+          console.error("Error during sign out:", err);
+        }
+
+        try {
+          if (panel && panel.webview) {
+            panel.dispose();
+          }
+        } catch (err) {
+          console.warn("Panel already disposed", err);
+        }
+        vscode.window.showInformationMessage("Signed out successfully.");
+        setTimeout(() => {
+          vscode.commands.executeCommand("aiCollab.openPanel");
+        }, 200);
+        break;
+      }
+
       default:
         break;
     }
