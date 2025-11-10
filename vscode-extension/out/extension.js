@@ -48,6 +48,10 @@ const supabaseConfig_1 = require("./supabaseConfig");
 let authService;
 let databaseService;
 let extensionContext;
+// Reopens AICollab UI when new workplace 
+const GLOBAL_STATE_KEY = "reopenAiCollabAgent";
+// When new workspace is open, liveshare begins
+const GLOBAL_LIVESHARE_KEY = "reopenLiveShareSession";
 // Helper function to get the full path to our data file
 function getDataFilePath() {
     const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
@@ -135,19 +139,83 @@ async function saveInitialData(data) {
 }
 async function activate(context) {
     (0, ai_analyze_1.activateCodeReviewer)(context);
-    // Environment variables are not required; configuration is hardcoded
-    vscode.window.showInformationMessage("AI Collab Agent activated");
-    // Store context globally for callback server
+    // Store context globally first
     extensionContext = context;
     // Initialize authentication service
     try {
         authService = new authService_1.AuthService();
-        authService.initialize();
+        await authService.initialize();
     }
     catch (error) {
         vscode.window.showErrorMessage(`Authentication setup failed: ${error instanceof Error ? error.message : "Unknown error"}`);
         return;
     }
+    // Try to restore Supabase session from SecretStorage
+    const accessToken = await context.secrets.get("supabase_access_token");
+    const refreshToken = await context.secrets.get("supabase_refresh_token");
+    if (accessToken) {
+        try {
+            await authService.setSessionFromTokens(accessToken, refreshToken || undefined);
+            console.log("Restored Supabase session");
+        }
+        catch (err) {
+            console.error("Failed to restore session:", err);
+            await extensionContext.secrets.delete("supabase_access_token");
+            await extensionContext.secrets.delete("supabase_refresh_token");
+        }
+    }
+    // keep secrets in sync when auth state changes
+    authService.onAuthStateChange(async (user) => {
+        if (user) {
+            const session = authService.getCurrentSession();
+            if (session) {
+                await extensionContext.secrets.store("supabase_access_token", session.access_token);
+                await extensionContext.secrets.store("supabase_refresh_token", session.refresh_token);
+                console.log(" Stored updated Supabase tokens");
+            }
+        }
+        else {
+            await extensionContext.secrets.delete("supabase_access_token");
+            await extensionContext.secrets.delete("supabase_refresh_token");
+            console.log("Cleared Supabase tokens on logout");
+        }
+    });
+    // Auto-start Live Share session 
+    const shouldStartLiveShare = context.globalState.get(GLOBAL_LIVESHARE_KEY);
+    if (shouldStartLiveShare) {
+        await context.globalState.update(GLOBAL_LIVESHARE_KEY, false);
+        setTimeout(async () => {
+            try {
+                const liveShare = await vsls.getApi();
+                if (liveShare) {
+                    await liveShare.share();
+                    vscode.window.showInformationMessage("Live Share session restarted automatically!");
+                    console.log("Auto Live Share session:", liveShare.session);
+                }
+                else {
+                    vscode.window.showErrorMessage("Live Share API unavailable on reload.");
+                }
+            }
+            catch (err) {
+                console.error("Auto-Live Share restart failed:", err);
+            }
+        }, 2000); // delay to let extension host finish loading
+    }
+    vscode.window.showInformationMessage("AI Collab Agent activated");
+    // Store context globally for callback server
+    extensionContext = context;
+    // Initialize authentication service
+    // try {
+    //   authService = new AuthService();
+    //   authService.initialize();
+    // } catch (error) {
+    //   vscode.window.showErrorMessage(
+    //     `Authentication setup failed: ${
+    //       error instanceof Error ? error.message : "Unknown error"
+    //     }`
+    //   );
+    //   return;
+    // }
     // Initialize database service
     try {
         const supabaseUrl = (0, supabaseConfig_1.getSupabaseUrl)();
@@ -241,7 +309,24 @@ async function activate(context) {
     context.subscriptions.push(statusBarItem);
     // ---- Main command: opens the webview panel
     const open = vscode.commands.registerCommand("aiCollab.openPanel", async () => {
-        // Check if user is authenticated
+        // First, try to restore session from stored tokens if not already authenticated
+        if (!authService.isAuthenticated()) {
+            const accessToken = await context.secrets.get("supabase_access_token");
+            const refreshToken = await context.secrets.get("supabase_refresh_token");
+            if (accessToken) {
+                try {
+                    await authService.setSessionFromTokens(accessToken, refreshToken || undefined);
+                    console.log("Restored session from stored tokens");
+                }
+                catch (err) {
+                    console.error("Failed to restore session from stored tokens:", err);
+                    // Clear invalid tokens
+                    await context.secrets.delete("supabase_access_token");
+                    await context.secrets.delete("supabase_refresh_token");
+                }
+            }
+        }
+        // Check if user is authenticated (after attempting restoration)
         if (!authService.isAuthenticated()) {
             // Show login page
             const loginPanel = vscode.window.createWebviewPanel("aiCollabLogin", "AI Collab Agent - Login", vscode.ViewColumn.Active, {
@@ -270,6 +355,11 @@ async function activate(context) {
                         const { email, password } = msg.payload;
                         const result = await authService.signIn(email, password);
                         if (result.user) {
+                            const session = authService.getCurrentSession();
+                            if (session) {
+                                await context.secrets.store("supabase_access_token", session.access_token);
+                                await context.secrets.store("supabase_refresh_token", session.refresh_token);
+                            }
                             loginPanel.webview.postMessage({
                                 type: "authSuccess",
                                 payload: {
@@ -293,6 +383,11 @@ async function activate(context) {
                         const { email, password, name } = msg.payload;
                         const result = await authService.signUp(email, password, name);
                         if (result.user) {
+                            const session = authService.getCurrentSession();
+                            if (session) {
+                                await context.secrets.store("supabase_access_token", session.access_token);
+                                await context.secrets.store("supabase_refresh_token", session.refresh_token);
+                            }
                             loginPanel.webview.postMessage({
                                 type: "authSuccess",
                                 payload: {
@@ -313,6 +408,11 @@ async function activate(context) {
                         break;
                     }
                     case "signInWithGoogle": {
+                        const session = authService.getCurrentSession();
+                        if (session) {
+                            await context.secrets.store("supabase_access_token", session.access_token);
+                            await context.secrets.store("supabase_refresh_token", session.refresh_token);
+                        }
                         try {
                             console.log("Starting Google OAuth...");
                             const result = await authService.signInWithGoogle();
@@ -350,6 +450,11 @@ async function activate(context) {
                         break;
                     }
                     case "signInWithGithub": {
+                        const session = authService.getCurrentSession();
+                        if (session) {
+                            await context.secrets.store("supabase_access_token", session.access_token);
+                            await context.secrets.store("supabase_refresh_token", session.refresh_token);
+                        }
                         try {
                             console.log("Starting GitHub OAuth...");
                             const result = await authService.signInWithGithub();
@@ -395,6 +500,8 @@ async function activate(context) {
                             });
                         }
                         else {
+                            await context.secrets.delete("supabase_access_token");
+                            await context.secrets.delete("supabase_refresh_token");
                             loginPanel.webview.postMessage({
                                 type: "authSignedOut",
                                 payload: {},
@@ -450,40 +557,33 @@ async function openMainPanel(context, authService) {
                     };
                     const folderUri = await vscode.window.showOpenDialog(options);
                     if (folderUri && folderUri.length > 0) {
-                        const selectedFolder = folderUri[0].fsPath;
-                        // List files in the selected folder
-                        const files = await vscode.workspace.fs.readDirectory(vscode.Uri.file(selectedFolder));
-                        // Open the first file in the folder (or prompt the user to select one)
-                        const firstFile = files.find(([name, type]) => type === vscode.FileType.File);
-                        if (firstFile) {
-                            const filePath = path.join(selectedFolder, firstFile[0]);
-                            const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(filePath));
-                            await vscode.window.showTextDocument(doc);
-                            vscode.window.showInformationMessage(`Opened file: ${filePath}`);
-                            try {
-                                /// Start a Live Share session
-                                const liveShare = await vsls.getApi(); // Get the Live Share API
-                                if (!liveShare) {
-                                    vscode.window.showErrorMessage("Live Share extension is not installed or not available.");
-                                    return;
-                                }
-                                await liveShare.share(); // May return undefined even if successful
-                                // Check if session is active
-                                if (liveShare.session && liveShare.session.id) {
-                                    vscode.window.showInformationMessage("Live Share session started!");
-                                    console.log("Live Share session info:", liveShare.session);
-                                }
-                                else {
-                                    vscode.window.showErrorMessage("Failed to start Live Share session.");
-                                }
+                        const selectedFolder = folderUri[0];
+                        // Remember to reopen AI Collab panel and Live Share after reload
+                        await extensionContext.globalState.update(GLOBAL_STATE_KEY, true);
+                        await extensionContext.globalState.update(GLOBAL_LIVESHARE_KEY, true);
+                        // Open the folder as a workspace (will reload VS Code)
+                        await vscode.commands.executeCommand("vscode.openFolder", selectedFolder, false);
+                        vscode.window.showInformationMessage(`Opened folder: ${selectedFolder.fsPath}`);
+                        try {
+                            /// Start a Live Share session
+                            const liveShare = await vsls.getApi(); // Get the Live Share API
+                            if (!liveShare) {
+                                vscode.window.showErrorMessage("Live Share extension is not installed or not available.");
+                                return;
                             }
-                            catch (error) {
-                                console.error("Error starting Live Share session:", error);
-                                vscode.window.showErrorMessage("An error occurred while starting Live Share.");
+                            await liveShare.share(); // May return undefined even if successful
+                            // Check if session is active
+                            if (liveShare.session && liveShare.session.id) {
+                                vscode.window.showInformationMessage("Live Share session started!");
+                                console.log("Live Share session info:", liveShare.session);
+                            }
+                            else {
+                                vscode.window.showErrorMessage("Failed to start Live Share session.");
                             }
                         }
-                        else {
-                            vscode.window.showWarningMessage("No files found in the selected folder.");
+                        catch (error) {
+                            console.error("Error starting Live Share session:", error);
+                            vscode.window.showErrorMessage("An error occurred while starting Live Share.");
                         }
                     }
                     else {
