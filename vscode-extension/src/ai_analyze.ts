@@ -6,91 +6,124 @@ let extensionContext: vscode.ExtensionContext;
 let autoAnalyzeTimer: NodeJS.Timeout | undefined;
 let isAutoAnalyzeEnabled = true;
 
+// Change tracking
+let changeLog: Array<{
+    file: string;
+    timestamp: Date;
+    changeType: 'save' | 'edit' | 'delete' | 'add';
+    linesChanged?: number;
+    details?: string;
+}> = [];
+let lastAnalysisTime: Date = new Date();
+let significantChangesCount = 0;
+let fileHashes: Map<string, string> = new Map();
+let editCount: Map<string, number> = new Map(); // Track edits per file
+let lastEditTime: Map<string, Date> = new Map();
+
 const SUPABASE_EDGE_FUNCTION_URL="https://ptthofpfrmhhmvmbzgxx.supabase.co/functions/v1/ai-analyze";
 const SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB0dGhvZnBmcm1oaG12bWJ6Z3h4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxMjIzMTUsImV4cCI6MjA3MzY5ODMxNX0.vmIQd2JlfigERJTG5tkFGpoRgqBOj0FudEvGDzNd5Ko"
+
+// Thresholds for intervention
+const SIGNIFICANT_CHANGE_THRESHOLD = 3; // Number of significant changes before analyzing
+const TIME_BASED_CHECK_INTERVAL = 10; // Minutes between time-based checks
+const LINES_CHANGED_THRESHOLD = 20; // Consider it significant if 20+ lines changed
+
 export function activateCodeReviewer(context: vscode.ExtensionContext) {
     try {
-        console.log('AI Code Reviewer extension is now active!');
+        console.log('AI Code Assistant extension is now active!');
         
         extensionContext = context;
 
-        // Creates the bar at the bottom right to show if the ai analyzer is active or not
         statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
-        statusBarItem.command = 'ai-code-reviewer.configure';
+        statusBarItem.command = 'ai-code-reviewer.showChangeLog';
         context.subscriptions.push(statusBarItem);
-        console.log('Status bar item created');
 
-        // Command to manually trigger analysis
         const analyzeCommand = vscode.commands.registerCommand('ai-code-reviewer.analyzeCode', async () => {
-            await analyzeCurrentFile();
+            await analyzeCurrentFile(true); // Force analysis
         });
 
-        // Shows the result panel on the right
         const showResultsCommand = vscode.commands.registerCommand('ai-code-reviewer.showResults', () => {
             showResultsPanel();
         });
 
-        // Opens setup dialog (kept for potential future configuration needs)
-        const configureCommand = vscode.commands.registerCommand('ai-code-reviewer.configure', async () => {
-            vscode.window.showInformationMessage('API credentials are pre-configured. No setup needed!');
+        const showChangeLogCommand = vscode.commands.registerCommand('ai-code-reviewer.showChangeLog', () => {
+            showChangeLogPanel();
         });
 
-        // Toggle auto-analyze on/off
+        const configureCommand = vscode.commands.registerCommand('ai-code-reviewer.configure', async () => {
+            vscode.window.showInformationMessage('AI Code Assistant is monitoring your changes...');
+        });
+
         const toggleAutoAnalyzeCommand = vscode.commands.registerCommand('ai-code-reviewer.toggleAutoAnalyze', async () => {
             isAutoAnalyzeEnabled = !isAutoAnalyzeEnabled;
             if (isAutoAnalyzeEnabled) {
                 startAutoAnalyze();
-                vscode.window.showInformationMessage('Auto-analyze enabled');
+                vscode.window.showInformationMessage('Smart monitoring enabled');
             } else {
                 stopAutoAnalyze();
-                vscode.window.showInformationMessage('Auto-analyze disabled');
+                vscode.window.showInformationMessage('Smart monitoring disabled');
             }
             updateStatusBar();
         });
 
-        // Listen for file saves to trigger analysis
+        // Listen for document changes (while editing)
+        const changeListener = vscode.workspace.onDidChangeTextDocument((event) => {
+            if (isAutoAnalyzeEnabled && event.document === vscode.window.activeTextEditor?.document) {
+                handleDocumentChange(event);
+            }
+        });
+
+        // Listen for file saves
         const saveListener = vscode.workspace.onDidSaveTextDocument((document) => {
             if (isAutoAnalyzeEnabled && vscode.window.activeTextEditor?.document === document) {
-                analyzeCurrentFile();
+                handleFileSave(document);
             }
         });
 
         context.subscriptions.push(
             analyzeCommand,
             showResultsCommand,
+            showChangeLogCommand,
             configureCommand,
             toggleAutoAnalyzeCommand,
+            changeListener,
             saveListener
         );
 
         updateStatusBar();
         
-        // Start auto-analyze if enabled
         if (isAutoAnalyzeEnabled) {
             startAutoAnalyze();
         }
-        
-        console.log('updateStatusBar() called');
     } catch (error) {
-        console.error('Error activating Code Reviewer:', error);
-        vscode.window.showErrorMessage('Failed to activate Code Reviewer: ' + error);
+        console.error('Error activating Code Assistant:', error);
+        vscode.window.showErrorMessage('Failed to activate Code Assistant: ' + error);
     }
 }
 
 function startAutoAnalyze() {
-    stopAutoAnalyze(); // Clear any existing timer
+    stopAutoAnalyze();
     
-    // Get the interval from settings (in minutes)
-    const config = vscode.workspace.getConfiguration('aiCodeReviewer');
-    const intervalMinutes = config.get<number>('autoAnalyzeInterval', 5);
-    const intervalMs = intervalMinutes * 60 * 1000; // Convert to milliseconds
+    // Check every minute to see if we should intervene
+    const intervalMs = 60 * 1000; // 1 minute
     
-    // Run at the specified interval (don't run immediately on start)
     autoAnalyzeTimer = setInterval(() => {
-        analyzeCurrentFile();
+        checkIfShouldIntervene();
+        cleanupOldEditCounts();
     }, intervalMs);
+}
+
+function cleanupOldEditCounts() {
+    const now = new Date();
+    const staleThreshold = 10 * 60 * 1000; // 10 minutes
     
-    console.log(`Auto-analyze started with ${intervalMinutes} minute interval`);
+    // Remove edit counts for files that haven't been edited in 10 minutes
+    for (const [filePath, lastEdit] of lastEditTime.entries()) {
+        if (now.getTime() - lastEdit.getTime() > staleThreshold) {
+            editCount.delete(filePath);
+            lastEditTime.delete(filePath);
+        }
+    }
 }
 
 function stopAutoAnalyze() {
@@ -100,53 +133,233 @@ function stopAutoAnalyze() {
     }
 }
 
-async function analyzeCurrentFile() {
+function logChange(filePath: string, changeType: 'save' | 'edit' | 'delete' | 'add', linesChanged?: number, details?: string) {
+    changeLog.push({
+        file: filePath,
+        timestamp: new Date(),
+        changeType,
+        linesChanged,
+        details
+    });
+
+    // Keep only last 100 changes
+    if (changeLog.length > 100) {
+        changeLog = changeLog.slice(-100);
+    }
+
+    updateStatusBar();
+}
+
+function handleDocumentChange(event: vscode.TextDocumentChangeEvent) {
+    const filePath = event.document.uri.fsPath;
+    const now = new Date();
+    
+    // Track total lines changed
+    let totalLinesAffected = 0;
+    let hasSignificantChange = false;
+    let changeDetails: string[] = [];
+
+    event.contentChanges.forEach(change => {
+        const linesAdded = change.text.split('\n').length - 1;
+        const linesRemoved = change.range.end.line - change.range.start.line;
+        const netChange = Math.abs(linesAdded - linesRemoved);
+        
+        totalLinesAffected += netChange;
+
+        // Detect types of changes
+        if (change.text.includes('function') || change.text.includes('const ') || change.text.includes('class ')) {
+            changeDetails.push('new code structure');
+            hasSignificantChange = true;
+        }
+        if (change.rangeLength > 100) {
+            changeDetails.push('large deletion');
+            hasSignificantChange = true;
+        }
+        if (change.text.length > 100) {
+            changeDetails.push('large addition');
+            hasSignificantChange = true;
+        }
+    });
+
+    // Track edit frequency for this file
+    const currentCount = editCount.get(filePath) || 0;
+    editCount.set(filePath, currentCount + 1);
+    lastEditTime.set(filePath, now);
+
+    // Log the change
+    const changeType = totalLinesAffected > 0 ? (event.contentChanges[0].text ? 'add' : 'delete') : 'edit';
+    logChange(filePath, changeType, totalLinesAffected, changeDetails.join(', '));
+
+    // Check for intervention triggers (without saving)
+    
+    // 1. Large unsaved change
+    if (totalLinesAffected >= 30) {
+        console.log(`Large edit detected: ${totalLinesAffected} lines`);
+        significantChangesCount++;
+        
+        if (significantChangesCount >= 2) {
+            analyzeCurrentFile(false, `Large unsaved changes: ${totalLinesAffected} lines`);
+            significantChangesCount = 0;
+            editCount.set(filePath, 0);
+        }
+    }
+
+    // 2. Rapid editing (many small changes quickly)
+    const editsInLastMinute = Array.from(lastEditTime.entries()).filter(([_, time]) => 
+        (now.getTime() - time.getTime()) / 1000 < 60
+    ).length;
+
+    if (editsInLastMinute >= 15) {
+        console.log(`Rapid editing detected: ${editsInLastMinute} edits in last minute`);
+        analyzeCurrentFile(false, 'Rapid editing detected');
+        // Reset counters
+        editCount.clear();
+        lastEditTime.clear();
+    }
+
+    // 3. Continuous editing in one file
+    const fileEditCount = editCount.get(filePath) || 0;
+    const lastEdit = lastEditTime.get(filePath);
+    
+    if (fileEditCount >= 25 && lastEdit) {
+        const minutesSinceFirstEdit = (now.getTime() - lastEdit.getTime()) / 1000 / 60;
+        if (minutesSinceFirstEdit < 5) {
+            console.log(`Intensive editing: ${fileEditCount} edits in ${minutesSinceFirstEdit.toFixed(1)} minutes`);
+            analyzeCurrentFile(false, `Intensive work session detected`);
+            editCount.set(filePath, 0);
+        }
+    }
+}
+
+async function handleFileSave(document: vscode.TextDocument) {
+    const filePath = document.uri.fsPath;
+    const content = document.getText();
+    const newHash = simpleHash(content);
+    const oldHash = fileHashes.get(filePath);
+
+    // Calculate how much changed
+    let linesChanged = 0;
+    if (oldHash && oldHash !== newHash) {
+        const lines = content.split('\n').length;
+        linesChanged = Math.abs(lines - (parseInt(oldHash.split('-')[1]) || 0));
+    }
+
+    fileHashes.set(filePath, `${newHash}-${content.split('\n').length}`);
+    
+    logChange(filePath, 'save', linesChanged);
+
+    // Check if this is a significant change
+    if (linesChanged >= LINES_CHANGED_THRESHOLD) {
+        significantChangesCount++;
+        console.log(`Significant change detected: ${linesChanged} lines changed. Count: ${significantChangesCount}`);
+    }
+
+    // Immediate intervention if significant changes threshold reached
+    if (significantChangesCount >= SIGNIFICANT_CHANGE_THRESHOLD) {
+        console.log('Threshold reached, analyzing now...');
+        await analyzeCurrentFile(false, 'Multiple significant changes detected');
+        significantChangesCount = 0; // Reset counter
+    }
+}
+
+async function checkIfShouldIntervene() {
+    const now = new Date();
+    const minutesSinceLastAnalysis = (now.getTime() - lastAnalysisTime.getTime()) / 1000 / 60;
+
+    // Condition 1: Time-based check (every X minutes if there are changes)
+    if (minutesSinceLastAnalysis >= TIME_BASED_CHECK_INTERVAL && changeLog.length > 0) {
+        const recentChanges = changeLog.filter(c => 
+            (now.getTime() - c.timestamp.getTime()) / 1000 / 60 < TIME_BASED_CHECK_INTERVAL
+        );
+        
+        if (recentChanges.length > 0) {
+            console.log(`Time-based check: ${recentChanges.length} changes in last ${TIME_BASED_CHECK_INTERVAL} minutes`);
+            await analyzeCurrentFile(false, `Routine check: ${recentChanges.length} recent changes`);
+        }
+    }
+
+    // Condition 2: Pattern detection - rapid changes
+    const lastMinuteChanges = changeLog.filter(c => 
+        (now.getTime() - c.timestamp.getTime()) / 1000 / 60 < 1
+    );
+    
+    if (lastMinuteChanges.length >= 10) {
+        console.log('Rapid changes detected, analyzing...');
+        await analyzeCurrentFile(false, 'Rapid editing detected');
+    }
+
+    // Condition 3: Multiple files changed
+    const last5MinChanges = changeLog.filter(c => 
+        (now.getTime() - c.timestamp.getTime()) / 1000 / 60 < 5
+    );
+    const uniqueFiles = new Set(last5MinChanges.map(c => c.file));
+    
+    if (uniqueFiles.size >= 3) {
+        console.log(`Multiple files changed: ${uniqueFiles.size} files`);
+        await analyzeCurrentFile(false, `Changes across ${uniqueFiles.size} files`);
+    }
+}
+
+async function analyzeCurrentFile(forceAnalysis: boolean = false, reason?: string) {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
-        console.log('No active editor found for auto-analyze');
         return;
     }
 
-    // Use hardcoded credentials
     const apiEndpoint = SUPABASE_EDGE_FUNCTION_URL;
     const apiKey = SUPABASE_ANON_KEY;
 
     if (!apiEndpoint || !apiKey) {
-        console.log('API credentials not configured in code');
-        vscode.window.showErrorMessage('API credentials missing. Please check extension configuration.');
+        vscode.window.showErrorMessage('API credentials missing.');
         return;
     }
 
-    // Show a subtle notification that analysis is happening
-    vscode.window.setStatusBarMessage('$(sync~spin) Analyzing folder...', 5000);
+    // Check for unsaved changes
+    const hasUnsavedChanges = vscode.workspace.textDocuments.some(doc => doc.isDirty);
+    const statusPrefix = hasUnsavedChanges ? '$(sync~spin) Analyzing unsaved changes' : '$(sync~spin) Analyzing';
+    const statusMessage = reason ? `${statusPrefix}: ${reason}` : statusPrefix;
+    
+    vscode.window.setStatusBarMessage(statusMessage, 3000);
 
     try {
-        // Get the folder containing the current file
         const currentFilePath = editor.document.uri.fsPath;
         const folderPath = require('path').dirname(currentFilePath);
         
-        // Read all files in the folder
         const folderContents = await readFolderRecursively(folderPath);
         
         if (folderContents.length === 0) {
-            console.log('No files found to analyze');
-            vscode.window.setStatusBarMessage('$(warning) No files to analyze', 3000);
+            vscode.window.setStatusBarMessage('$(info) No files to analyze', 3000);
             return;
         }
 
-        const headers: Record<string, string> = {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`,
-            'apikey': apiKey
-        };
+        // Count how many files have unsaved changes
+        const unsavedCount = folderContents.filter(f => {
+            const fullPath = require('path').join(folderPath, f.fileName);
+            return vscode.workspace.textDocuments.some(
+                doc => doc.uri.fsPath === fullPath && doc.isDirty
+            );
+        }).length;
+
+        if (unsavedCount > 0) {
+            console.log(`Analyzing ${unsavedCount} file(s) with unsaved changes`);
+        }
+
+        // Include change log context in the analysis
+        const recentChangeSummary = getRecentChangeSummary();
 
         const response = await fetch(apiEndpoint, {
             method: 'POST',
-            headers: headers,
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`,
+                'apikey': apiKey
+            },
             body: JSON.stringify({
                 files: folderContents,
                 folderPath: folderPath,
-                currentFile: currentFilePath
+                currentFile: currentFilePath,
+                changeContext: recentChangeSummary,
+                unsavedFiles: unsavedCount
             })
         });
 
@@ -157,20 +370,68 @@ async function analyzeCurrentFile() {
 
         const data = await response.json();
 
-        // Create a summary of all analyzed files
-        const filesSummary = folderContents.map(f => f.fileName).join('\n');
+        // Update last analysis time
+        lastAnalysisTime = new Date();
+        significantChangesCount = 0; // Reset counter
 
-        // Update results panel silently (don't force it to show)
-        showResultsPanel(data.message, filesSummary, folderPath, folderContents.length);
+        // Parse the response to determine severity
+        const hasErrors = data.message.includes('🚨 ERRORS');
+        const hasWarnings = data.message.includes('⚠️ WARNINGS');
+        
+        // Only intervene if there are issues or forced
+        if (hasErrors || hasWarnings || forceAnalysis) {
+            const analysisReason = unsavedCount > 0 
+                ? `${reason || 'Analysis'} (${unsavedCount} unsaved file${unsavedCount > 1 ? 's' : ''})`
+                : reason;
+            showResultsPanel(data.message, folderContents.length, folderPath, analysisReason);
+            if (hasErrors) {
+                vscode.window.setStatusBarMessage('$(error) Issues detected - check AI Assistant', 5000);
+            } else if (hasWarnings) {
+                vscode.window.setStatusBarMessage('$(warning) Warnings - check AI Assistant', 5000);
+            } else {
+                vscode.window.setStatusBarMessage('$(check) Analysis complete', 3000);
+            }
+        } else {
+            // Silently update without showing panel
+            updateResultsPanel(data.message, folderContents.length, folderPath, reason);
+            vscode.window.setStatusBarMessage('$(check) Looking good!', 2000);
+        }
 
-        // Show subtle completion message
-        vscode.window.setStatusBarMessage(`$(check) Analyzed ${folderContents.length} files`, 3000);
+        // Clear old change logs after successful analysis
+        changeLog = changeLog.filter(c => 
+            (new Date().getTime() - c.timestamp.getTime()) / 1000 / 60 < 10
+        );
+
+        updateStatusBar();
 
     } catch (error: any) {
-        console.error('Auto-analysis error:', error);
-        // Don't show intrusive error messages for auto-analyze
+        console.error('Analysis error:', error);
         vscode.window.setStatusBarMessage('$(warning) Analysis failed', 3000);
     }
+}
+
+function getRecentChangeSummary(): string {
+    const now = new Date();
+    const recentChanges = changeLog.filter(c => 
+        (now.getTime() - c.timestamp.getTime()) / 1000 / 60 < 10
+    );
+
+    if (recentChanges.length === 0) return '';
+
+    const uniqueFiles = new Set(recentChanges.map(c => require('path').basename(c.file)));
+    const totalLinesChanged = recentChanges.reduce((sum, c) => sum + (c.linesChanged || 0), 0);
+
+    return `Recent activity: ${recentChanges.length} changes across ${uniqueFiles.size} file(s), ~${totalLinesChanged} lines modified`;
+}
+
+function simpleHash(str: string): string {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+        const char = str.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash;
+    }
+    return hash.toString();
 }
 
 async function readFolderRecursively(folderPath: string): Promise<Array<{fileName: string, content: string, language: string}>> {
@@ -178,10 +439,7 @@ async function readFolderRecursively(folderPath: string): Promise<Array<{fileNam
     const path = require('path');
     const files: Array<{fileName: string, content: string, language: string}> = [];
     
-    // File extensions to include
     const codeExtensions = ['.js', '.ts', '.jsx', '.tsx', '.py', '.java', '.cpp', '.c', '.cs', '.go', '.rb', '.php', '.swift', '.kt', '.rs', '.html', '.css', '.scss', '.json', '.xml', '.yaml', '.yml', '.sql', '.sh'];
-    
-    // Folders to ignore
     const ignoreFolders = ['node_modules', '.git', 'dist', 'build', 'out', '.vscode', 'coverage', '.next', '__pycache__'];
     
     async function readDir(dirPath: string) {
@@ -192,24 +450,36 @@ async function readFolderRecursively(folderPath: string): Promise<Array<{fileNam
                 const fullPath = path.join(dirPath, entry.name);
                 
                 if (entry.isDirectory()) {
-                    // Skip ignored folders
                     if (!ignoreFolders.includes(entry.name)) {
                         await readDir(fullPath);
                     }
                 } else if (entry.isFile()) {
                     const ext = path.extname(entry.name).toLowerCase();
                     
-                    // Only include code files
                     if (codeExtensions.includes(ext)) {
                         try {
-                            const content = await fs.readFile(fullPath, 'utf-8');
+                            // CRITICAL FIX: Check if file is currently open in editor
+                            // If so, use the unsaved content from the editor instead of disk
+                            const openDoc = vscode.workspace.textDocuments.find(
+                                doc => doc.uri.fsPath === fullPath
+                            );
+                            
+                            let content: string;
+                            if (openDoc) {
+                                // Use unsaved content from editor (includes unsaved changes!)
+                                content = openDoc.getText();
+                                console.log(`Using unsaved content for: ${entry.name}`);
+                            } else {
+                                // Read from disk
+                                content = await fs.readFile(fullPath, 'utf-8');
+                            }
                             
                             // Skip very large files (>100KB)
                             if (content.length < 100000) {
                                 files.push({
                                     fileName: path.relative(folderPath, fullPath),
                                     content: content,
-                                    language: ext.substring(1) // Remove the dot
+                                    language: ext.substring(1)
                                 });
                             }
                         } catch (err) {
@@ -227,20 +497,142 @@ async function readFolderRecursively(folderPath: string): Promise<Array<{fileNam
     return files;
 }
 
-function showResultsPanel(analysisResult?: string, filesSummary?: string, folderPath?: string, fileCount?: number) {
-    // Brings the panel out
+function showChangeLogPanel() {
+    const panel = vscode.window.createWebviewPanel(
+        'aiChangeLog',
+        'AI Assistant - Change Log',
+        vscode.ViewColumn.Beside,
+        {
+            enableScripts: true
+        }
+    );
+
+    const now = new Date();
+    const recentChanges = changeLog.slice(-20).reverse();
+
+    let changeHtml = '<div class="change-list">';
+    if (recentChanges.length === 0) {
+        changeHtml += '<p style="text-align: center; color: var(--vscode-descriptionForeground);">No recent changes tracked</p>';
+    } else {
+        recentChanges.forEach(change => {
+            const timeAgo = Math.floor((now.getTime() - change.timestamp.getTime()) / 1000 / 60);
+            const fileName = require('path').basename(change.file);
+            
+            let icon = '✏️';
+            let changeTypeText = 'Edit';
+            if (change.changeType === 'save') {
+                icon = '💾';
+                changeTypeText = 'Save';
+            } else if (change.changeType === 'add') {
+                icon = '➕';
+                changeTypeText = 'Addition';
+            } else if (change.changeType === 'delete') {
+                icon = '➖';
+                changeTypeText = 'Deletion';
+            }
+            
+            changeHtml += `
+                <div class="change-item">
+                    <span class="change-icon">${icon}</span>
+                    <div class="change-details">
+                        <div class="change-file">${escapeHtml(fileName)}</div>
+                        <div class="change-meta">
+                            ${changeTypeText}
+                            ${change.linesChanged ? ` • ${change.linesChanged} lines` : ''}
+                            ${change.details ? ` • ${escapeHtml(change.details)}` : ''}
+                        </div>
+                    </div>
+                    <span class="change-time">${timeAgo}m ago</span>
+                </div>
+            `;
+        });
+    }
+    changeHtml += '</div>';
+
+    panel.webview.html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                body {
+                    font-family: var(--vscode-font-family);
+                    padding: 20px;
+                    color: var(--vscode-foreground);
+                }
+                h2 {
+                    margin-top: 0;
+                }
+                .stats {
+                    background: var(--vscode-textCodeBlock-background);
+                    padding: 15px;
+                    border-radius: 6px;
+                    margin-bottom: 20px;
+                }
+                .stat-item {
+                    margin: 5px 0;
+                }
+                .change-list {
+                    margin-top: 20px;
+                }
+                .change-item {
+                    display: grid;
+                    grid-template-columns: 30px 1fr auto;
+                    align-items: center;
+                    gap: 10px;
+                    padding: 10px 8px;
+                    border-bottom: 1px solid var(--vscode-panel-border);
+                }
+                .change-icon {
+                    font-size: 18px;
+                }
+                .change-details {
+                    min-width: 0;
+                }
+                .change-file {
+                    font-weight: 500;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                }
+                .change-meta {
+                    font-size: 11px;
+                    color: var(--vscode-descriptionForeground);
+                    margin-top: 2px;
+                }
+                .change-time {
+                    font-size: 12px;
+                    color: var(--vscode-descriptionForeground);
+                    white-space: nowrap;
+                }
+            </style>
+        </head>
+        <body>
+            <h2>📊 Change Monitoring</h2>
+            <div class="stats">
+                <div class="stat-item">📝 Total changes tracked: <strong>${changeLog.length}</strong></div>
+                <div class="stat-item">✏️ Unsaved edits detected: <strong>${Array.from(editCount.values()).reduce((a, b) => a + b, 0)}</strong></div>
+                <div class="stat-item">⚡ Significant changes: <strong>${significantChangesCount}</strong></div>
+                <div class="stat-item">🔍 Last analysis: <strong>${Math.floor((now.getTime() - lastAnalysisTime.getTime()) / 1000 / 60)} minutes ago</strong></div>
+            </div>
+            <h3>Recent Changes</h3>
+            ${changeHtml}
+        </body>
+        </html>
+    `;
+}
+
+function showResultsPanel(analysisResult?: string, fileCount?: number, folderPath?: string, reason?: string) {
     if (resultsPanel) {
-        // Update the results without revealing (less intrusive)
+        resultsPanel.reveal(vscode.ViewColumn.Beside);
         if (analysisResult) {
-            updateResultsPanel(analysisResult, filesSummary || '', folderPath, fileCount);
+            updateResultsPanel(analysisResult, fileCount, folderPath, reason);
         }
         return;
     }
 
     resultsPanel = vscode.window.createWebviewPanel(
-        'aiCodeReviewResults',
-        'AI Code Review Results',
-        // Opens on the right side of the code
+        'aiCodeAssistant',
+        'AI Code Assistant',
         vscode.ViewColumn.Beside,
         {
             enableScripts: true,
@@ -248,32 +640,168 @@ function showResultsPanel(analysisResult?: string, filesSummary?: string, folder
         }
     );
 
-    // Clears the panel when you close it
+    // Handle messages from the webview
+    resultsPanel.webview.onDidReceiveMessage(
+        async (message) => {
+            switch (message.type) {
+                case 'navigateToLine':
+                    await navigateToFileLine(message.file, message.line);
+                    break;
+            }
+        },
+        undefined,
+        extensionContext.subscriptions
+    );
+
     resultsPanel.onDidDispose(() => {
         resultsPanel = undefined;
     });
 
     if (analysisResult) {
-        updateResultsPanel(analysisResult, filesSummary || '', folderPath, fileCount);
+        updateResultsPanel(analysisResult, fileCount, folderPath, reason);
     } else {
-        resultsPanel.webview.html = getWebviewContent('', '', '', 0);
+        resultsPanel.webview.html = getWebviewContent('', 0, '', '');
     }
 }
 
-function updateResultsPanel(analysisResult: string, filesSummary: string, folderPath?: string, fileCount?: number) {
+async function navigateToFileLine(fileName: string, line: number) {
+    try {
+        const path = require('path');
+        const fs = require('fs');
+        
+        // Get workspace folders
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (!workspaceFolders || workspaceFolders.length === 0) {
+            vscode.window.showErrorMessage('No workspace folder open');
+            return;
+        }
+
+        // Try to resolve the file path
+        let targetFilePath: string | undefined;
+        
+        if (path.isAbsolute(fileName)) {
+            targetFilePath = fileName;
+        } else {
+            // Search for the file in all workspace folders
+            for (const folder of workspaceFolders) {
+                const candidatePath = path.join(folder.uri.fsPath, fileName);
+                if (fs.existsSync(candidatePath)) {
+                    targetFilePath = candidatePath;
+                    break;
+                }
+                
+                // Also try searching recursively for the filename
+                const baseName = path.basename(fileName);
+                const foundPath = await findFileInWorkspace(folder.uri.fsPath, baseName);
+                if (foundPath) {
+                    targetFilePath = foundPath;
+                    break;
+                }
+            }
+        }
+
+        if (!targetFilePath || !fs.existsSync(targetFilePath)) {
+            vscode.window.showErrorMessage(`File not found: ${fileName}`);
+            return;
+        }
+
+        // Open the file
+        const document = await vscode.workspace.openTextDocument(targetFilePath);
+        const textEditor = await vscode.window.showTextDocument(document, vscode.ViewColumn.One);
+
+        // Navigate to the line (convert to 0-based index)
+        const lineIndex = Math.max(0, line - 1);
+        const position = new vscode.Position(lineIndex, 0);
+        
+        // Set cursor and reveal the line
+        textEditor.selection = new vscode.Selection(position, position);
+        textEditor.revealRange(
+            new vscode.Range(position, position),
+            vscode.TextEditorRevealType.InCenter
+        );
+
+        // Highlight the line briefly
+        const decorationType = vscode.window.createTextEditorDecorationType({
+            backgroundColor: 'rgba(255, 200, 0, 0.3)',
+            isWholeLine: true
+        });
+
+        textEditor.setDecorations(decorationType, [new vscode.Range(position, position)]);
+
+        // Remove highlight after 2 seconds
+        setTimeout(() => {
+            decorationType.dispose();
+        }, 2000);
+
+        vscode.window.showInformationMessage(`Navigated to ${path.basename(fileName)}:${line}`);
+    } catch (error) {
+        console.error('Error navigating to line:', error);
+        vscode.window.showErrorMessage(`Failed to navigate: ${error}`);
+    }
+}
+
+async function findFileInWorkspace(folderPath: string, fileName: string): Promise<string | undefined> {
+    const fs = require('fs').promises;
+    const path = require('path');
+    
+    const ignoreFolders = ['node_modules', '.git', 'dist', 'build', 'out', '.vscode', 'coverage', '.next', '__pycache__'];
+    
+    async function searchDir(dirPath: string): Promise<string | undefined> {
+        try {
+            const entries = await fs.readdir(dirPath, { withFileTypes: true });
+            
+            for (const entry of entries) {
+                const fullPath = path.join(dirPath, entry.name);
+                
+                if (entry.isDirectory()) {
+                    if (!ignoreFolders.includes(entry.name)) {
+                        const found = await searchDir(fullPath);
+                        if (found) return found;
+                    }
+                } else if (entry.isFile()) {
+                    if (entry.name === fileName) {
+                        return fullPath;
+                    }
+                }
+            }
+        } catch (err) {
+            // Ignore errors (permission denied, etc.)
+        }
+        return undefined;
+    }
+    
+    return await searchDir(folderPath);
+}
+
+function updateResultsPanel(analysisResult: string, fileCount?: number, folderPath?: string, reason?: string) {
     if (resultsPanel) {
-        resultsPanel.webview.html = getWebviewContent(analysisResult, filesSummary, folderPath, fileCount);
+        resultsPanel.webview.html = getWebviewContent(analysisResult, fileCount, folderPath, reason);
     }
 }
 
-function getWebviewContent(analysisResult: string, filesSummary: string, folderPath?: string, fileCount?: number): string {
+function getWebviewContent(analysisResult: string, fileCount?: number, folderPath?: string, reason?: string): string {
+    const hasErrors = analysisResult.includes('🚨 ERRORS');
+    const hasWarnings = analysisResult.includes('⚠️ WARNINGS');
+    const allGood = analysisResult.includes('✅');
+    
+    let statusColor = '#27ae60';
+    let statusText = 'All Clear';
+    
+    if (hasErrors) {
+        statusColor = '#e74c3c';
+        statusText = 'Issues Found';
+    } else if (hasWarnings) {
+        statusColor = '#f39c12';
+        statusText = 'Needs Attention';
+    }
+    
     return `
     <!DOCTYPE html>
     <html lang="en">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>AI Code Review Results</title>
+        <title>AI Code Assistant</title>
         <style>
             body {
                 font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -285,82 +813,80 @@ function getWebviewContent(analysisResult: string, filesSummary: string, folderP
             }
             
             .header {
-                border-bottom: 1px solid var(--vscode-panel-border);
+                display: flex;
+                align-items: center;
+                gap: 15px;
+                border-bottom: 2px solid ${statusColor};
                 padding-bottom: 15px;
                 margin-bottom: 20px;
             }
             
+            .status-indicator {
+                width: 12px;
+                height: 12px;
+                border-radius: 50%;
+                background-color: ${statusColor};
+                animation: pulse 2s infinite;
+            }
+            
+            @keyframes pulse {
+                0%, 100% { opacity: 1; }
+                50% { opacity: 0.5; }
+            }
+            
             .header h1 {
                 margin: 0;
-                color: var(--vscode-textLink-foreground);
-                font-size: 24px;
-                display: flex;
-                align-items: center;
-                gap: 10px;
-            }
-
-            .folder-info {
-                font-size: 14px;
-                color: var(--vscode-descriptionForeground);
-                margin-top: 5px;
-            }
-
-            .file-count {
-                display: inline-block;
-                background: var(--vscode-badge-background);
-                color: var(--vscode-badge-foreground);
-                padding: 2px 8px;
-                border-radius: 10px;
-                font-size: 12px;
-                margin-left: 10px;
+                font-size: 22px;
+                color: ${statusColor};
+                font-weight: 600;
             }
             
-            .files-section {
-                background: var(--vscode-textCodeBlock-background);
-                border: 1px solid var(--vscode-panel-border);
-                border-radius: 8px;
-                padding: 15px;
-                margin: 15px 0;
-                font-family: var(--vscode-editor-font-family);
-                font-size: var(--vscode-editor-font-size);
-            }
-            
-            .files-section h3 {
-                margin: 0 0 10px 0;
-                color: var(--vscode-textLink-foreground);
-                font-size: 16px;
-            }
-            
-            .files-content {
-                white-space: pre-wrap;
-                word-wrap: break-word;
-                background: var(--vscode-editor-background);
-                border: 1px solid var(--vscode-input-border);
+            .intervention-reason {
+                background: var(--vscode-inputValidation-infoBackground);
+                border-left: 3px solid var(--vscode-inputValidation-infoBorder);
+                padding: 10px 15px;
+                margin-bottom: 15px;
+                font-size: 13px;
                 border-radius: 4px;
-                padding: 12px;
-                max-height: 200px;
-                overflow-y: auto;
-                font-size: 12px;
             }
             
-            .analysis-section {
-                background: var(--vscode-editor-background);
-                border: 1px solid var(--vscode-panel-border);
-                border-radius: 8px;
-                padding: 20px;
-                margin: 15px 0;
-            }
-            
-            .analysis-section h3 {
-                margin: 0 0 15px 0;
-                color: var(--vscode-textLink-foreground);
-                font-size: 18px;
+            .meta-info {
+                font-size: 13px;
+                color: var(--vscode-descriptionForeground);
+                margin-bottom: 20px;
+                padding: 10px;
+                background: var(--vscode-textCodeBlock-background);
+                border-radius: 4px;
             }
             
             .analysis-content {
-                line-height: 1.7;
+                background: var(--vscode-editor-background);
+                border: 1px solid var(--vscode-panel-border);
+                border-radius: 6px;
+                padding: 20px;
+                margin: 15px 0;
                 white-space: pre-wrap;
-                word-wrap: break-word;
+                font-family: var(--vscode-editor-font-family);
+                font-size: 14px;
+                line-height: 1.7;
+            }
+            
+            .file-reference {
+                color: var(--vscode-textLink-foreground);
+                text-decoration: underline;
+                cursor: pointer;
+                padding: 2px 4px;
+                border-radius: 3px;
+                transition: background-color 0.2s;
+            }
+            
+            .file-reference:hover {
+                background-color: var(--vscode-textLink-activeForeground);
+                opacity: 0.8;
+            }
+            
+            .file-reference:active {
+                opacity: 0.6;
             }
             
             .empty-state {
@@ -376,55 +902,94 @@ function getWebviewContent(analysisResult: string, filesSummary: string, folderP
             
             .timestamp {
                 color: var(--vscode-descriptionForeground);
-                font-size: 12px;
+                font-size: 11px;
                 text-align: right;
-                margin-top: 20px;
-                padding-top: 15px;
+                margin-top: 15px;
+                padding-top: 10px;
                 border-top: 1px solid var(--vscode-panel-border);
             }
+            
+            .analysis-content strong {
+                color: ${statusColor};
+            }
 
-            .auto-analyze-badge {
-                display: inline-block;
-                background: var(--vscode-badge-background);
-                color: var(--vscode-badge-foreground);
-                padding: 2px 8px;
-                border-radius: 10px;
+            .help-text {
                 font-size: 12px;
-                margin-left: 10px;
+                color: var(--vscode-descriptionForeground);
+                margin-top: 10px;
+                padding: 8px 12px;
+                background: var(--vscode-textCodeBlock-background);
+                border-radius: 4px;
+                border-left: 3px solid var(--vscode-textLink-foreground);
             }
         </style>
     </head>
     <body>
         <div class="header">
-            <h1>
-                AI Folder Analysis
-                <span class="auto-analyze-badge">Auto-Analyzed</span>
-                ${fileCount ? `<span class="file-count">${fileCount} files</span>` : ''}
-            </h1>
-            ${folderPath ? `<div class="folder-info">${escapeHtml(folderPath)}</div>` : ''}
+            <div class="status-indicator"></div>
+            <h1>${statusText}</h1>
         </div>
         
         ${analysisResult ? `
-            <div class="analysis-section">
-                <h3>Analysis Results</h3>
-                <div class="analysis-content">${formatAnalysisResult(analysisResult)}</div>
+            ${reason ? `
+                <div class="intervention-reason">
+                    🔍 <strong>Intervention reason:</strong> ${escapeHtml(reason)}
+                </div>
+            ` : ''}
+            
+            ${folderPath || fileCount ? `
+                <div class="meta-info">
+                    ${folderPath ? `📁 ${escapeHtml(folderPath)}<br>` : ''}
+                    ${fileCount ? `📄 Analyzed ${fileCount} file${fileCount !== 1 ? 's' : ''}` : ''}
+                </div>
+            ` : ''}
+            
+            <div class="help-text">
+                💡 <strong>Tip:</strong> Click on any file reference (e.g., <span style="color: var(--vscode-textLink-foreground); text-decoration: underline;">filename.ts:42</span>) to jump to that line!
             </div>
             
-            <div class="files-section">
-                <h3>Analyzed Files</h3>
-                <div class="files-content">${escapeHtml(filesSummary)}</div>
-            </div>
+            <div class="analysis-content">${formatAnalysisResult(analysisResult)}</div>
             
             <div class="timestamp">
-                Analysis completed at ${new Date().toLocaleString()}
+                Analyzed at ${new Date().toLocaleString()}
             </div>
         ` : `
             <div class="empty-state">
-                <h2>Waiting for Auto-Analysis</h2>
-                <p>The folder containing the active file will be automatically analyzed every 5 minutes.</p>
-                <p>You can also manually trigger analysis using the command palette.</p>
+                <h2>👀 Monitoring Your Code</h2>
+                <p>I'm watching for changes and will intervene when needed.</p>
+                <p style="font-size: 12px; margin-top: 20px;">
+                    I'll alert you when I detect:<br>
+                    • ${SIGNIFICANT_CHANGE_THRESHOLD}+ significant changes (saved or unsaved)<br>
+                    • 15+ rapid edits in one minute<br>
+                    • 30+ lines changed without saving<br>
+                    • 25+ edits in one file within 5 minutes<br>
+                    • Changes across multiple files<br>
+                    • Or every ${TIME_BASED_CHECK_INTERVAL} minutes if there's activity
+                </p>
             </div>
         `}
+
+        <script>
+            const vscode = acquireVsCodeApi();
+            
+            // Add click handlers to all file references
+            document.addEventListener('DOMContentLoaded', () => {
+                document.querySelectorAll('.file-reference').forEach(element => {
+                    element.addEventListener('click', () => {
+                        const file = element.getAttribute('data-file');
+                        const line = parseInt(element.getAttribute('data-line'));
+                        
+                        if (file && line) {
+                            vscode.postMessage({
+                                type: 'navigateToLine',
+                                file: file,
+                                line: line
+                            });
+                        }
+                    });
+                });
+            });
+        </script>
     </body>
     </html>`;
 }
@@ -439,20 +1004,52 @@ function escapeHtml(text: string): string {
 }
 
 function formatAnalysisResult(result: string): string {
-    return result
+    // First escape HTML
+    let formatted = result
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+
+    // Make file references clickable
+    // Pattern: filename.ext:line or filename.ext line or "in filename.ext on line X"
+    formatted = formatted.replace(
+        /(\w+\.\w+)(?::|\s+(?:line\s+)?|,\s+line\s+)(\d+)/gi,
+        '<span class="file-reference" data-file="$1" data-line="$2">$1:$2</span>'
+    );
+
+    // Pattern: "line X in filename.ext"
+    formatted = formatted.replace(
+        /line\s+(\d+)\s+(?:in|of)\s+(\w+\.\w+)/gi,
+        '<span class="file-reference" data-file="$2" data-line="$1">line $1 in $2</span>'
+    );
+
+    // Format markdown-style bold
+    formatted = formatted
         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
         .replace(/\n\n/g, '</p><p>')
         .replace(/\n/g, '<br>');
+
+    return formatted;
 }
 
 async function updateStatusBar() {
-    // Always show as configured since credentials are hardcoded
+    const recentChanges = changeLog.filter(c => 
+        (new Date().getTime() - c.timestamp.getTime()) / 1000 / 60 < 5
+    );
+
     if (isAutoAnalyzeEnabled) {
-        statusBarItem.text = '$(sync~spin) AI Reviewer (Auto)';
-        statusBarItem.tooltip = 'AI Code Reviewer - Auto-analyzing every 5 minutes\nClick for info';
+        if (recentChanges.length > 0) {
+            statusBarItem.text = `$(eye) AI Assistant (${recentChanges.length})`;
+            statusBarItem.tooltip = `Monitoring: ${recentChanges.length} recent changes\nClick to view change log`;
+        } else {
+            statusBarItem.text = '$(eye) AI Assistant';
+            statusBarItem.tooltip = 'Monitoring for changes\nClick to view change log';
+        }
     } else {
-        statusBarItem.text = '$(circle-slash) AI Reviewer (Off)';
-        statusBarItem.tooltip = 'AI Code Reviewer - Auto-analyze disabled\nClick for info';
+        statusBarItem.text = '$(eye-closed) AI Assistant';
+        statusBarItem.tooltip = 'Monitoring disabled\nClick to view status';
     }
     statusBarItem.backgroundColor = undefined;
     statusBarItem.show();

@@ -276,17 +276,28 @@ export class AuthService {
   }
 
   onAuthStateChange(callback: (user: AuthUser | null) => void): () => void {
-    return this.supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_IN" && session) {
-        this.currentSession = session;
-        this.currentUser = this.mapUser(session.user);
-        callback(this.currentUser);
-      } else if (event === "SIGNED_OUT") {
-        this.currentSession = null;
-        this.currentUser = null;
-        callback(null);
+    const { data } = this.supabase.auth.onAuthStateChange((event, session) => {
+      try {
+        if (event === "SIGNED_IN" && session) {
+          this.currentSession = session;
+          this.currentUser = this.mapUser(session.user);
+          callback?.(this.currentUser);
+        } else if (event === "SIGNED_OUT") {
+          this.currentSession = null;
+          this.currentUser = null;
+          callback?.(null);
+        }
+      } catch (err) {
+        console.warn("Auth state callback after panel disposed", (err as Error).message);
       }
-    }).data.subscription.unsubscribe;
+    });
+    return () => {
+      try {
+        data.subscription.unsubscribe();
+      } catch (err) {
+        console.warn("Error unsubscribing from auth state change:", (err as Error).message);
+      }
+    };
   }
 
   private mapUser(user: User): AuthUser {
