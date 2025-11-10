@@ -14,8 +14,13 @@ async function createIssuesFromBacklog(opts) {
     - Creates one Task issue per line
     - Description is sent as an ADF document (required by Jira v3 API)
    */
-    const { baseUrl, email, token, projectKey, backlogMarkdown } = opts; // Extract each value from the options object
-    const tasks = extractTasks(backlogMarkdown); // Parse task titles from the AI Markdown list (one title per bullet)
+    const { baseUrl, email, token, projectKey, backlogMarkdown, minTasks, maxTasks } = opts; // Extract each value from the options object
+    const maxAllowedTasks = Math.min(Math.max(maxTasks ?? 25, 10), 25); // clamp to 10-25 window
+    const minAllowedTasks = Math.min(Math.max(minTasks ?? 10, 1), maxAllowedTasks); // ensure <= max
+    const tasks = extractTasks(backlogMarkdown, maxAllowedTasks); // Parse task titles from the AI Markdown list (one title per bullet)
+    if (tasks.length < minAllowedTasks) {
+        throw new Error(`Only ${tasks.length} task(s) detected from AI, but at least ${minAllowedTasks} are required. Please provide a more detailed project description to generate additional tasks.`);
+    }
     const auth = Buffer.from(`${email}:${token}`).toString("base64"); // this is needed because Jira’s API requires Basic Authentication: meaning that the email and token must be combined and Base64-encoded before being sent in the HTTP header for secure login
     const adfDoc = toAdf(backlogMarkdown); // Convert the backlog text into Jira’s ADF format for the issue description
     // Debug logs so we can see what we're sending
@@ -57,7 +62,7 @@ async function createIssuesFromBacklog(opts) {
   Pulls each line that looks like "- [ ] Do something" or "- Do something"
   Returns an array of clean task titles.
  */
-function extractTasks(md) {
+function extractTasks(md, limit = 25) {
     const lines = md.split(/\r?\n/); // split markdown text into lines
     const tasks = [];
     for (const line of lines) { //
@@ -78,7 +83,7 @@ function extractTasks(md) {
                 tasks.push(title); // if the title is not empty, add it to the task list for later use
         }
     }
-    return tasks.slice(0, 50); // safety cap, max 50 tasks
+    return tasks.slice(0, limit); // safety cap with caller-provided limit
 }
 /**
  * Convert a markdown-like backlog into a simple, universally-accepted ADF document

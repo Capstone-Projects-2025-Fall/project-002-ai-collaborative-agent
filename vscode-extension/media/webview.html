@@ -89,6 +89,23 @@
             animation: slideIn 0.3s ease-out;
         }
 
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.5);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            animation: slideIn 0.3s ease-out;
+        }
+
         .hidden {
             display: none !important;
         }
@@ -151,6 +168,7 @@
         .info-icon:focus-visible::before {
             opacity: 1;
             transform: translate(-50%, 0);
+>>>>>>> origin/main
         }
 
         @keyframes slideIn {
@@ -528,7 +546,7 @@
             <form class="form-grid" id="profile-form">
                 <div class="form-group">
                     <label for="userName">Full Name</label>
-                    <input type="text" id="userName" disabled placeholder="Loaded from authentication">
+                    <input type="text" id="userName" placeholder="Enter your name">
                 </div>
 
                 <div class="form-group">
@@ -673,6 +691,52 @@
             <div id="joinStatus" class="status-message" style="display: none;"></div>
         </div>
 
+        <!-- Edit Project Modal -->
+        <div id="editProjectModal" class="modal" style="display: none;">
+            <div class="modal-content" style="max-width: 600px; margin: 50px auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2 style="margin: 0;">Edit Project</h2>
+                    <button id="closeEditModal" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #64748b;">&times;</button>
+                </div>
+                
+                <form id="editProjectForm">
+                    <input type="hidden" id="editProjectId">
+                    
+                    <div class="form-group">
+                        <label for="editProjectName">Project Name *</label>
+                        <input type="text" id="editProjectName" required placeholder="Enter project name">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="editProjectDescription">Description *</label>
+                        <textarea id="editProjectDescription" required placeholder="Describe the project..."></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="editProjectGoals">Goals</label>
+                        <textarea id="editProjectGoals" placeholder="List main objectives..."></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="editProjectRequirements">Requirements</label>
+                        <textarea id="editProjectRequirements" placeholder="Technical requirements and constraints..."></textarea>
+                    </div>
+                    
+                    <div class="form-group" id="memberManagementSection" style="display: none;">
+                        <label>Team Members (Owner can remove members)</label>
+                        <div id="editProjectMembers" style="margin-top: 10px;">
+                            <!-- Members will be populated here -->
+                        </div>
+                    </div>
+                </form>
+                
+                <div class="button-group" style="margin-top: 20px;">
+                    <button id="saveProjectBtn" class="btn btn-primary">Save Changes</button>
+                    <button id="cancelEditBtn" class="btn btn-secondary">Cancel</button>
+                </div>
+            </div>
+        </div>
+
         <div id="prompts" class="tab-content">
             <div class="section-title">AI Prompt Generator</div>
 
@@ -791,6 +855,8 @@
                         );
                         project.id = projectData.id;
                         project.createdAt = projectData.created_at;
+                        // CRITICAL: Copy owner_id to project object for ownership checks
+                        project.owner_id = projectData.owner_id;
                         return project;
                     });
                 }
@@ -839,9 +905,16 @@
             }
 
             updateProfile() {
+                const name = document.getElementById('userName').value.trim();
                 const profileData = this.collectProfileFormData();
 
+                if (!name) {
+                    showStatus('userStatus', 'Error: Name is required', 'error');
+                    return;
+                }
+
                 if (this.currentUser) {
+                    this.currentUser.name = name;
                     this.currentUser.skills = profileData.skills;
                     this.currentUser.programmingLanguages = profileData.programmingLanguages;
                     this.currentUser.willingToWorkOn = profileData.willingToWorkOn;
@@ -856,6 +929,7 @@
                 vscode.postMessage({
                     type: 'updateProfile',
                     payload: {
+                        name,
                         skills: profileData.skills,
                         programmingLanguages: profileData.programmingLanguages,
                         willingToWorkOn: profileData.willingToWorkOn,
@@ -1045,9 +1119,20 @@
                         </div>
                     `).join('') : '<p style="color: #64748b; font-size: 0.9rem;">No members yet</p>';
 
+                    // Ensure both values are strings for comparison (handle UUID type mismatches)
+                    const currentUserId = this.currentUser ? String(this.currentUser.id) : null;
+                    const projectOwnerId = project.owner_id ? String(project.owner_id) : null;
+                    const isOwner = currentUserId && projectOwnerId && currentUserId === projectOwnerId;
+                    const isMember = this.currentUser && (project.selectedMemberIds || []).includes(String(this.currentUser.id));
+                    const ownerBadge = isOwner ? '<span style="background: #10b981; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; margin-left: 8px;">Owner</span>' : '';
+                    const canEdit = isOwner || isMember;
+                    
                     return `
                         <div class="project-item">
-                            <h3>📋 ${project.name}</h3>
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                                <h3 style="margin: 0;">📋 ${project.name}${ownerBadge}</h3>
+                                ${canEdit ? `<button class="btn edit-project-btn" data-project-id="${project.id}" style="padding: 4px 8px; font-size: 0.8rem; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer;">✏️ Edit</button>` : ''}
+                            </div>
                             <p><strong>Description:</strong> ${project.description}</p>
                             <p><strong>Goals:</strong> ${project.goals || 'Not specified'}</p>
                             <p><strong>Requirements:</strong> ${project.requirements || 'Not specified'}</p>
@@ -1057,9 +1142,13 @@
                                 <div class="team-member-cards" style="margin-top: 8px;">
                                     ${teamMemberCards}
                                 </div>
+                                ${isOwner ? '<p style="margin-top: 8px; font-size: 0.85rem; color: #64748b;">As owner, you can remove members by editing the project.</p>' : ''}
                             </div>
                             <p style="margin-top: 10px;"><strong>Created:</strong> ${new Date(project.createdAt).toLocaleString()}</p>
-                            <button class="btn btn-secondary remove-project-btn" data-project-id="${project.id}" style='margin-top: 8px; padding: 6px 12px; font-size: 0.8rem;'>Remove</button>
+                            ${isOwner 
+                                ? `<button class="btn btn-danger delete-project-btn" data-project-id="${project.id}" style='margin-top: 8px; padding: 6px 12px; font-size: 0.8rem; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer;'>Delete Project</button>`
+                                : `<button class="btn btn-secondary leave-project-btn" data-project-id="${project.id}" style='margin-top: 8px; padding: 6px 12px; font-size: 0.8rem; border: none; border-radius: 4px; cursor: pointer;'>Leave Project</button>`
+                            }
                         </div>
                     `;
                 }).join('');
@@ -1098,10 +1187,70 @@
             }
 
             removeProject(projectId) {
-                this.projects = this.projects.filter(project => project.id != projectId);
-                this.saveData();
-                this.updateUI();
-                showStatus('projectStatus', 'Project removed successfully!', 'success');
+                // This method is kept for backward compatibility but now calls backend
+                const project = this.projects.find(p => p.id === projectId);
+                if (!project) return;
+                
+                const currentUserId = this.currentUser ? String(this.currentUser.id) : null;
+                const projectOwnerId = project.owner_id ? String(project.owner_id) : null;
+                const isOwner = currentUserId && projectOwnerId && currentUserId === projectOwnerId;
+                
+                if (isOwner) {
+                    // Owner deletes the project
+                    vscode.postMessage({
+                        type: 'deleteProject',
+                        payload: { projectId }
+                    });
+                } else {
+                    // Non-owner leaves the project
+                    vscode.postMessage({
+                        type: 'leaveProject',
+                        payload: { projectId }
+                    });
+                }
+            }
+
+            openEditModal(projectId) {
+                const project = this.projects.find(p => p.id === projectId);
+                if (!project) return;
+
+                const currentUserId = this.currentUser ? String(this.currentUser.id) : null;
+                const projectOwnerId = project.owner_id ? String(project.owner_id) : null;
+                const isOwner = currentUserId && projectOwnerId && currentUserId === projectOwnerId;
+                
+                // Populate form
+                document.getElementById('editProjectId').value = project.id;
+                document.getElementById('editProjectName').value = project.name;
+                document.getElementById('editProjectDescription').value = project.description || '';
+                document.getElementById('editProjectGoals').value = project.goals || '';
+                document.getElementById('editProjectRequirements').value = project.requirements || '';
+
+                // Populate members list (only show if owner)
+                const membersSection = document.getElementById('memberManagementSection');
+                const membersContainer = document.getElementById('editProjectMembers');
+                
+                if (isOwner) {
+                    membersSection.style.display = 'block';
+                    const teamMembers = this.users.filter(user => project.selectedMemberIds && project.selectedMemberIds.includes(user.id));
+                    membersContainer.innerHTML = teamMembers.map(member => `
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; margin: 5px 0; background: #f1f5f9; border-radius: 8px;">
+                            <div>
+                                <strong>${member.name}</strong>
+                                ${String(member.id) === String(project.owner_id) ? '<span style="background: #10b981; color: white; padding: 2px 6px; border-radius: 12px; font-size: 0.7rem; margin-left: 8px;">Owner</span>' : ''}
+                            </div>
+                            ${String(member.id) !== String(project.owner_id) ? `<button class="btn remove-member-btn" data-project-id="${project.id}" data-member-id="${member.id}" style="padding: 4px 8px; font-size: 0.75rem; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer;">Remove</button>` : ''}
+                        </div>
+                    `).join('');
+                } else {
+                    membersSection.style.display = 'none';
+                }
+
+                // Show modal
+                document.getElementById('editProjectModal').style.display = 'block';
+            }
+
+            closeEditModal() {
+                document.getElementById('editProjectModal').style.display = 'none';
             }
         }
 
@@ -1395,11 +1544,93 @@
                     }
                 }
 
-                if (target.matches('.remove-project-btn')) {
+                // Handle delete/leave project buttons - use closest() to handle nested elements
+                const deleteBtn = target.closest('.delete-project-btn');
+                const leaveBtn = target.closest('.leave-project-btn');
+                const removeBtn = target.closest('.remove-project-btn');
+                
+                if (deleteBtn || leaveBtn || removeBtn) {
+                    const button = deleteBtn || leaveBtn || removeBtn;
+                    const projectId = button.dataset.projectId;
+                    console.log('Button clicked:', { type: deleteBtn ? 'delete' : leaveBtn ? 'leave' : 'remove', projectId });
+                    
+                    if (projectId) {
+                        if (deleteBtn) {
+                            // Send message directly - extension will handle confirmation
+                            console.log('Sending deleteProject message:', { projectId });
+                            vscode.postMessage({
+                                type: 'deleteProject',
+                                payload: { projectId }
+                            });
+                        } else if (leaveBtn) {
+                            // Send message directly - extension will handle confirmation
+                            console.log('Sending leaveProject message:', { projectId });
+                            vscode.postMessage({
+                                type: 'leaveProject',
+                                payload: { projectId }
+                            });
+                        } else if (removeBtn) {
+                            // Fallback for old remove-project-btn
+                            app.removeProject(projectId);
+                        }
+                    } else {
+                        console.error('No projectId found on button:', button);
+                    }
+                }
+
+                if (target.matches('.edit-project-btn')) {
                     const projectId = target.dataset.projectId;
                     if (projectId) {
-                        app.removeProject(projectId);
+                        app.openEditModal(projectId);
                     }
+                }
+
+                if (target.matches('.remove-member-btn')) {
+                    const projectId = target.dataset.projectId;
+                    const memberId = target.dataset.memberId;
+                    if (projectId && memberId) {
+                        // Send message directly - extension will handle confirmation
+                        console.log('Sending removeProjectMember message:', { projectId, memberId });
+                        vscode.postMessage({
+                            type: 'removeProjectMember',
+                            payload: { projectId, memberId }
+                        });
+                    }
+                }
+            });
+
+            // Edit modal handlers
+            document.getElementById('closeEditModal')?.addEventListener('click', () => app.closeEditModal());
+            document.getElementById('cancelEditBtn')?.addEventListener('click', () => app.closeEditModal());
+            document.getElementById('saveProjectBtn')?.addEventListener('click', () => {
+                const projectId = document.getElementById('editProjectId').value;
+                const name = document.getElementById('editProjectName').value.trim();
+                const description = document.getElementById('editProjectDescription').value;
+                const goals = document.getElementById('editProjectGoals').value;
+                const requirements = document.getElementById('editProjectRequirements').value;
+
+                if (!name) {
+                    showStatus('projectStatus', 'Error: Project name is required', 'error');
+                    return;
+                }
+
+                if (!description.trim()) {
+                    showStatus('projectStatus', 'Error: Description is required', 'error');
+                    return;
+                }
+
+                vscode.postMessage({
+                    type: 'updateProject',
+                    payload: { projectId, name, description, goals, requirements }
+                });
+
+                app.closeEditModal();
+            });
+
+            // Close modal when clicking outside
+            document.getElementById('editProjectModal')?.addEventListener('click', (e) => {
+                if (e.target === document.getElementById('editProjectModal')) {
+                    app.closeEditModal();
                 }
             });
 

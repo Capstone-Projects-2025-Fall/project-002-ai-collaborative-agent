@@ -136,17 +136,17 @@ class AuthService {
             }
             if (data.url) {
                 console.log("Opening OAuth URL:", data.url);
-                // Open the OAuth URL in the default browser (cross-platform)
+                // Open the OAuth URL in the default browser using VS Code's cross-platform API
                 try {
                     await vscode.env.openExternal(vscode.Uri.parse(data.url));
                     return { user: null, error: null };
                 }
-                catch (error) {
-                    console.error("Failed to open browser:", error);
+                catch (openError) {
+                    console.error("Error opening browser:", openError);
                     this.stopLocalServer();
                     return {
                         user: null,
-                        error: error instanceof Error ? error.message : "Failed to open browser",
+                        error: openError instanceof Error ? openError.message : "Failed to open browser",
                     };
                 }
             }
@@ -182,17 +182,17 @@ class AuthService {
             }
             if (data.url) {
                 console.log("Opening OAuth URL:", data.url);
-                // Open the OAuth URL in the default browser (cross-platform)
+                // Open the OAuth URL in the default browser using VS Code's cross-platform API
                 try {
                     await vscode.env.openExternal(vscode.Uri.parse(data.url));
                     return { user: null, error: null };
                 }
-                catch (error) {
-                    console.error("Failed to open browser:", error);
+                catch (openError) {
+                    console.error("Error opening browser:", openError);
                     this.stopLocalServer();
                     return {
                         user: null,
-                        error: error instanceof Error ? error.message : "Failed to open browser",
+                        error: openError instanceof Error ? openError.message : "Failed to open browser",
                     };
                 }
             }

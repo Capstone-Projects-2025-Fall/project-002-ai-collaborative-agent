@@ -85,13 +85,24 @@ async function createJiraTasksCmd(ctx, options) {
             vscode.window.showWarningMessage("Jira backlog creation cancelled: no project description provided.");
             return;
         }
-        const ai = await (0, ai_1.generateBacklogFromDescription)(description);
-        const created = await (0, jira_1.createIssuesFromBacklog)({
-            baseUrl,
-            email,
-            token,
-            projectKey,
-            backlogMarkdown: ai.text,
+        const created = await vscode.window.withProgress({
+            location: vscode.ProgressLocation.Notification,
+            title: "Generating Jira Tasks",
+            cancellable: false,
+        }, async (progress) => {
+            progress.report({ message: "Analyzing project scope..." });
+            const taskRange = (0, ai_1.determineTaskRange)(description);
+            const ai = await (0, ai_1.generateBacklogFromDescription)(description);
+            progress.report({ message: "Creating issues in Jira..." });
+            return await (0, jira_1.createIssuesFromBacklog)({
+                baseUrl,
+                email,
+                token,
+                projectKey,
+                backlogMarkdown: ai.text,
+                minTasks: taskRange.min,
+                maxTasks: taskRange.max,
+            });
         });
         const info = `Created ${created.length} Jira issue(s) in project ${projectKey}`;
         vscode.window.showInformationMessage(info);

@@ -37,10 +37,39 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.determineTaskRange = determineTaskRange;
 exports.generateBacklogFromDescription = generateBacklogFromDescription;
 //uses plain text output
 const vscode = __importStar(require("vscode"));
 const node_fetch_1 = __importDefault(require("node-fetch"));
+const LARGE_SCOPE_KEYWORDS = [
+    "video game",
+    "game",
+    "platform",
+    "marketplace",
+    "operating system",
+    "ai agent",
+    "neural",
+    "brain",
+    "enterprise",
+    "saas",
+    "multi-tenant",
+    "analytics",
+    "knowledge base",
+    "collaboration suite",
+    "infrastructure",
+    "compiler",
+    "framework",
+];
+function determineTaskRange(description) {
+    const normalized = description.toLowerCase();
+    const wordCount = description.trim().split(/\s+/).length;
+    const hasLargeKeyword = LARGE_SCOPE_KEYWORDS.some((keyword) => normalized.includes(keyword));
+    const isLarge = hasLargeKeyword || wordCount > 120 || normalized.includes("platform");
+    return isLarge
+        ? { size: "large", min: 15, max: 25 }
+        : { size: "small", min: 10, max: 20 };
+}
 /**
   Generate backlog text from  project description
   Tries the local endpoint first if configured (`aiTasks.apiEndpoint`)
@@ -48,11 +77,12 @@ const node_fetch_1 = __importDefault(require("node-fetch"));
  */
 async function generateBacklogFromDescription(description) {
     const cfg = vscode.workspace.getConfiguration();
+    const taskRange = determineTaskRange(description);
     const localEndpoint = (cfg.get("aiTasks.apiEndpoint") || "").trim();
     const openaiKey = (cfg.get("ai.openaiApiKey") || "").trim();
     const openaiProject = (cfg.get("ai.openaiProject") || "").trim(); // optional header
     const openaiModel = (cfg.get("ai.openaiModel") || "gpt-5").trim();
-    const prompt = buildPrompt(description);
+    const prompt = buildPrompt(description, taskRange);
     // 1) Try local AI endpoint first (if dev function running)
     if (localEndpoint) {
         try {
@@ -113,14 +143,17 @@ async function generateBacklogFromDescription(description) {
     return { text: cleaned };
 }
 /** Builds a focused prompt that asks for checklist-style tasks that Jira can consume (fed to AI). */
-function buildPrompt(description) {
+function buildPrompt(description, taskRange) {
+    const boundsLine = `• Produce between ${taskRange.min} and ${taskRange.max} actionable engineering tasks (absolutely never fewer than 10 nor more than 25 tasks).`;
     return [
         "You are a senior product/engineering planner.",
         "Given the project description, produce a concise backlog as plain text:",
         "",
         "• Optional epics and user stories (short).",
         "• Acceptance criteria bullets (Given/When/Then).",
-        "• A FLAT list of TASKS, each on its own line prefixed exactly with '- [ ] '",
+        "• A FLAT list of TASKS, each on its own line prefixed exactly with '- [ ] '.",
+        boundsLine,
+        "• If the scope seems small, keep tasks focused; if the scope is large, cover all major workstreams while remaining under 25 tasks.",
         "",
         "Project description:",
         "```",

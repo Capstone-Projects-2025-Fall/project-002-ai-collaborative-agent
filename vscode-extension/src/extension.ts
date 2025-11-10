@@ -87,6 +87,7 @@ async function loadInitialData(): Promise<any> {
 
   try {
     // Get user's profile
+    // Note: getProfile expects auth.users.id, but we need profile.id for database operations
     let profile = await databaseService.getProfile(user.id);
     
     // If profile doesn't exist, create one
@@ -102,6 +103,12 @@ async function loadInitialData(): Promise<any> {
       );
     }
     
+    if (!profile) {
+      console.error('Failed to get or create profile');
+      return { users: [], projects: [], promptCount: 0 };
+    }
+    
+    // Apply Jira profile caching if available
     const cachedJiraProfile = getCachedJiraProfile(user.id);
     if (profile && cachedJiraProfile) {
       profile = {
@@ -120,22 +127,26 @@ async function loadInitialData(): Promise<any> {
       };
     }
     
-    // Get user's projects (RLS will filter to only their projects)
-    const projects = await databaseService.getProjectsForUser(user.id);
+    // Use profile.id for all database operations (not user.id which is auth.users.id)
+    const profileId = profile.id;
     
-    // Get project members for each project
+    // Get user's projects (both as owner and as member)
+    const projects = await databaseService.getProjectsForUser(profileId);
+    
+    // Get project members for each project and include owner_id
     const projectsWithMembers = await Promise.all(
       projects.map(async (project) => {
         const members = await databaseService.getProjectMembers(project.id);
         return {
           ...project,
-          selectedMemberIds: members.map(m => m.user_id)
+          selectedMemberIds: members.map(m => m.user_id),
+          owner_id: project.owner_id  // Ensure owner_id is included
         };
       })
     );
 
     // Get all profiles from user's projects (for team members display)
-    const allProfiles = await databaseService.getAllProfilesForUserProjects(user.id);
+    const allProfiles = await databaseService.getAllProfilesForUserProjects(profileId);
 
     // Get AI prompts count
     const allPrompts = await Promise.all(
@@ -658,6 +669,33 @@ const handleUri = vscode.window.registerUriHandler({
   context.subscriptions.push(open);
 }
 
+// Helper function to get the current user's profile ID
+async function getCurrentUserProfileId(authService: AuthService, databaseService: DatabaseService): Promise<string | null> {
+  const user = authService.getCurrentUser();
+  if (!user) {
+    console.log('Extension: getCurrentUserProfileId - No user found');
+    return null;
+  }
+  
+  console.log('Extension: getCurrentUserProfileId - User ID:', user.id);
+  const profile = await databaseService.getProfile(user.id);
+  
+  if (!profile) {
+    console.error('Extension: getCurrentUserProfileId - No profile found for user:', user.id);
+    return null;
+  }
+  
+  console.log('Extension: getCurrentUserProfileId - Profile found:', { 
+    profileId: profile.id, 
+    authUserId: user.id 
+  });
+  
+  // Return profile.id which is used for all database operations
+  // (not user.id which is auth.users.id)
+  // Note: profiles.id is the primary key, profiles.user_id references auth.users.id
+  return profile.id;
+}
+
 // Function to open the main application panel
 async function openMainPanel(
   context: vscode.ExtensionContext,
@@ -679,7 +717,8 @@ async function openMainPanel(
   panel.webview.html = await getHtml(panel.webview, context);
 
   panel.webview.onDidReceiveMessage(async (msg: any) => {
- 
+    console.log('Extension: Received message from webview:', { type: msg.type, payload: msg.payload });
+    
     switch (msg.type) {
       case "createJiraTasks": {
         try {
@@ -981,22 +1020,22 @@ Give me a specific message for EACH team member, detailing them what they need t
 
       case "createProject": {
         const { name, description, goals, requirements } = msg.payload;
-        const user = authService.getCurrentUser();
+        const profileId = await getCurrentUserProfileId(authService, databaseService);
         
-        if (!user) {
+        if (!profileId) {
           vscode.window.showErrorMessage("Please log in to create a project.");
           break;
         }
 
         try {
-          console.log('Creating project:', { name, description, goals, requirements, userId: user.id });
-          const project = await databaseService.createProject(name, description, goals, requirements);
+          console.log('Creating project:', { name, description, goals, requirements, profileId });
+          const project = await databaseService.createProject(name, description, goals, requirements, profileId);
           console.log('Project created:', project);
           
           if (project) {
             // Add the creator as a project member
-            console.log('Adding project member:', { projectId: project.id, userId: user.id });
-            const memberResult = await databaseService.addProjectMember(project.id, user.id);
+            console.log('Adding project member:', { projectId: project.id, profileId });
+            const memberResult = await databaseService.addProjectMember(project.id, profileId);
             console.log('Project member added:', memberResult);
             
             vscode.window.showInformationMessage(`Project "${name}" created successfully!`);
@@ -1013,6 +1052,194 @@ Give me a specific message for EACH team member, detailing them what they need t
         } catch (error) {
           console.error("Error creating project:", error);
           vscode.window.showErrorMessage("Failed to create project.");
+        }
+        break;
+      }
+
+      case "deleteProject": {
+        const { projectId } = msg.payload;
+        console.log('Extension: deleteProject received:', { projectId });
+        
+        // Show confirmation dialog using VS Code's native dialog
+        const confirmResult = await vscode.window.showWarningMessage(
+          'Are you sure you want to delete this project? This action cannot be undone.',
+          { modal: true },
+          'Delete',
+          'Cancel'
+        );
+        
+        if (confirmResult !== 'Delete') {
+          console.log('Extension: Delete cancelled by user');
+          break;
+        }
+        
+        const profileId = await getCurrentUserProfileId(authService, databaseService);
+        console.log('Extension: Profile ID for delete:', { profileId });
+        
+        if (!profileId) {
+          console.error('Extension: No profile ID found for delete');
+          vscode.window.showErrorMessage("Please log in to delete a project.");
+          break;
+        }
+
+        try {
+          console.log('Extension: Calling deleteProject with:', { projectId, profileId });
+          const success = await databaseService.deleteProject(projectId, profileId);
+          console.log('Extension: deleteProject result:', { success });
+          
+          if (success) {
+            vscode.window.showInformationMessage("Project deleted successfully!");
+            // Reload data to reflect the deletion
+            const data = await loadInitialData();
+            panel.webview.postMessage({
+              type: "dataLoaded",
+              payload: data,
+            });
+          } else {
+            console.error('Extension: deleteProject returned false');
+            vscode.window.showErrorMessage("Failed to delete project. You may not be the owner.");
+          }
+        } catch (error) {
+          console.error("Extension: Error deleting project:", error);
+          vscode.window.showErrorMessage(`Failed to delete project: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+        break;
+      }
+
+      case "leaveProject": {
+        const { projectId } = msg.payload;
+        console.log('Extension: leaveProject received:', { projectId });
+        
+        // Show confirmation dialog using VS Code's native dialog
+        const confirmResult = await vscode.window.showWarningMessage(
+          'Are you sure you want to leave this project?',
+          { modal: true },
+          'Leave',
+          'Cancel'
+        );
+        
+        if (confirmResult !== 'Leave') {
+          console.log('Extension: Leave cancelled by user');
+          break;
+        }
+        
+        const profileId = await getCurrentUserProfileId(authService, databaseService);
+        console.log('Extension: Profile ID for leave:', { profileId });
+        
+        if (!profileId) {
+          console.error('Extension: No profile ID found for leave');
+          vscode.window.showErrorMessage("Please log in to leave a project.");
+          break;
+        }
+
+        try {
+          console.log('Extension: Calling leaveProject with:', { projectId, profileId });
+          const success = await databaseService.leaveProject(projectId, profileId);
+          console.log('Extension: leaveProject result:', { success });
+          
+          if (success) {
+            vscode.window.showInformationMessage("Left project successfully!");
+            // Reload data to reflect leaving
+            const data = await loadInitialData();
+            panel.webview.postMessage({
+              type: "dataLoaded",
+              payload: data,
+            });
+          } else {
+            console.error('Extension: leaveProject returned false');
+            vscode.window.showErrorMessage("Failed to leave project. If you're the owner, you must delete the project instead.");
+          }
+        } catch (error) {
+          console.error("Extension: Error leaving project:", error);
+          vscode.window.showErrorMessage(`Failed to leave project: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+        break;
+      }
+
+      case "updateProject": {
+        const { projectId, name, description, goals, requirements } = msg.payload;
+        const profileId = await getCurrentUserProfileId(authService, databaseService);
+        
+        if (!profileId) {
+          vscode.window.showErrorMessage("Please log in to update a project.");
+          break;
+        }
+
+        if (!name || !name.trim()) {
+          vscode.window.showErrorMessage("Project name is required.");
+          break;
+        }
+
+        if (!description || !description.trim()) {
+          vscode.window.showErrorMessage("Project description is required.");
+          break;
+        }
+
+        try {
+          const project = await databaseService.updateProject(projectId, {
+            name: name.trim(),
+            description: description.trim(),
+            goals: goals?.trim() || '',
+            requirements: requirements?.trim() || ''
+          }, profileId);
+          
+          if (project) {
+            vscode.window.showInformationMessage("Project updated successfully!");
+            // Reload data to show the updated project
+            const data = await loadInitialData();
+            panel.webview.postMessage({
+              type: "dataLoaded",
+              payload: data,
+            });
+          } else {
+            vscode.window.showErrorMessage("Failed to update project. You may not have permission.");
+          }
+        } catch (error) {
+          console.error("Error updating project:", error);
+          vscode.window.showErrorMessage("Failed to update project.");
+        }
+        break;
+      }
+
+      case "removeProjectMember": {
+        const { projectId, memberId } = msg.payload;
+        
+        // Show confirmation dialog using VS Code's native dialog
+        const confirmResult = await vscode.window.showWarningMessage(
+          'Are you sure you want to remove this member from the project?',
+          { modal: true },
+          'Remove',
+          'Cancel'
+        );
+        
+        if (confirmResult !== 'Remove') {
+          console.log('Extension: Remove member cancelled by user');
+          break;
+        }
+        
+        const profileId = await getCurrentUserProfileId(authService, databaseService);
+        
+        if (!profileId) {
+          vscode.window.showErrorMessage("Please log in to remove a member.");
+          break;
+        }
+
+        try {
+          const success = await databaseService.removeProjectMember(projectId, memberId, profileId);
+          if (success) {
+            vscode.window.showInformationMessage("Member removed from project successfully!");
+            // Reload data to reflect the change
+            const data = await loadInitialData();
+            panel.webview.postMessage({
+              type: "dataLoaded",
+              payload: data,
+            });
+          } else {
+            vscode.window.showErrorMessage("Failed to remove member. You must be the project owner.");
+          }
+        } catch (error) {
+          console.error("Error removing project member:", error);
+          vscode.window.showErrorMessage("Failed to remove member.");
         }
         break;
       }
@@ -1035,8 +1262,14 @@ Give me a specific message for EACH team member, detailing them what they need t
             break;
           }
 
-          console.log('Joining project with code:', { inviteCode, userId: user.id });
-          const project = await databaseService.joinProjectByCode(inviteCode, user.id);
+          const profileId = await getCurrentUserProfileId(authService, databaseService);
+          if (!profileId) {
+            vscode.window.showErrorMessage("Please log in to join a project.");
+            break;
+          }
+          
+          console.log('Joining project with code:', { inviteCode, profileId });
+          const project = await databaseService.joinProjectByCode(inviteCode, profileId);
           
           if (project) {
             vscode.window.showInformationMessage(`Successfully joined project "${project.name}"!`);
@@ -1058,6 +1291,7 @@ Give me a specific message for EACH team member, detailing them what they need t
 
       case "updateProfile": {
         const {
+          name,
           skills,
           programmingLanguages,
           willingToWorkOn,
@@ -1078,8 +1312,18 @@ Give me a specific message for EACH team member, detailing them what they need t
           break;
         }
 
+        if (!name || !name.trim()) {
+          vscode.window.showErrorMessage("Name is required.");
+          panel.webview.postMessage({
+            type: 'profileUpdateError',
+            payload: { message: 'Name is required' }
+          });
+          break;
+        }
+
         try {
           const profile = await databaseService.updateProfile(user.id, {
+            name: name.trim(),
             skills,
             programming_languages: programmingLanguages,
             willing_to_work_on: willingToWorkOn,
@@ -1091,6 +1335,7 @@ Give me a specific message for EACH team member, detailing them what they need t
           });
           if (profile) {
             vscode.window.showInformationMessage("Profile updated successfully!");
+            // Cache Jira profile data
             await setCachedJiraProfile(user.id, {
               baseUrl: jiraBaseUrl,
               projectKey: jiraProjectKey,
@@ -1098,10 +1343,11 @@ Give me a specific message for EACH team member, detailing them what they need t
               token: jiraApiToken,
               projectPrompt: jiraProjectPrompt,
             });
-            // Send success message to webview
+            // Reload data to show the updated profile
+            const data = await loadInitialData();
             panel.webview.postMessage({
-              type: 'profileUpdated',
-              payload: { profile }
+              type: "dataLoaded",
+              payload: data,
             });
           } else {
             panel.webview.postMessage({
@@ -1220,6 +1466,7 @@ Give me a specific message for EACH team member, detailing them what they need t
       }
 
       default:
+        console.warn('Extension: Unknown message type received:', msg.type);
         break;
     }
   });

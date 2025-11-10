@@ -35,15 +35,29 @@ ALTER TABLE public.project_members
 ADD CONSTRAINT project_members_project_id_fkey 
 FOREIGN KEY (project_id) REFERENCES public.projects(id) ON DELETE CASCADE;
 
--- 5. Ensure the user profile exists for the current user
--- This will create a profile if it doesn't exist
-INSERT INTO public.profiles (id, name, skills, programming_languages, willing_to_work_on)
+-- 5. Add missing columns to profiles table if they don't exist
+-- These columns are used by the application code
+ALTER TABLE public.profiles 
+ADD COLUMN IF NOT EXISTS programming_languages TEXT DEFAULT '';
+
+ALTER TABLE public.profiles 
+ADD COLUMN IF NOT EXISTS willing_to_work_on TEXT DEFAULT '';
+
+-- 6. Create profiles for all authenticated users who don't have profiles yet
+-- This uses a generic approach to create profiles for any user in auth.users who doesn't have a profile
+-- Note: Using user_id to match the initial schema structure
+INSERT INTO public.profiles (user_id, name, skills, programming_languages, willing_to_work_on)
 SELECT 
-    'f575b6cb-f437-48b7-a1fd-5f2186c6547c' as id,
-    'Thomas Ishida' as name,
-    '' as skills,
+    au.id,
+    COALESCE(
+        au.raw_user_meta_data->>'full_name', 
+        au.raw_user_meta_data->>'name', 
+        SPLIT_PART(au.email, '@', 1),
+        'User'
+    ) as name,
+    ARRAY[]::TEXT[] as skills,
     '' as programming_languages,
     '' as willing_to_work_on
-WHERE NOT EXISTS (
-    SELECT 1 FROM public.profiles WHERE id = 'f575b6cb-f437-48b7-a1fd-5f2186c6547c'
-);
+FROM auth.users au
+LEFT JOIN public.profiles p ON au.id = p.user_id
+WHERE p.user_id IS NULL;

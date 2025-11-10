@@ -73,7 +73,7 @@ export async function generateBacklogFromDescription(description: string): Promi
 
       if (!r.ok) throw new Error(`Local AI ${r.status}`);
 
-      const data = await r.json().catch(() => ({} as any));
+      const data = await r.json().catch(() => ({} as any)) as any;
       const text = (data?.text ?? data?.output ?? data?.result ?? "").toString().trim();
       if (text) return { text };
       // if empty, fall through to OpenAI
@@ -115,7 +115,7 @@ export async function generateBacklogFromDescription(description: string): Promi
     throw new Error(`OpenAI HTTP ${res.status}: ${errText}`);
   }
 
-  const data = await res.json();
+  const data = await res.json() as any;
 
   // Prefer output in SDK format (`output_text`) if present; otherwise derive from `output`
   const text =
