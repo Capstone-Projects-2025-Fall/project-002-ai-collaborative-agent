@@ -43,11 +43,31 @@ const ai_analyze_1 = require("./ai_analyze");
 const authService_1 = require("./authService");
 const databaseService_1 = require("./databaseService");
 const supabaseConfig_1 = require("./supabaseConfig");
+const createJiraTasks_1 = require("./commands/createJiraTasks");
 // No .env loading needed; using hardcoded config in supabaseConfig
 // Global variables for OAuth callback handling
 let authService;
 let databaseService;
 let extensionContext;
+const JIRA_PROFILE_KEY_PREFIX = "jiraProfile:";
+function getCachedJiraProfile(userId) {
+    if (!extensionContext) {
+        return undefined;
+    }
+    return extensionContext.globalState.get(JIRA_PROFILE_KEY_PREFIX + userId);
+}
+async function setCachedJiraProfile(userId, profile) {
+    if (!extensionContext) {
+        return;
+    }
+    const hasValues = profile &&
+        Object.values(profile).some((value) => value !== undefined && value !== null && String(value).trim() !== "");
+    if (!hasValues) {
+        await extensionContext.globalState.update(JIRA_PROFILE_KEY_PREFIX + userId, undefined);
+        return;
+    }
+    await extensionContext.globalState.update(JIRA_PROFILE_KEY_PREFIX + userId, profile);
+}
 // Reopens AICollab UI when new workplace 
 const GLOBAL_STATE_KEY = "reopenAiCollabAgent";
 // When new workspace is open, liveshare begins
@@ -79,6 +99,19 @@ async function loadInitialData() {
             console.log('User object:', user);
             profile = await databaseService.createProfile(user.id, user.name || user.email || 'User', '', '', '');
         }
+        const cachedJiraProfile = getCachedJiraProfile(user.id);
+        if (profile && cachedJiraProfile) {
+            profile = {
+                ...profile,
+                jira_base_url: cachedJiraProfile.baseUrl ?? profile.jira_base_url ?? null,
+                jira_project_key: cachedJiraProfile.projectKey ?? profile.jira_project_key ?? null,
+                jira_email: cachedJiraProfile.email ?? profile.jira_email ?? null,
+                jira_api_token: cachedJiraProfile.token ?? profile.jira_api_token ?? null,
+                jira_project_prompt: cachedJiraProfile.projectPrompt ??
+                    profile.jira_project_prompt ??
+                    null,
+            };
+        }
         // Get user's projects (RLS will filter to only their projects)
         const projects = await databaseService.getProjectsForUser(user.id);
         // Get project members for each project
@@ -94,9 +127,20 @@ async function loadInitialData() {
         // Get AI prompts count
         const allPrompts = await Promise.all(projects.map(project => databaseService.getAIPromptsForProject(project.id)));
         const promptCount = allPrompts.flat().length;
+        const sanitizedProfiles = allProfiles.map((profileItem) => {
+            const cached = profileItem.id === user.id ? cachedJiraProfile : undefined;
+            return {
+                ...profileItem,
+                jira_base_url: cached?.baseUrl ?? profileItem.jira_base_url ?? null,
+                jira_project_key: cached?.projectKey ?? profileItem.jira_project_key ?? null,
+                jira_email: cached?.email ?? profileItem.jira_email ?? null,
+                jira_api_token: null,
+                jira_project_prompt: cached?.projectPrompt ?? profileItem.jira_project_prompt ?? null,
+            };
+        });
         return {
             currentUser: profile, // Current user's profile for editing
-            users: allProfiles, // All team members from user's projects
+            users: sanitizedProfiles, // All team members from user's projects (Jira tokens stripped)
             projects: projectsWithMembers,
             promptCount
         };
@@ -141,6 +185,10 @@ async function activate(context) {
     (0, ai_analyze_1.activateCodeReviewer)(context);
     // Store context globally first
     extensionContext = context;
+    const createJiraCmd = vscode.commands.registerCommand("ai.createJiraTasks", async (options) => {
+        return await (0, createJiraTasks_1.createJiraTasksCmd)(context, options);
+    });
+    context.subscriptions.push(createJiraCmd);
     // Initialize authentication service
     try {
         authService = new authService_1.AuthService();
@@ -533,6 +581,30 @@ async function openMainPanel(context, authService) {
     panel.webview.html = await getHtml(panel.webview, context);
     panel.webview.onDidReceiveMessage(async (msg) => {
         switch (msg.type) {
+            case "createJiraTasks": {
+                try {
+                    const payload = msg?.payload;
+                    const result = await vscode.commands.executeCommand("ai.createJiraTasks", payload);
+                    const createdCount = Array.isArray(result) ? result.length : 0;
+                    panel.webview.postMessage({
+                        type: "jiraCreated",
+                        payload: {
+                            message: createdCount > 0
+                                ? `Created ${createdCount} Jira issue(s) for project ${payload?.projectKey ?? ""}`.trim()
+                                : "No Jira issues were created. Please verify your backlog or credentials.",
+                        },
+                    });
+                }
+                catch (err) {
+                    panel.webview.postMessage({
+                        type: "jiraError",
+                        payload: {
+                            message: err?.message || "Failed to create Jira tasks.",
+                        },
+                    });
+                }
+                break;
+            }
             case "openFile": {
                 try {
                     // Open a folder selection dialog
@@ -820,7 +892,7 @@ Give me a specific message for EACH team member, detailing them what they need t
                 break;
             }
             case "updateProfile": {
-                const { skills, programmingLanguages, willingToWorkOn } = msg.payload;
+                const { skills, programmingLanguages, willingToWorkOn, jiraBaseUrl, jiraProjectKey, jiraEmail, jiraApiToken, jiraProjectPrompt, } = msg.payload;
                 const user = authService.getCurrentUser();
                 if (!user) {
                     vscode.window.showErrorMessage("Please log in to update your profile.");
@@ -834,10 +906,22 @@ Give me a specific message for EACH team member, detailing them what they need t
                     const profile = await databaseService.updateProfile(user.id, {
                         skills,
                         programming_languages: programmingLanguages,
-                        willing_to_work_on: willingToWorkOn
+                        willing_to_work_on: willingToWorkOn,
+                        jira_base_url: jiraBaseUrl,
+                        jira_project_key: jiraProjectKey,
+                        jira_email: jiraEmail,
+                        jira_api_token: jiraApiToken,
+                        jira_project_prompt: jiraProjectPrompt,
                     });
                     if (profile) {
                         vscode.window.showInformationMessage("Profile updated successfully!");
+                        await setCachedJiraProfile(user.id, {
+                            baseUrl: jiraBaseUrl,
+                            projectKey: jiraProjectKey,
+                            email: jiraEmail,
+                            token: jiraApiToken,
+                            projectPrompt: jiraProjectPrompt,
+                        });
                         // Send success message to webview
                         panel.webview.postMessage({
                             type: 'profileUpdated',

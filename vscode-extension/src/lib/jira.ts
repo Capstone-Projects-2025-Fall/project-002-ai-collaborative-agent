@@ -1,0 +1,189 @@
+// Jira helpers: building description as ADF (Atlassian Document Format, readable format for jira)
+//This file handles converting AI-generated text into valid Jira issues using the Jira REST API
+
+import fetch from "node-fetch"; // Used to make HTTP requests to Jira’s REST API from Node.js
+
+type CreateIssuesOpts = {// Define what inputs/options from users are required to create Jira issues
+  baseUrl: string;
+  email: string;
+  token: string;
+  projectKey: string;
+  backlogMarkdown: string; // AI output (plain/markdown-like text)
+  minTasks?: number;
+  maxTasks?: number;
+};
+
+
+export async function createIssuesFromBacklog(opts: CreateIssuesOpts) {
+  /**
+  Create Jira issues from a Markdown-like backlog
+  - Parses lines like "- [ ] Task title" (or "- Task title")
+  - Creates one Task issue per line
+  - Description is sent as an ADF document (required by Jira v3 API)
+ */
+
+  const { baseUrl, email, token, projectKey, backlogMarkdown, minTasks, maxTasks } = opts; // Extract each value from the options object
+
+  const maxAllowedTasks = Math.min(Math.max(maxTasks ?? 25, 10), 25); // clamp to 10-25 window
+  const minAllowedTasks = Math.min(Math.max(minTasks ?? 10, 1), maxAllowedTasks); // ensure <= max
+
+  const tasks = extractTasks(backlogMarkdown, maxAllowedTasks); // Parse task titles from the AI Markdown list (one title per bullet)
+
+  if (tasks.length < minAllowedTasks) {
+    throw new Error(
+      `Only ${tasks.length} task(s) detected from AI, but at least ${minAllowedTasks} are required. Please provide a more detailed project description to generate additional tasks.`
+    );
+  }
+
+  const auth = Buffer.from(`${email}:${token}`).toString("base64"); // this is needed because Jira’s API requires Basic Authentication: meaning that the email and token must be combined and Base64-encoded before being sent in the HTTP header for secure login
+
+  const adfDoc = toAdf(backlogMarkdown); // Convert the backlog text into Jira’s ADF format for the issue description
+
+  // Debug logs so we can see what we're sending
+  console.log("[jira.ts] Parsed tasks:", tasks);      // show first 500 chars                        * mark if too long
+  console.log("[jira.ts] ADF preview:", JSON.stringify(adfDoc).slice(0, 500) + (JSON.stringify(adfDoc).length > 500 ? "…(truncated)" : ""));
+
+  const results: any[] = []; // Array to store all created Jira issues 
+
+  for (const title of tasks) { //Loop through each parsed task title and create one issue per line
+    const payload = {
+      fields: {
+        project: { key: projectKey }, // specifying Jira project to issue tasks to
+        summary: title, // issue title
+        issuetype: { name: "Task" }, // set the issue type as "Task" so it can appear in backlog
+        description: adfDoc, // formatted description (ADF)
+      },
+    };
+
+    //Log what is being sent for debugging purposes
+    console.log("[jira.ts] Creating issue payload:", JSON.stringify({ summary: title, projectKey }).slice(0, 200));
+
+    const r = await fetch(`${trimSlash(baseUrl)}/rest/api/3/issue`, {// Send a POST request to Jira REST API to create the issue
+      method: "POST",
+      headers: {
+        "Authorization": `Basic ${auth}`,// Basic Auth using email + token (encoded in Base64 so the API can verify users' identity)
+        "Accept": "application/json", // expect JSON (because Jira’s REST API uses JSON as its standard data format) response
+        "Content-Type": "application/json", // sending JSON(same thing as above) body
+      },
+      body: JSON.stringify(payload), // converts payload object (holding jira issue details (summary, description, and project)) into a JS string and attaches it to HTTP request body
+    });
+
+    if (!r.ok) { // If Jira responds with error (not OK), log and throw it
+      const errText = await r.text().catch(() => "");
+      console.error("[jira.ts] Jira error:", r.status, errText);
+      throw new Error(`Jira ${r.status}: ${errText}`);
+    }
+
+    const data = await r.json(); //If success, parse returned JSON and save the created issue info
+    results.push(data);
+  }
+
+  return results; // Return all created issues (debbuging purposes/ confirmation)
+}
+
+/* 
+  extractTasks()
+  Pulls each line that looks like "- [ ] Do something" or "- Do something"
+  Returns an array of clean task titles.
+ */
+function extractTasks(md: string, limit = 25): string[] {
+  const lines = md.split(/\r?\n/); // split markdown text into lines
+  const tasks: string[] = [];
+
+  for (const line of lines) { //
+    // Checkboxes: - [ ] Task title
+    let m = line.match(/^- \[\s?\]\s+(.*)$/i); //checks whether line of text match - [ ]. first, line must start with a ^- (-); second, \[\s?\] means that the dash(-) must be followed by [ with optional space ]; 
+    //thrid \s, at least one space after [ ]; fourth (.*), captures all task's texta after ( - [ ] ); last /i makes the whole check for match case sensitive 
+    if (m && m[1]) { //if the tasks generated by AI (m[1]) starting with -[] matches m above, trim the extra empty spaces below
+      const title = m[1].replace(/\s+/g, " ").trim();
+      if (title) tasks.push(title); //If a cleaned, non-empty task title was found, adds that title to the tasks list
+      continue;
+    }
+    // Plain bullets: - Task title
+    m = line.match(/^- (.+)$/); // check if the line starts with "- " followed by some text (plain bullet task)
+    if (m && m[1]) { // make sure it actually matched and captured the task text
+      const title = m[1].replace(/\s+/g, " ").trim(); // clean extra spaces inside the task text and trim edges
+      if (title) tasks.push(title); // if the title is not empty, add it to the task list for later use
+    }
+  }
+
+  return tasks.slice(0, limit); // safety cap with caller-provided limit
+}
+
+/**
+ * Convert a markdown-like backlog into a simple, universally-accepted ADF document
+ * We produce:
+ *   doc(version=1)
+ *     paragraph("Generated Backlog")
+ *     bulletList(listItem(paragraph(lineText))) … for any leading '-' or '*'
+ *     paragraph(lines that aren't bullets)
+ */
+function toAdf(md: string): any {
+  const lines = md.split(/\r?\n/); //Splits Markdown text (md) into an array of lines, breaking at each newline (\n or \r\n). So the code can go through the text line by line to detect bullets, checkboxes, or paragraphs
+  const doc: any = { type: "doc", version: 1, content: [] as any[] }; // basic ADF doc skeleton (Creates a starting ADF (Atlassian Document Format) object with a version and an empty content list). Will later store all the formatted text blocks (like paragraphs and bullet lists)
+
+  // header line at the top of description:
+  doc.content.push(p("Generated Backlog"));
+
+  // gather consecutive bullet lines into one bulletList
+  let currentListItems: any[] = [];
+
+  const flushList = () => {
+    if (currentListItems.length > 0) {
+      doc.content.push({
+        type: "bulletList",
+        content: currentListItems.map((li) => ({
+          type: "listItem",
+          content: [ p(li) ], // listItem → paragraph → text
+        })),
+      });
+      currentListItems = []; // reset list buffer
+    }
+  };
+    //Process each line in the Markdown backlog
+  for (const raw of lines) {
+    const line = raw.trimEnd(); // remove trailing spaces
+
+    
+    const isBullet = /^[-*]\s+/.test(line); // check if it is a Bullet or checkbox bullet
+    const isCheckbox = /^-\s*\[\s?[xX]?\s?\]\s+/.test(line); //  won’t render actual checkbox ADF; keep as bullet text
+
+    if (isBullet || isCheckbox) {
+      // Clean out "- [ ] " or "- " symbols to keep only the task text
+      const cleaned = line
+        .replace(/^-\s*\[\s?[xX]?\s?\]\s+/, "") // remove "- [ ] " or "- [x] "
+        .replace(/^[-*]\s+/, "")                // remove "- " or "* "
+        .trim();
+      if (cleaned) currentListItems.push(cleaned); // add to list buffer
+      continue;
+    }
+
+    // Non-bullet line: close any existing list and create a paragraph
+    flushList();
+    const plain = line.trim();
+    if (plain.length > 0) {
+      doc.content.push(p(plain));  // regular text paragraph
+    } else {
+      // keep empty lines to avoid extra empty nodes
+      doc.content.push(p(" "));
+    }
+  }
+
+  // Push any remaining list items at the end
+  flushList();
+  //Return the fully built ADF document
+  return doc;
+}
+
+/** Helper: ADF paragraph node with plain text */
+function p(text: string) {
+  return {
+    type: "paragraph",
+    content: text ? [{ type: "text", text }] : [],
+  };
+}
+
+function trimSlash(url: string) { //Removes any trailing slashes ("/") from a URL
+ //Prevents double slashes when joining with Jira API endpoint
+  return url.replace(/\/+$/, "");
+}

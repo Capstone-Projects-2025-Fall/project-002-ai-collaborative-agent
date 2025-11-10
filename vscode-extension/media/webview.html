@@ -89,6 +89,70 @@
             animation: slideIn 0.3s ease-out;
         }
 
+        .hidden {
+            display: none !important;
+        }
+
+        .info-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 18px;
+            height: 18px;
+            margin-left: 6px;
+            border-radius: 50%;
+            border: 1px solid #94a3b8;
+            color: #475569;
+            font-size: 0.75rem;
+            cursor: pointer;
+            position: relative;
+            background: #e2e8f0;
+            font-weight: 700;
+        }
+
+        .info-icon::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            top: 115%;
+            left: 50%;
+            transform: translate(-50%, -10px);
+            width: 250px;
+            background: #0f172a;
+            color: #f8fafc;
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            line-height: 1.35;
+            box-shadow: 0 10px 25px rgba(15, 23, 42, 0.25);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            white-space: pre-line;
+            z-index: 50;
+        }
+
+        .info-icon::before {
+            content: '';
+            position: absolute;
+            top: 105%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 12px;
+            height: 12px;
+            background: #0f172a;
+            clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .info-icon:hover::after,
+        .info-icon:hover::before,
+        .info-icon:focus-visible::after,
+        .info-icon:focus-visible::before {
+            opacity: 1;
+            transform: translate(-50%, 0);
+        }
+
         @keyframes slideIn {
             from {
                 opacity: 0;
@@ -105,6 +169,29 @@
             display: grid;
             gap: 20px;
             margin-bottom: 25px;
+        }
+
+        .profile-card {
+            margin-top: 20px;
+            padding: 18px 20px;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            background: #f8fafc;
+        }
+
+        .profile-card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 14px;
+        }
+
+        .profile-card .form-grid {
+            margin-bottom: 0;
+        }
+
+        .profile-card .button-group {
+            margin-top: 16px;
         }
 
         .form-group {
@@ -461,8 +548,7 @@
                         placeholder="Describe your interests and preferred project types..."></textarea>
                 </div>
             </form>
-
-            <div class="button-group">
+           <div class="button-group">
                 <button id="update-profile-btn" class="btn btn-primary">Update Profile</button>
                 <button id="clear-profile-form-btn" class="btn btn-secondary">Reset Form</button>
             </div>
@@ -515,6 +601,56 @@
 
             <div id="projectStatus" class="status-message" style="display: none;"></div>
 
+            <div class="section-title">Jira Task Generator</div>
+            <p style="color: #475569; margin-bottom: 12px;">Connect to Jira Cloud to auto-generate a backlog for the selected project.</p>
+            <div class="button-group" style="justify-content: flex-start; margin-bottom: 0;">
+                <button type="button" id="toggle-jira-credentials-btn" class="btn btn-primary" aria-expanded="false">Generate Jira Tasks</button>
+            </div>
+            <div id="jiraCredentialsCard" class="profile-card hidden">
+                <div class="profile-card-title">Jira Credentials</div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="jiraBaseUrl">
+                            Jira Cloud base URL (e.g. https://your-team.atlassian.net)
+                            <span class="info-icon" tabindex="0" role="button" aria-label="How to find your Jira Cloud base URL" data-tooltip="1. Sign in to Jira Cloud in your browser.&#10;2. Copy the site URL up to atlassian.net (e.g., https://team.atlassian.net).&#10;3. Remove everything after the domain before pasting here.">?</span>
+                        </label>
+                        <input type="text" id="jiraBaseUrl" placeholder="https://your-team.atlassian.net">
+                    </div>
+                    <div class="form-group">
+                        <label for="jiraProjectKey">
+                            Jira Project Key (e.g. STAR, TUFF, ENG)
+                            <span class="info-icon" tabindex="0" role="button" aria-label="How to find your Jira Project Key" data-tooltip="1. In Jira, open Project settings &gt; Details.&#10;2. Find the Project key (2-10 uppercase letters shown under the project name).&#10;3. Paste that exact key here—do not use the project name.">?</span>
+                        </label>
+                        <input type="text" id="jiraProjectKey" placeholder="TEAM">
+                    </div>
+                    <div class="form-group">
+                        <label for="jiraEmail">
+                            Jira account email (the one tied to the API token)
+                            <span class="info-icon" tabindex="0" role="button" aria-label="Which email to use for Jira" data-tooltip="1. Use the Atlassian account email tied to your API token.&#10;2. Confirm it from https://id.atlassian.com/manage-profile.&#10;3. This email must have access to the Jira site you entered.">?</span>
+                        </label>
+                        <input type="email" id="jiraEmail" placeholder="you@company.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="jiraApiToken">
+                            Jira API Token
+                            <span class="info-icon" tabindex="0" role="button" aria-label="How to generate a Jira API token" data-tooltip="1. Go to https://id.atlassian.com/manage-profile/security/api-tokens (while logged in).&#10;2. Click Create API token, give it a label, then Create.&#10;3. Copy the token once and paste it here—store it securely because it cannot be shown again.">?</span>
+                        </label>
+                        <input type="password" id="jiraApiToken" placeholder="••••••••">
+                    </div>
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label for="jiraProjectPrompt">
+                            Project prompt (Describe your project to generate a Jira backlog)
+                            <span class="info-icon" tabindex="0" role="button" aria-label="What to include in the Jira project prompt" data-tooltip="Describe what Jira should build for you.&#10;Include the product vision, target users, tech stack, constraints, and any priority backlog items or milestones.">?</span>
+                        </label>
+                        <textarea id="jiraProjectPrompt" placeholder="e.g., Build a fitness app that tracks workouts and suggests plans…" rows="4"></textarea>
+                    </div>
+                </div>
+                <div class="button-group" style="justify-content: flex-end;">
+                    <button type="button" id="jira-profile-create-btn" class="btn btn-primary">Create Jira Tasks</button>
+                </div>
+                <div id="jiraStatus" class="status-message" style="display: none;"></div>
+            </div>
+            
             <div class="section-title">Projects</div>
             <div id="projectList" class="project-list">
                 <p style="text-align: center; color: #64748b; padding: 15px;">No projects yet</p>
@@ -565,7 +701,6 @@
                 • Task assignment recommendations
                 • Risk assessment guidelines
             </div>
-
             <div class="button-group" style="justify-content: right">
                 <button id="start-project" class="btn btn-primary">Start Project</button>
             </div>
@@ -623,6 +758,11 @@
                         skills: data.currentUser.skills || '',
                         programmingLanguages: data.currentUser.programming_languages || '',
                         willingToWorkOn: data.currentUser.willing_to_work_on || '',
+                        jiraBaseUrl: data.currentUser.jira_base_url || '',
+                        jiraProjectKey: data.currentUser.jira_project_key || '',
+                        jiraEmail: data.currentUser.jira_email || '',
+                        jiraApiToken: data.currentUser.jira_api_token || '',
+                        jiraProjectPrompt: data.currentUser.jira_project_prompt || '',
                         createdAt: data.currentUser.created_at
                     };
                     this.loadCurrentUserProfile();
@@ -669,20 +809,61 @@
                 document.getElementById('userSkills').value = this.currentUser.skills;
                 document.getElementById('userLanguages').value = this.currentUser.programmingLanguages;
                 document.getElementById('userWilling').value = this.currentUser.willingToWorkOn;
+                document.getElementById('jiraBaseUrl').value = this.currentUser.jiraBaseUrl || '';
+                document.getElementById('jiraProjectKey').value = this.currentUser.jiraProjectKey || '';
+                document.getElementById('jiraEmail').value = this.currentUser.jiraEmail || '';
+                document.getElementById('jiraApiToken').value = this.currentUser.jiraApiToken || '';
+                document.getElementById('jiraProjectPrompt').value = this.currentUser.jiraProjectPrompt || '';
+            }
+
+            collectProfileFormData() {
+                const skills = (document.getElementById('userSkills')?.value || '').trim();
+                const programmingLanguages = (document.getElementById('userLanguages')?.value || '').trim();
+                const willingToWorkOn = (document.getElementById('userWilling')?.value || '').trim();
+                const jiraBaseUrl = (document.getElementById('jiraBaseUrl')?.value || '').trim();
+                const jiraProjectKey = (document.getElementById('jiraProjectKey')?.value || '').trim();
+                const jiraEmail = (document.getElementById('jiraEmail')?.value || '').trim();
+                const jiraApiToken = (document.getElementById('jiraApiToken')?.value || '').trim();
+                const jiraProjectPrompt = (document.getElementById('jiraProjectPrompt')?.value || '').trim();
+
+                return {
+                    skills,
+                    programmingLanguages,
+                    willingToWorkOn,
+                    jiraBaseUrl,
+                    jiraProjectKey,
+                    jiraEmail,
+                    jiraApiToken,
+                    jiraProjectPrompt
+                };
             }
 
             updateProfile() {
-                const skills = document.getElementById('userSkills').value.trim();
-                const programmingLanguages = document.getElementById('userLanguages').value.trim();
-                const willingToWorkOn = document.getElementById('userWilling').value.trim();
+                const profileData = this.collectProfileFormData();
+
+                if (this.currentUser) {
+                    this.currentUser.skills = profileData.skills;
+                    this.currentUser.programmingLanguages = profileData.programmingLanguages;
+                    this.currentUser.willingToWorkOn = profileData.willingToWorkOn;
+                    this.currentUser.jiraBaseUrl = profileData.jiraBaseUrl;
+                    this.currentUser.jiraProjectKey = profileData.jiraProjectKey;
+                    this.currentUser.jiraEmail = profileData.jiraEmail;
+                    this.currentUser.jiraApiToken = profileData.jiraApiToken;
+                    this.currentUser.jiraProjectPrompt = profileData.jiraProjectPrompt;
+                }
 
                 // Send update to extension
                 vscode.postMessage({
                     type: 'updateProfile',
                     payload: {
-                        skills,
-                        programmingLanguages,
-                        willingToWorkOn
+                        skills: profileData.skills,
+                        programmingLanguages: profileData.programmingLanguages,
+                        willingToWorkOn: profileData.willingToWorkOn,
+                        jiraBaseUrl: profileData.jiraBaseUrl,
+                        jiraProjectKey: profileData.jiraProjectKey,
+                        jiraEmail: profileData.jiraEmail,
+                        jiraApiToken: profileData.jiraApiToken,
+                        jiraProjectPrompt: profileData.jiraProjectPrompt
                     }
                 });
 
@@ -692,6 +873,63 @@
             resetProfileForm() {
                 this.loadCurrentUserProfile();
                 showStatus('userStatus', 'Form reset to saved values', 'info');
+            }
+
+            createJiraTasksFromProfile() {
+                const profileData = this.collectProfileFormData();
+                const missingFields = [];
+
+                if (!profileData.jiraBaseUrl) missingFields.push('Jira base URL');
+                if (!profileData.jiraProjectKey) missingFields.push('Jira project key');
+                if (!profileData.jiraEmail) missingFields.push('Jira account email');
+                if (!profileData.jiraApiToken) missingFields.push('Jira API token');
+                if (!profileData.jiraProjectPrompt) missingFields.push('project prompt');
+
+                if (missingFields.length > 0) {
+                    showStatus(
+                        'jiraStatus',
+                        `❌ Please provide: ${missingFields.join(', ')}`,
+                        'error'
+                    );
+                    return;
+                }
+
+                if (this.currentUser) {
+                    this.currentUser.jiraBaseUrl = profileData.jiraBaseUrl;
+                    this.currentUser.jiraProjectKey = profileData.jiraProjectKey;
+                    this.currentUser.jiraEmail = profileData.jiraEmail;
+                    this.currentUser.jiraApiToken = profileData.jiraApiToken;
+                    this.currentUser.jiraProjectPrompt = profileData.jiraProjectPrompt;
+                }
+
+                // Persist credentials to profile
+                vscode.postMessage({
+                    type: 'updateProfile',
+                    payload: {
+                        skills: profileData.skills,
+                        programmingLanguages: profileData.programmingLanguages,
+                        willingToWorkOn: profileData.willingToWorkOn,
+                        jiraBaseUrl: profileData.jiraBaseUrl,
+                        jiraProjectKey: profileData.jiraProjectKey,
+                        jiraEmail: profileData.jiraEmail,
+                        jiraApiToken: profileData.jiraApiToken,
+                        jiraProjectPrompt: profileData.jiraProjectPrompt
+                    }
+                });
+
+                // Trigger Jira task creation
+                vscode.postMessage({
+                    type: 'createJiraTasks',
+                    payload: {
+                        baseUrl: profileData.jiraBaseUrl,
+                        projectKey: profileData.jiraProjectKey,
+                        email: profileData.jiraEmail,
+                        token: profileData.jiraApiToken,
+                        description: profileData.jiraProjectPrompt
+                    }
+                });
+
+                showStatus('jiraStatus', '🚀 Creating Jira tasks...', 'info');
             }
 
             saveData() {
@@ -776,6 +1014,10 @@
                         <p><strong>Skills:</strong> ${this.currentUser.skills || 'Not specified'}</p>
                         <p><strong>Languages:</strong> ${this.currentUser.programmingLanguages || 'Not specified'}</p>
                         <p><strong>Interests:</strong> ${this.currentUser.willingToWorkOn || 'Not specified'}</p>
+                        <p><strong>Jira Base URL:</strong> ${this.currentUser.jiraBaseUrl || 'Not set'}</p>
+                        <p><strong>Jira Project Key:</strong> ${this.currentUser.jiraProjectKey || 'Not set'}</p>
+                        <p><strong>Jira Email:</strong> ${this.currentUser.jiraEmail || 'Not set'}</p>
+                        <p><strong>Project Prompt:</strong> ${this.currentUser.jiraProjectPrompt || 'Not set'}</p>
                         <p><strong>Member Since:</strong> ${new Date(this.currentUser.createdAt).toLocaleString()}</p>
                     </div>
                 `;
@@ -883,6 +1125,12 @@
                     break;
                 case 'profileUpdateError':
                     showStatus('userStatus', `❌ Error: ${message.payload.message}`, 'error');
+                    break;
+                case 'jiraCreated':
+                    showStatus('jiraStatus', message.payload?.message || '✅ Jira tasks created!', 'success');
+                    break;
+                case 'jiraError':
+                    showStatus('jiraStatus', `❌ ${message.payload?.message || 'Failed to create Jira tasks.'}`, 'error');
                     break;
                 case 'promptGeneratedFromExtension': // NEW: Listen for generated prompt from extension
                     document.getElementById('promptOutput').textContent = message.payload.prompt;
@@ -1120,6 +1368,19 @@
                 vscode.postMessage({ type: 'signOut' });
             });
 
+            document.getElementById('jira-profile-create-btn')?.addEventListener('click', () => app.createJiraTasksFromProfile());
+            const jiraToggleBtn = document.getElementById('toggle-jira-credentials-btn');
+            const jiraCredentialsCard = document.getElementById('jiraCredentialsCard');
+            jiraToggleBtn?.addEventListener('click', () => {
+                if (!jiraCredentialsCard) return;
+                const isHidden = jiraCredentialsCard.classList.toggle('hidden');
+                jiraToggleBtn.textContent = isHidden ? 'Generate Jira Tasks' : 'Hide Jira Credentials';
+                jiraToggleBtn.setAttribute('aria-expanded', String(!isHidden));
+                if (!isHidden) {
+                    document.getElementById('jiraBaseUrl')?.focus();
+                }
+            });
+
             document.body.addEventListener('click', (event) => {
                 const target = event.target;
 
@@ -1150,5 +1411,4 @@
         });
     </script>
 </body>
-
 </html>

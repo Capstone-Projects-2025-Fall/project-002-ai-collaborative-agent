@@ -10,7 +10,8 @@
   "activationEvents": [
     "onStartupFinished",
     "onCommand:aiCollab.openPanel",
-    "onUri"
+    "onUri",
+    "onCommand:ai.createJiraTasks"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -20,6 +21,11 @@
         "title": "Open Team Platform",
         "category": "AI Collab Agent",
         "icon": "$(organization)"
+      },
+      {
+        "command": "ai.createJiraTasks",
+        "title": "AI: Create Jira Tasks",
+        "category": "AI Collab Agent"
       },
       {
         "command": "aiCollab.debugHello",
@@ -61,6 +67,11 @@
         "icon": "$(debug-pause)"
       }
     ],
+    "menus": {
+      "commandPalette": [
+        { "command": "ai.createJiraTasks", "when": "true" }
+      ]
+    },
     "configuration": {
       "title": "AI Collab Agent",
       "properties": {
@@ -155,26 +166,46 @@
       ]
     }
   },
+  "viewsContainers": {
+    "activitybar": [
+      {
+        "id": "aiCollab-sidebar",
+        "title": "AI Collab",
+        "icon": "media/collaboration.svg"
+      }
+    ]
+  },
+  "views": {
+    "aiCollab-sidebar": [
+      {
+        "id": "aiCollabView",
+        "name": "Team Panel"
+      }
+    ]
+  },
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -w -p ./",
     "package": "vsce package",
+    "test": "vitest",
+    "test:run": "vitest run"
     "lint": "eslint src --ext ts",
-    "test": "vitest"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.8",
     "dotenv": "^16.4.5",
     "vsls": "^1.0.4634",
-    "axios": "^1.6.5"
+    "axios": "^1.6.5",
+    "node-fetch": "^2.7.0"
   },
   "devDependencies": {
     "@types/node": "^22.18.6",
     "@types/vscode": "^1.70.0",
     "esbuild": "^0.25.10",
     "typescript": "^5.9.2",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "@types/node-fetch": "^2.6.13"
   },
   "repository": {
     "type": "git",
