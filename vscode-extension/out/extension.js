@@ -868,15 +868,6 @@ Give me a specific message for EACH team member, detailing them what they need t
                 setTimeout(() => {
                     vscode.commands.executeCommand("aiCollab.openPanel");
                 }, 200);
-                // const result = await authService.signOut();
-                // if (result?.error) {
-                //   vscode.window.showErrorMessage("Sign out failed: " + result.error);
-                // } else {
-                //   vscode.window.showInformationMessage("Signed out sucessfully.");
-                //   // close current main panel
-                //   panel.dispose();
-                //   vscode.commands.executeCommand("aiCollab.openPanel");
-                // }
                 break;
             }
             default:

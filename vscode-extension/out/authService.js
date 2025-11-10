@@ -246,19 +246,6 @@ class AuthService {
             throw new Error(error instanceof Error ? error.message : "Failed to set session");
         }
     }
-    // onAuthStateChange(callback: (user: AuthUser | null) => void): () => void {
-    //   return this.supabase.auth.onAuthStateChange((event, session) => {
-    //     if (event === "SIGNED_IN" && session) {
-    //       this.currentSession = session;
-    //       this.currentUser = this.mapUser(session.user);
-    //       callback(this.currentUser);
-    //     } else if (event === "SIGNED_OUT") {
-    //       this.currentSession = null;
-    //       this.currentUser = null;
-    //       callback(null);
-    //     }
-    //   }).data.subscription.unsubscribe;
-    // }
     onAuthStateChange(callback) {
         const { data } = this.supabase.auth.onAuthStateChange((event, session) => {
             try {
