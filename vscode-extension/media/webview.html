@@ -358,6 +358,184 @@
             line-height: 1.4;
         }
 
+        .empty-state-message {
+            color: #e2e8f0;
+            line-height: 1.6;
+        }
+
+        .empty-state-message ul {
+            margin: 10px 0 0 20px;
+        }
+
+        .empty-state-message li {
+            margin: 5px 0;
+        }
+
+        /* AI Analysis Visualization Styles */
+        #aiAnalysisVisualization {
+            margin-top: 20px;
+        }
+
+        .analysis-section {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .analysis-section h3 {
+            color: #667eea;
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .analysis-section h3::before {
+            content: '';
+            width: 4px;
+            height: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 2px;
+        }
+
+        .feasibility-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            margin-bottom: 10px;
+        }
+
+        .feasibility-badge.positive {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .feasibility-badge.negative {
+            background: #fef2f2;
+            color: #991b1b;
+        }
+
+        .member-card {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .member-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+        }
+
+        .member-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .member-name {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .member-role {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .task-section {
+            margin-top: 15px;
+        }
+
+        .task-section h4 {
+            color: #475569;
+            font-size: 1rem;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .task-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .task-list li {
+            background: white;
+            padding: 10px 15px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .task-list li::before {
+            content: '✓';
+            color: #667eea;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        .challenge-item, .risk-item, .recommendation-item {
+            background: #fef3c7;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            border-left: 4px solid #f59e0b;
+        }
+
+        .mitigation-item {
+            background: #dbeafe;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            border-left: 4px solid #3b82f6;
+        }
+
+        .deliverable-card {
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            border: 1px solid #bae6fd;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 12px;
+        }
+
+        .deliverable-name {
+            font-weight: 700;
+            color: #0369a1;
+            margin-bottom: 8px;
+        }
+
+        .deliverable-meta {
+            display: flex;
+            gap: 15px;
+            font-size: 0.85rem;
+            color: #64748b;
+            margin-top: 8px;
+        }
+
+        .deliverable-meta span {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
         .status-message {
             padding: 12px;
             border-radius: 8px;
@@ -754,17 +932,25 @@
 
             <div id="promptStatus" class="status-message" style="display: none;"></div>
 
-            <div class="section-title">Generated Prompt</div>
+            <div class="section-title">AI Analysis & Task Delegation</div>
             <div id="promptOutput" class="prompt-output">
-                Select a project above to generate an AI-optimized prompt for team analysis and task allocation.
-
-                The generated prompt will include:
-                • Complete project information
-                • Team member skills and preferences
-                • Analysis requests for AI models
-                • Task assignment recommendations
-                • Risk assessment guidelines
+                <div class="empty-state-message">
+                    <p>Select a project above to generate an AI-optimized analysis and task allocation.</p>
+                    <p>The analysis will include:</p>
+                    <ul>
+                        <li>Team composition analysis</li>
+                        <li>Project feasibility assessment</li>
+                        <li>Role assignments for each team member</li>
+                        <li>Task breakdown (immediate & future)</li>
+                        <li>Optimization recommendations</li>
+                        <li>Risk assessment</li>
+                        <li>Deliverables mapping</li>
+                    </ul>
+                </div>
             </div>
+            
+            <!-- New structured visualization container -->
+            <div id="aiAnalysisVisualization" style="display: none;"></div>
             <div class="button-group" style="justify-content: right">
                 <button id="start-project" class="btn btn-primary">Start Project</button>
             </div>
@@ -1257,6 +1443,171 @@
         // Global app instance
         const app = new TeamCollaborationApp();
 
+        // Render AI Analysis Visualization
+        function renderAnalysisVisualization(data, projectName) {
+            if (!data) return '<p>No analysis data available</p>';
+            
+            let html = `<div style="margin-bottom: 20px;">
+                <h2 style="color: #1e293b; font-size: 1.8rem; margin-bottom: 5px;">${projectName || 'Project'} Analysis</h2>
+                <p style="color: #64748b; font-size: 0.9rem;">AI-powered team analysis and task delegation</p>
+            </div>`;
+
+            // Team Analysis Section
+            if (data.teamAnalysis) {
+                html += `<div class="analysis-section">
+                    <h3>👥 Team Analysis</h3>
+                    ${data.teamAnalysis.summary ? `<p style="margin-bottom: 15px; line-height: 1.6;">${data.teamAnalysis.summary}</p>` : ''}
+                    ${data.teamAnalysis.gaps && data.teamAnalysis.gaps.length > 0 ? `
+                        <div style="margin-top: 15px;">
+                            <strong style="color: #dc2626;">Skill Gaps:</strong>
+                            <ul style="margin-top: 8px; padding-left: 20px;">
+                                ${data.teamAnalysis.gaps.map(gap => `<li style="margin: 5px 0;">${gap}</li>`).join('')}
+                            </ul>
+                        </div>
+                    ` : ''}
+                </div>`;
+            }
+
+            // Feasibility Section
+            if (data.feasibility) {
+                const isFeasible = data.feasibility.isFeasible !== false;
+                html += `<div class="analysis-section">
+                    <h3>🎯 Project Feasibility</h3>
+                    <span class="feasibility-badge ${isFeasible ? 'positive' : 'negative'}">
+                        ${isFeasible ? '✓ Feasible' : '⚠ Needs Attention'}
+                    </span>
+                    ${data.feasibility.assessment ? `<p style="margin-top: 10px; line-height: 1.6;">${data.feasibility.assessment}</p>` : ''}
+                    ${data.feasibility.challenges && data.feasibility.challenges.length > 0 ? `
+                        <div style="margin-top: 15px;">
+                            <strong style="color: #f59e0b;">Challenges:</strong>
+                            ${data.feasibility.challenges.map(challenge => `
+                                <div class="challenge-item">${challenge}</div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+                    ${data.feasibility.timeline ? `
+                        <div style="margin-top: 15px; padding: 12px; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #3b82f6;">
+                            <strong>Timeline:</strong> ${data.feasibility.timeline}
+                        </div>
+                    ` : ''}
+                </div>`;
+            }
+
+            // Role Assignments Section
+            if (data.roleAssignments && data.roleAssignments.length > 0) {
+                html += `<div class="analysis-section">
+                    <h3>👤 Role Assignments & Tasks</h3>
+                    ${data.roleAssignments.map(member => `
+                        <div class="member-card">
+                            <div class="member-header">
+                                <div class="member-name">${member.memberName || 'Team Member'}</div>
+                                <div class="member-role">${member.role || 'Team Member'}</div>
+                            </div>
+                            ${member.tasks && (member.tasks.immediate && member.tasks.immediate.length > 0 || member.tasks.future && member.tasks.future.length > 0) ? `
+                                ${member.tasks.immediate && member.tasks.immediate.length > 0 ? `
+                                    <div class="task-section">
+                                        <h4>🚀 Immediate Tasks</h4>
+                                        <ul class="task-list">
+                                            ${member.tasks.immediate.map(task => `<li>${task}</li>`).join('')}
+                                        </ul>
+                                    </div>
+                                ` : ''}
+                                ${member.tasks.future && member.tasks.future.length > 0 ? `
+                                    <div class="task-section">
+                                        <h4>📅 Future Tasks</h4>
+                                        <ul class="task-list">
+                                            ${member.tasks.future.map(task => `<li>${task}</li>`).join('')}
+                                        </ul>
+                                    </div>
+                                ` : ''}
+                            ` : ''}
+                            ${member.responsibilities && member.responsibilities.length > 0 ? `
+                                <div class="task-section">
+                                    <h4>📋 Responsibilities</h4>
+                                    <ul class="task-list">
+                                        ${member.responsibilities.map(resp => `<li>${resp}</li>`).join('')}
+                                    </ul>
+                                </div>
+                            ` : ''}
+                            ${member.collaboration ? `
+                                <div style="margin-top: 15px; padding: 12px; background: #fef3c7; border-radius: 8px; border-left: 4px solid #f59e0b;">
+                                    <strong>🤝 Collaboration:</strong> ${member.collaboration}
+                                </div>
+                            ` : ''}
+                        </div>
+                    `).join('')}
+                </div>`;
+            }
+
+            // Optimization Section
+            if (data.optimization) {
+                html += `<div class="analysis-section">
+                    <h3>⚡ Optimization Recommendations</h3>
+                    ${data.optimization.recommendations && data.optimization.recommendations.length > 0 ? `
+                        ${data.optimization.recommendations.map(rec => `
+                            <div class="recommendation-item">${rec}</div>
+                        `).join('')}
+                    ` : ''}
+                    ${data.optimization.structure ? `
+                        <div style="margin-top: 15px; padding: 12px; background: #f0f9ff; border-radius: 8px;">
+                            <strong>Project Structure:</strong> ${data.optimization.structure}
+                        </div>
+                    ` : ''}
+                </div>`;
+            }
+
+            // Risks Section
+            if (data.risks) {
+                html += `<div class="analysis-section">
+                    <h3>⚠️ Risk Assessment</h3>
+                    ${data.risks.identified && data.risks.identified.length > 0 ? `
+                        <div style="margin-bottom: 15px;">
+                            <strong style="color: #dc2626;">Identified Risks:</strong>
+                            ${data.risks.identified.map(risk => `
+                                <div class="risk-item">${risk}</div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+                    ${data.risks.mitigation && data.risks.mitigation.length > 0 ? `
+                        <div style="margin-bottom: 15px;">
+                            <strong style="color: #3b82f6;">Mitigation Strategies:</strong>
+                            ${data.risks.mitigation.map(mit => `
+                                <div class="mitigation-item">${mit}</div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+                    ${data.risks.successFactors && data.risks.successFactors.length > 0 ? `
+                        <div style="margin-top: 15px;">
+                            <strong style="color: #059669;">Critical Success Factors:</strong>
+                            <ul style="margin-top: 8px; padding-left: 20px;">
+                                ${data.risks.successFactors.map(factor => `<li style="margin: 5px 0;">${factor}</li>`).join('')}
+                            </ul>
+                        </div>
+                    ` : ''}
+                </div>`;
+            }
+
+            // Deliverables Section
+            if (data.deliverables && data.deliverables.length > 0) {
+                html += `<div class="analysis-section">
+                    <h3>📦 Deliverables Mapping</h3>
+                    ${data.deliverables.map(deliverable => `
+                        <div class="deliverable-card">
+                            <div class="deliverable-name">${deliverable.name || 'Deliverable'}</div>
+                            ${deliverable.description ? `<p style="margin: 8px 0; color: #475569;">${deliverable.description}</p>` : ''}
+                            <div class="deliverable-meta">
+                                ${deliverable.assignedTo ? `<span>👤 ${deliverable.assignedTo}</span>` : ''}
+                                ${deliverable.milestone ? `<span>🎯 ${deliverable.milestone}</span>` : ''}
+                                ${deliverable.timeline ? `<span>⏰ ${deliverable.timeline}</span>` : ''}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>`;
+            }
+
+            return html;
+        }
+
         // Listen to messages from VS Code extension
         window.addEventListener('message', event => {
             const message = event.data;
@@ -1288,10 +1639,28 @@
                 case 'aiResponseReceived': // NEW: Handle AI response with task delegation
                     setPromptLoading(false); // restore button + cursor
                     const promptOutput = document.getElementById('promptOutput');
-                    if (promptOutput) {
-                        promptOutput.textContent = `${message.payload.prompt}\n\n${"=".repeat(80)}\nAI RESPONSE:\n${"=".repeat(80)}\n\n${message.payload.response}`;
+                    const visualization = document.getElementById('aiAnalysisVisualization');
+                    
+                    if (message.payload.parsed) {
+                        // Hide text output, show visualization
+                        if (promptOutput) {
+                            promptOutput.style.display = 'none';
+                        }
+                        if (visualization) {
+                            visualization.style.display = 'block';
+                            visualization.innerHTML = renderAnalysisVisualization(message.payload.parsed, message.payload.projectName);
+                        }
+                    } else {
+                        // Fallback to text output if no parsed data
+                        if (promptOutput) {
+                            promptOutput.style.display = 'block';
+                            promptOutput.textContent = `${message.payload.prompt}\n\n${"=".repeat(80)}\nAI RESPONSE:\n${"=".repeat(80)}\n\n${message.payload.response}`;
+                        }
+                        if (visualization) {
+                            visualization.style.display = 'none';
+                        }
                     }
-                    showStatus('promptStatus', '✅ AI analysis complete! Tasks delegated to team members. Check editor for details.', 'success');
+                    showStatus('promptStatus', '✅ AI analysis complete! Tasks delegated to team members.', 'success');
                     break;
                 case 'promptGenerationError': // NEW: Handle errors from extension
                     setPromptLoading(false); // restore button + cursor
