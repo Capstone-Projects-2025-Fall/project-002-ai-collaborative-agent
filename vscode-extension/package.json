@@ -189,8 +189,8 @@
     "watch": "tsc -w -p ./",
     "package": "vsce package",
     "test": "vitest",
-    "test:run": "vitest run"
-    "lint": "eslint src --ext ts",
+    "test:run": "vitest run",
+    "lint": "eslint src --ext ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.8",
