@@ -314,8 +314,11 @@ async function analyzeCurrentFile(forceAnalysis: boolean = false, reason?: strin
         return;
     }
 
-    // Show why we're analyzing
-    const statusMessage = reason ? `$(sync~spin) Analyzing: ${reason}` : '$(sync~spin) Analyzing...';
+    // Check for unsaved changes
+    const hasUnsavedChanges = vscode.workspace.textDocuments.some(doc => doc.isDirty);
+    const statusPrefix = hasUnsavedChanges ? '$(sync~spin) Analyzing unsaved changes' : '$(sync~spin) Analyzing';
+    const statusMessage = reason ? `${statusPrefix}: ${reason}` : statusPrefix;
+    
     vscode.window.setStatusBarMessage(statusMessage, 3000);
 
     try {
@@ -327,6 +330,18 @@ async function analyzeCurrentFile(forceAnalysis: boolean = false, reason?: strin
         if (folderContents.length === 0) {
             vscode.window.setStatusBarMessage('$(info) No files to analyze', 3000);
             return;
+        }
+
+        // Count how many files have unsaved changes
+        const unsavedCount = folderContents.filter(f => {
+            const fullPath = require('path').join(folderPath, f.fileName);
+            return vscode.workspace.textDocuments.some(
+                doc => doc.uri.fsPath === fullPath && doc.isDirty
+            );
+        }).length;
+
+        if (unsavedCount > 0) {
+            console.log(`Analyzing ${unsavedCount} file(s) with unsaved changes`);
         }
 
         // Include change log context in the analysis
@@ -343,7 +358,8 @@ async function analyzeCurrentFile(forceAnalysis: boolean = false, reason?: strin
                 files: folderContents,
                 folderPath: folderPath,
                 currentFile: currentFilePath,
-                changeContext: recentChangeSummary
+                changeContext: recentChangeSummary,
+                unsavedFiles: unsavedCount
             })
         });
 
@@ -364,7 +380,10 @@ async function analyzeCurrentFile(forceAnalysis: boolean = false, reason?: strin
         
         // Only intervene if there are issues or forced
         if (hasErrors || hasWarnings || forceAnalysis) {
-            showResultsPanel(data.message, folderContents.length, folderPath, reason);
+            const analysisReason = unsavedCount > 0 
+                ? `${reason || 'Analysis'} (${unsavedCount} unsaved file${unsavedCount > 1 ? 's' : ''})`
+                : reason;
+            showResultsPanel(data.message, folderContents.length, folderPath, analysisReason);
             if (hasErrors) {
                 vscode.window.setStatusBarMessage('$(error) Issues detected - check AI Assistant', 5000);
             } else if (hasWarnings) {
@@ -439,8 +458,23 @@ async function readFolderRecursively(folderPath: string): Promise<Array<{fileNam
                     
                     if (codeExtensions.includes(ext)) {
                         try {
-                            const content = await fs.readFile(fullPath, 'utf-8');
+                            // CRITICAL FIX: Check if file is currently open in editor
+                            // If so, use the unsaved content from the editor instead of disk
+                            const openDoc = vscode.workspace.textDocuments.find(
+                                doc => doc.uri.fsPath === fullPath
+                            );
                             
+                            let content: string;
+                            if (openDoc) {
+                                // Use unsaved content from editor (includes unsaved changes!)
+                                content = openDoc.getText();
+                                console.log(`Using unsaved content for: ${entry.name}`);
+                            } else {
+                                // Read from disk
+                                content = await fs.readFile(fullPath, 'utf-8');
+                            }
+                            
+                            // Skip very large files (>100KB)
                             if (content.length < 100000) {
                                 files.push({
                                     fileName: path.relative(folderPath, fullPath),
@@ -606,6 +640,19 @@ function showResultsPanel(analysisResult?: string, fileCount?: number, folderPat
         }
     );
 
+    // Handle messages from the webview
+    resultsPanel.webview.onDidReceiveMessage(
+        async (message) => {
+            switch (message.type) {
+                case 'navigateToLine':
+                    await navigateToFileLine(message.file, message.line);
+                    break;
+            }
+        },
+        undefined,
+        extensionContext.subscriptions
+    );
+
     resultsPanel.onDidDispose(() => {
         resultsPanel = undefined;
     });
@@ -615,6 +662,115 @@ function showResultsPanel(analysisResult?: string, fileCount?: number, folderPat
     } else {
         resultsPanel.webview.html = getWebviewContent('', 0, '', '');
     }
+}
+
+async function navigateToFileLine(fileName: string, line: number) {
+    try {
+        const path = require('path');
+        const fs = require('fs');
+        
+        // Get workspace folders
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (!workspaceFolders || workspaceFolders.length === 0) {
+            vscode.window.showErrorMessage('No workspace folder open');
+            return;
+        }
+
+        // Try to resolve the file path
+        let targetFilePath: string | undefined;
+        
+        if (path.isAbsolute(fileName)) {
+            targetFilePath = fileName;
+        } else {
+            // Search for the file in all workspace folders
+            for (const folder of workspaceFolders) {
+                const candidatePath = path.join(folder.uri.fsPath, fileName);
+                if (fs.existsSync(candidatePath)) {
+                    targetFilePath = candidatePath;
+                    break;
+                }
+                
+                // Also try searching recursively for the filename
+                const baseName = path.basename(fileName);
+                const foundPath = await findFileInWorkspace(folder.uri.fsPath, baseName);
+                if (foundPath) {
+                    targetFilePath = foundPath;
+                    break;
+                }
+            }
+        }
+
+        if (!targetFilePath || !fs.existsSync(targetFilePath)) {
+            vscode.window.showErrorMessage(`File not found: ${fileName}`);
+            return;
+        }
+
+        // Open the file
+        const document = await vscode.workspace.openTextDocument(targetFilePath);
+        const textEditor = await vscode.window.showTextDocument(document, vscode.ViewColumn.One);
+
+        // Navigate to the line (convert to 0-based index)
+        const lineIndex = Math.max(0, line - 1);
+        const position = new vscode.Position(lineIndex, 0);
+        
+        // Set cursor and reveal the line
+        textEditor.selection = new vscode.Selection(position, position);
+        textEditor.revealRange(
+            new vscode.Range(position, position),
+            vscode.TextEditorRevealType.InCenter
+        );
+
+        // Highlight the line briefly
+        const decorationType = vscode.window.createTextEditorDecorationType({
+            backgroundColor: 'rgba(255, 200, 0, 0.3)',
+            isWholeLine: true
+        });
+
+        textEditor.setDecorations(decorationType, [new vscode.Range(position, position)]);
+
+        // Remove highlight after 2 seconds
+        setTimeout(() => {
+            decorationType.dispose();
+        }, 2000);
+
+        vscode.window.showInformationMessage(`Navigated to ${path.basename(fileName)}:${line}`);
+    } catch (error) {
+        console.error('Error navigating to line:', error);
+        vscode.window.showErrorMessage(`Failed to navigate: ${error}`);
+    }
+}
+
+async function findFileInWorkspace(folderPath: string, fileName: string): Promise<string | undefined> {
+    const fs = require('fs').promises;
+    const path = require('path');
+    
+    const ignoreFolders = ['node_modules', '.git', 'dist', 'build', 'out', '.vscode', 'coverage', '.next', '__pycache__'];
+    
+    async function searchDir(dirPath: string): Promise<string | undefined> {
+        try {
+            const entries = await fs.readdir(dirPath, { withFileTypes: true });
+            
+            for (const entry of entries) {
+                const fullPath = path.join(dirPath, entry.name);
+                
+                if (entry.isDirectory()) {
+                    if (!ignoreFolders.includes(entry.name)) {
+                        const found = await searchDir(fullPath);
+                        if (found) return found;
+                    }
+                } else if (entry.isFile()) {
+                    if (entry.name === fileName) {
+                        return fullPath;
+                    }
+                }
+            }
+        } catch (err) {
+            // Ignore errors (permission denied, etc.)
+        }
+        return undefined;
+    }
+    
+    return await searchDir(folderPath);
 }
 
 function updateResultsPanel(analysisResult: string, fileCount?: number, folderPath?: string, reason?: string) {
@@ -715,6 +871,24 @@ function getWebviewContent(analysisResult: string, fileCount?: number, folderPat
                 line-height: 1.7;
             }
             
+            .file-reference {
+                color: var(--vscode-textLink-foreground);
+                text-decoration: underline;
+                cursor: pointer;
+                padding: 2px 4px;
+                border-radius: 3px;
+                transition: background-color 0.2s;
+            }
+            
+            .file-reference:hover {
+                background-color: var(--vscode-textLink-activeForeground);
+                opacity: 0.8;
+            }
+            
+            .file-reference:active {
+                opacity: 0.6;
+            }
+            
             .empty-state {
                 text-align: center;
                 padding: 60px 20px;
@@ -738,6 +912,16 @@ function getWebviewContent(analysisResult: string, fileCount?: number, folderPat
             .analysis-content strong {
                 color: ${statusColor};
             }
+
+            .help-text {
+                font-size: 12px;
+                color: var(--vscode-descriptionForeground);
+                margin-top: 10px;
+                padding: 8px 12px;
+                background: var(--vscode-textCodeBlock-background);
+                border-radius: 4px;
+                border-left: 3px solid var(--vscode-textLink-foreground);
+            }
         </style>
     </head>
     <body>
@@ -760,6 +944,10 @@ function getWebviewContent(analysisResult: string, fileCount?: number, folderPat
                 </div>
             ` : ''}
             
+            <div class="help-text">
+                💡 <strong>Tip:</strong> Click on any file reference (e.g., <span style="color: var(--vscode-textLink-foreground); text-decoration: underline;">filename.ts:42</span>) to jump to that line!
+            </div>
+            
             <div class="analysis-content">${formatAnalysisResult(analysisResult)}</div>
             
             <div class="timestamp">
@@ -780,6 +968,28 @@ function getWebviewContent(analysisResult: string, fileCount?: number, folderPat
                 </p>
             </div>
         `}
+
+        <script>
+            const vscode = acquireVsCodeApi();
+            
+            // Add click handlers to all file references
+            document.addEventListener('DOMContentLoaded', () => {
+                document.querySelectorAll('.file-reference').forEach(element => {
+                    element.addEventListener('click', () => {
+                        const file = element.getAttribute('data-file');
+                        const line = parseInt(element.getAttribute('data-line'));
+                        
+                        if (file && line) {
+                            vscode.postMessage({
+                                type: 'navigateToLine',
+                                file: file,
+                                line: line
+                            });
+                        }
+                    });
+                });
+            });
+        </script>
     </body>
     </html>`;
 }
@@ -794,10 +1004,34 @@ function escapeHtml(text: string): string {
 }
 
 function formatAnalysisResult(result: string): string {
-    return result
+    // First escape HTML
+    let formatted = result
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+
+    // Make file references clickable
+    // Pattern: filename.ext:line or filename.ext line or "in filename.ext on line X"
+    formatted = formatted.replace(
+        /(\w+\.\w+)(?::|\s+(?:line\s+)?|,\s+line\s+)(\d+)/gi,
+        '<span class="file-reference" data-file="$1" data-line="$2">$1:$2</span>'
+    );
+
+    // Pattern: "line X in filename.ext"
+    formatted = formatted.replace(
+        /line\s+(\d+)\s+(?:in|of)\s+(\w+\.\w+)/gi,
+        '<span class="file-reference" data-file="$2" data-line="$1">line $1 in $2</span>'
+    );
+
+    // Format markdown-style bold
+    formatted = formatted
         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
         .replace(/\n\n/g, '</p><p>')
         .replace(/\n/g, '<br>');
+
+    return formatted;
 }
 
 async function updateStatusBar() {

@@ -3,26 +3,24 @@ import java.util.*;
 public class BFSandDFS {
 
     public static void bfs(Map<Integer, List<Integer>> graph, int start) {
-        Set<Integer> visited = new HashSet<>();
-        Queue<Integer> queue = new LinkedList<>();
-
+        Set<Integer> visited = new Hashset<>(); 
+        Queue<Integer> queue = new Linkedlist<>();
         visited.add(start);
-        queue.offer(start);
+        queue.add(start);
 
-        System.out.print("BFS Order: ");
-        while (!queue.isEmpty()) {
+        while (queue.isNotEmtpy()) {
             int node = queue.poll();
-            System.out.print(node + " ");
+            System.out.println("Visiting node: " + nodes);
 
-            for (int neighbor : graph.getOrDefault(node, Collections.emptyList())) {
-                if (!visited.contains(neighbor)) {
+            for (int neighbor : graph.get(node)) { 
+                if (!visited.contains(neighbor)) {//asdasdadaddasdadadadadasdasdasd
                     visited.add(neighbor);
-                    queue.offer(neighbor);
+                    queue.offer(neighbors);
                 }
             }
         }
-        System.out.println();
     }
+
 
     public static void dfs(Map<Integer, List<Integer>> graph, int start) {
         Set<Integer> visited = new HashSet<>();
