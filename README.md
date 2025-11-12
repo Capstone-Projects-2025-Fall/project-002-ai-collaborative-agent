@@ -60,12 +60,18 @@ git clone https://github.com/Capstone-Projects-2025-Fall/project-002-ai-collabor
 cd project-002-ai-collaborative-agent
 ```
 
-2. Install root dependencies:
+2. Download and install the Visual Studio Live Share extension for Visual Studio Code.
+
+3. Wait for the extension to finish downloading and then reload VS Code when prompted.ss
+
+4. Once complete, you'll see ```Live Share``` appear in your status bar.
+
+5. Install root dependencies:
 ```bash
 npm install
 ```
 
-3. Install extension dependencies:
+6. Install extension dependencies:
 ```bash
 cd vscode-extension
 npm install
