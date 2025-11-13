@@ -578,6 +578,184 @@ async function activate(context) {
     });
     context.subscriptions.push(open);
 }
+// Parse AI response - tries JSON first, falls back to text parsing
+function parseAIResponse(response, teamMembers) {
+    // Try to parse as JSON first
+    try {
+        // Extract JSON from response if it's wrapped in markdown code blocks
+        let jsonStr = response.trim();
+        const jsonMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
+        if (jsonMatch) {
+            jsonStr = jsonMatch[1].trim();
+        }
+        // Try to find JSON object in the response
+        const jsonStart = jsonStr.indexOf('{');
+        const jsonEnd = jsonStr.lastIndexOf('}');
+        if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+            jsonStr = jsonStr.substring(jsonStart, jsonEnd + 1);
+        }
+        const parsed = JSON.parse(jsonStr);
+        if (parsed && typeof parsed === 'object') {
+            return parsed;
+        }
+    }
+    catch (e) {
+        // Not JSON, continue to text parsing
+    }
+    // Fallback: Parse text format
+    return parseTextResponse(response, teamMembers);
+}
+// Parse text-based AI response
+function parseTextResponse(response, teamMembers) {
+    const result = {
+        teamAnalysis: { summary: '', skillMix: '', gaps: [], redundancies: [], compatibility: '' },
+        feasibility: { isFeasible: true, assessment: '', challenges: [], timeline: '' },
+        roleAssignments: [],
+        optimization: { recommendations: [], training: [], structure: '' },
+        risks: { identified: [], mitigation: [], successFactors: [] },
+        deliverables: []
+    };
+    const lines = response.split('\n');
+    let currentSection = '';
+    let currentContent = [];
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        // Detect section headers
+        if (line.match(/^1\.?\s*TEAM\s*ANALYSIS/i)) {
+            currentSection = 'teamAnalysis';
+            currentContent = [];
+            continue;
+        }
+        else if (line.match(/^2\.?\s*PROJECT\s*FEASIBILITY/i)) {
+            currentSection = 'feasibility';
+            currentContent = [];
+            continue;
+        }
+        else if (line.match(/^3\.?\s*ROLE\s*ASSIGNMENTS/i)) {
+            currentSection = 'roleAssignments';
+            currentContent = [];
+            continue;
+        }
+        else if (line.match(/^4\.?\s*OPTIMIZATION/i)) {
+            currentSection = 'optimization';
+            currentContent = [];
+            continue;
+        }
+        else if (line.match(/^5\.?\s*RISK/i)) {
+            currentSection = 'risks';
+            currentContent = [];
+            continue;
+        }
+        else if (line.match(/^6\.?\s*DELIVERABLES/i)) {
+            currentSection = 'deliverables';
+            currentContent = [];
+            continue;
+        }
+        // Process content based on current section
+        if (currentSection && line) {
+            currentContent.push(line);
+            // Extract structured data
+            if (currentSection === 'teamAnalysis') {
+                result.teamAnalysis.summary = currentContent.join(' ').substring(0, 500);
+                if (line.toLowerCase().includes('gap')) {
+                    result.teamAnalysis.gaps.push(line.replace(/^[-•]\s*/, ''));
+                }
+            }
+            else if (currentSection === 'feasibility') {
+                result.feasibility.assessment = currentContent.join(' ').substring(0, 500);
+                if (line.toLowerCase().includes('challenge') || line.toLowerCase().includes('difficult')) {
+                    result.feasibility.challenges.push(line.replace(/^[-•]\s*/, ''));
+                }
+                if (line.toLowerCase().includes('timeline') || line.toLowerCase().includes('time')) {
+                    result.feasibility.timeline = line;
+                }
+                if (line.toLowerCase().includes('feasible') || line.toLowerCase().includes('achievable')) {
+                    result.feasibility.isFeasible = !line.toLowerCase().includes('not');
+                }
+            }
+            else if (currentSection === 'roleAssignments') {
+                // Look for team member names
+                for (const member of teamMembers) {
+                    if (line.includes(member.name)) {
+                        const existing = result.roleAssignments.find((r) => r.memberName === member.name);
+                        if (!existing) {
+                            result.roleAssignments.push({
+                                memberName: member.name,
+                                role: extractRole(line),
+                                tasks: { immediate: [], future: [] },
+                                responsibilities: [],
+                                collaboration: ''
+                            });
+                        }
+                        const assignment = result.roleAssignments.find((r) => r.memberName === member.name);
+                        if (line.includes('now') || line.includes('immediate') || line.includes('right now')) {
+                            assignment.tasks.immediate.push(line.replace(/^[-•]\s*/, ''));
+                        }
+                        else if (line.includes('future') || line.includes('later')) {
+                            assignment.tasks.future.push(line.replace(/^[-•]\s*/, ''));
+                        }
+                        else {
+                            assignment.responsibilities.push(line.replace(/^[-•]\s*/, ''));
+                        }
+                    }
+                }
+            }
+            else if (currentSection === 'optimization') {
+                if (line.startsWith('-') || line.startsWith('•')) {
+                    result.optimization.recommendations.push(line.replace(/^[-•]\s*/, ''));
+                }
+            }
+            else if (currentSection === 'risks') {
+                if (line.startsWith('-') || line.startsWith('•')) {
+                    if (line.toLowerCase().includes('mitigation') || line.toLowerCase().includes('mitigate')) {
+                        result.risks.mitigation.push(line.replace(/^[-•]\s*/, ''));
+                    }
+                    else {
+                        result.risks.identified.push(line.replace(/^[-•]\s*/, ''));
+                    }
+                }
+            }
+            else if (currentSection === 'deliverables') {
+                if (line.startsWith('-') || line.startsWith('•')) {
+                    result.deliverables.push({
+                        name: line.replace(/^[-•]\s*/, ''),
+                        description: '',
+                        assignedTo: '',
+                        milestone: '',
+                        timeline: ''
+                    });
+                }
+            }
+        }
+    }
+    // Ensure all team members have assignments
+    for (const member of teamMembers) {
+        if (!result.roleAssignments.find((r) => r.memberName === member.name)) {
+            result.roleAssignments.push({
+                memberName: member.name,
+                role: 'Team Member',
+                tasks: { immediate: [], future: [] },
+                responsibilities: [],
+                collaboration: ''
+            });
+        }
+    }
+    return result;
+}
+// Helper to extract role from text
+function extractRole(text) {
+    const rolePatterns = [
+        /(?:as\s+)?(?:a\s+)?(back[- ]?end|front[- ]?end|full[- ]?stack|database|devops|ui\/ux|designer|developer|engineer|architect|lead|manager)/i,
+        /(?:role|position)[:\s]+([^,\.]+)/i
+    ];
+    for (const pattern of rolePatterns) {
+        const match = text.match(pattern);
+        if (match) {
+            return match[1].trim();
+        }
+    }
+    return 'Team Member';
+}
 // Helper function to get the current user's profile ID
 async function getCurrentUserProfileId(authService, databaseService) {
     const user = authService.getCurrentUser();
@@ -784,7 +962,57 @@ Please analyze this project and team composition and provide:
    - Map deliverables to team member capabilities
    - Suggest milestone structure
 
-Give me a specific message for EACH team member, detailing them what they need to do RIGHT NOW and in the FUTURE. Give each user the exact things they need to work on according also to their skills.`;
+Give me a specific message for EACH team member, detailing them what they need to do RIGHT NOW and in the FUTURE. Give each user the exact things they need to work on according also to their skills.
+
+IMPORTANT: Please respond in valid JSON format with the following structure:
+{
+  "teamAnalysis": {
+    "summary": "Overall team assessment",
+    "skillMix": "Evaluation of skill mix",
+    "gaps": ["List of skill gaps"],
+    "redundancies": ["List of redundancies"],
+    "compatibility": "Team compatibility assessment"
+  },
+  "feasibility": {
+    "isFeasible": true,
+    "assessment": "Feasibility assessment",
+    "challenges": ["List of challenges"],
+    "timeline": "Timeline considerations"
+  },
+  "roleAssignments": [
+    {
+      "memberName": "Team member name",
+      "role": "Assigned role",
+      "tasks": {
+        "immediate": ["Tasks to do right now"],
+        "future": ["Future tasks"]
+      },
+      "responsibilities": ["List of responsibilities"],
+      "collaboration": "Collaboration opportunities"
+    }
+  ],
+  "optimization": {
+    "recommendations": ["List of recommendations"],
+    "training": ["Training suggestions"],
+    "structure": "Project structure suggestions"
+  },
+  "risks": {
+    "identified": ["List of risks"],
+    "mitigation": ["Mitigation strategies"],
+    "successFactors": ["Critical success factors"]
+  },
+  "deliverables": [
+    {
+      "name": "Deliverable name",
+      "description": "Description",
+      "assignedTo": "Team member name",
+      "milestone": "Milestone name",
+      "timeline": "Timeline"
+    }
+  ]
+}
+
+If you cannot provide JSON, provide the response in the numbered format as before, and I will parse it.`;
                 // Call the Supabase Edge Function to get AI response
                 try {
                     vscode.window.showInformationMessage("Generating AI analysis...");
@@ -807,6 +1035,8 @@ Give me a specific message for EACH team member, detailing them what they need t
                     }
                     const aiResult = await response.json();
                     const aiResponse = aiResult.message || aiResult.response || "No response received";
+                    // Parse the AI response (try JSON first, fallback to text parsing)
+                    const parsedData = parseAIResponse(aiResponse, teamMembersForPrompt);
                     // Save to database
                     const supabase = (0, supabaseConfig_1.getSupabaseClient)();
                     await supabase.from("ai_prompts").insert([{
@@ -826,12 +1056,14 @@ Give me a specific message for EACH team member, detailing them what they need t
                             preview: false,
                         });
                     }
-                    // Send response back to webview
+                    // Send response back to webview with parsed structured data
                     panel.webview.postMessage({
                         type: "aiResponseReceived",
                         payload: {
                             prompt: promptContent,
-                            response: aiResponse
+                            response: aiResponse,
+                            parsed: parsedData,
+                            projectName: projectToPrompt.name
                         },
                     });
                     vscode.window.showInformationMessage(`✅ AI analysis complete for project: ${projectToPrompt.name}`);

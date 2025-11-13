@@ -847,7 +847,10 @@
                 <div id="jiraStatus" class="status-message" style="display: none;"></div>
             </div>
             
-            <div class="section-title">Projects</div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <div class="section-title" style="margin-bottom: 0;">Projects</div>
+                <button id="refresh-projects-btn" class="btn btn-secondary" style="padding: 8px 16px; font-size: 0.85rem;" title="Refresh projects from database">🔄 Refresh</button>
+            </div>
             <div id="projectList" class="project-list">
                 <p style="text-align: center; color: #64748b; padding: 15px;">No projects yet</p>
             </div>
@@ -1884,6 +1887,10 @@
             document.getElementById('start-project')?.addEventListener('click', startProject);
             document.getElementById('signOutBtn')?.addEventListener('click', () => {
                 vscode.postMessage({ type: 'signOut' });
+            });
+            document.getElementById('refresh-projects-btn')?.addEventListener('click', () => {
+                showStatus('projectStatus', '🔄 Refreshing projects...', 'info');
+                vscode.postMessage({ type: 'loadData' });
             });
 
             document.getElementById('jira-profile-create-btn')?.addEventListener('click', () => app.createJiraTasksFromProfile());
