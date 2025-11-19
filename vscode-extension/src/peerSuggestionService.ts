@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import * as crypto from "crypto";
+import * as path from "path";
 import { DatabaseService, Project, Profile } from "./databaseService";
 import { AuthService } from "./authService";
 import { getPeerSuggestionEdgeFunctionUrl, getSupabaseAnonKey } from "./supabaseConfig";
@@ -9,6 +10,7 @@ export interface AIPeerSuggestionRequest {
   codeSnippet: string;
   languageId: string;
   cursorPosition: { line: number; character: number };
+  fileName?: string; // File name for better question generation
   diagnostics: Array<{
     severity: number;
     message: string;
@@ -41,11 +43,16 @@ export interface AIPeerSuggestionResponse {
   };
   confidence?: number;
   problemDomain?: string;
+  generatedQuestion?: string; // AI-generated ready-to-send question
 }
 
-// Configuration
-const DEBOUNCE_DELAY_MS = 5000; // 5 seconds
+// Configuration - Optimized to minimize API calls
+const DEBOUNCE_DELAY_MS = 30 * 1000; // 30 seconds (increased to reduce false positives)
 const DUPLICATE_PREVENTION_WINDOW_MS = 10 * 60 * 1000; // 10 minutes
+const COOLDOWN_PERIOD_MS = 5 * 60 * 1000; // 5 minutes cooldown after suggestion
+const INACTIVITY_THRESHOLD_MS = 2 * 60 * 1000; // 2 minutes of inactivity
+const UNDO_DETECTION_WINDOW_MS = 30 * 1000; // 30 seconds window for undo detection
+const MIN_UNDO_COUNT = 3; // Minimum undos to trigger
 
 // Complex library imports that might indicate struggle
 const COMPLEX_LIBRARIES = [
@@ -57,7 +64,20 @@ const COMPLEX_LIBRARIES = [
 export class PeerSuggestionService {
   private debounceTimer: NodeJS.Timeout | undefined;
   private recentSuggestions: Map<string, number> = new Map(); // contextHash -> timestamp
+  private lastSuggestionTime: number = 0; // Cooldown tracking
   private isEnabled: boolean = true;
+  
+  // Undo tracking
+  private documentHistory: Map<string, Array<{ content: string; timestamp: number }>> = new Map();
+  private undoCounts: Map<string, number> = new Map(); // file -> undo count in window
+  private lastUndoCheck: Map<string, number> = new Map(); // file -> last check timestamp
+  
+  // Inactivity tracking
+  private lastEditTime: Map<string, number> = new Map(); // file -> last edit timestamp
+  private inactivityTimer: NodeJS.Timeout | undefined;
+  
+  // Struggle indicators collection
+  private struggleIndicators: Map<string, Set<string>> = new Map(); // file -> set of indicators
 
   constructor(
     private context: vscode.ExtensionContext,
@@ -69,7 +89,7 @@ export class PeerSuggestionService {
   }
 
   private startEditorMonitoring(): void {
-    // Monitor document changes with debouncing
+    // Monitor document changes with debouncing and undo tracking
     const changeListener = vscode.workspace.onDidChangeTextDocument(
       (event) => {
         if (!this.isEnabled) {
@@ -82,12 +102,24 @@ export class PeerSuggestionService {
           return;
         }
 
+        const filePath = event.document.uri.fsPath;
+        const now = Date.now();
+
+        // Track edit time for inactivity detection
+        this.lastEditTime.set(filePath, now);
+
+        // Track document history for undo detection
+        this.trackDocumentChange(filePath, event.document.getText(), now);
+
+        // Check for undo patterns
+        this.detectUndoPattern(filePath, event, now);
+
         // Clear existing timer
         if (this.debounceTimer) {
           clearTimeout(this.debounceTimer);
         }
 
-        // Set new debounce timer
+        // Set new debounce timer (longer delay to reduce API calls)
         this.debounceTimer = setTimeout(() => {
           this.checkForStruggle();
         }, DEBOUNCE_DELAY_MS);
@@ -103,7 +135,7 @@ export class PeerSuggestionService {
           return;
         }
 
-        // Trigger check after a short delay to let diagnostics update
+        // Trigger check after delay to let diagnostics update
         if (this.debounceTimer) {
           clearTimeout(this.debounceTimer);
         }
@@ -116,10 +148,125 @@ export class PeerSuggestionService {
       this.context.subscriptions
     );
 
+    // Start inactivity monitoring
+    this.startInactivityMonitoring();
+
     this.context.subscriptions.push(changeListener, diagnosticListener);
   }
 
+  private trackDocumentChange(filePath: string, content: string, timestamp: number): void {
+    if (!this.documentHistory.has(filePath)) {
+      this.documentHistory.set(filePath, []);
+    }
+    
+    const history = this.documentHistory.get(filePath)!;
+    history.push({ content, timestamp });
+    
+    // Keep only last 10 versions
+    if (history.length > 10) {
+      history.shift();
+    }
+  }
+
+  private detectUndoPattern(filePath: string, event: vscode.TextDocumentChangeEvent, now: number): void {
+    const history = this.documentHistory.get(filePath);
+    if (!history || history.length < 2) {
+      return;
+    }
+
+    // Check if content reverted to previous version (undo pattern)
+    const currentContent = event.document.getText();
+    const previousContent = history[history.length - 2].content;
+    
+    // If current content matches a previous version, it might be an undo
+    if (currentContent === previousContent) {
+      const lastCheck = this.lastUndoCheck.get(filePath) || 0;
+      
+      // Reset count if outside window
+      if (now - lastCheck > UNDO_DETECTION_WINDOW_MS) {
+        this.undoCounts.set(filePath, 1);
+      } else {
+        const currentCount = this.undoCounts.get(filePath) || 0;
+        this.undoCounts.set(filePath, currentCount + 1);
+      }
+      
+      this.lastUndoCheck.set(filePath, now);
+      
+      // If multiple undos detected, add as struggle indicator
+      if ((this.undoCounts.get(filePath) || 0) >= MIN_UNDO_COUNT) {
+        this.addStruggleIndicator(filePath, "frequent_undos");
+      }
+    }
+  }
+
+  private startInactivityMonitoring(): void {
+    // Check for inactivity every 30 seconds
+    this.inactivityTimer = setInterval(() => {
+      if (!this.isEnabled) {
+        return;
+      }
+
+      const editor = vscode.window.activeTextEditor;
+      if (!editor) {
+        return;
+      }
+
+      const filePath = editor.document.uri.fsPath;
+      const lastEdit = this.lastEditTime.get(filePath);
+      
+      if (lastEdit) {
+        const inactivityDuration = Date.now() - lastEdit;
+        
+        // Check if inactive but file has diagnostics
+        if (inactivityDuration >= INACTIVITY_THRESHOLD_MS) {
+          const diagnostics = vscode.languages.getDiagnostics(editor.document.uri);
+          const hasErrors = diagnostics.some(d => d.severity === vscode.DiagnosticSeverity.Error);
+          
+          if (hasErrors) {
+            this.addStruggleIndicator(filePath, "prolonged_inactivity_with_errors");
+            // Trigger check after a delay
+            if (this.debounceTimer) {
+              clearTimeout(this.debounceTimer);
+            }
+            this.debounceTimer = setTimeout(() => {
+              this.checkForStruggle();
+            }, 5000); // Shorter delay for inactivity (already waited 2 minutes)
+          }
+        }
+      }
+    }, 30 * 1000); // Check every 30 seconds
+
+    this.context.subscriptions.push({
+      dispose: () => {
+        if (this.inactivityTimer) {
+          clearInterval(this.inactivityTimer);
+        }
+      },
+    });
+  }
+
+  private addStruggleIndicator(filePath: string, indicator: string): void {
+    if (!this.struggleIndicators.has(filePath)) {
+      this.struggleIndicators.set(filePath, new Set());
+    }
+    this.struggleIndicators.get(filePath)!.add(indicator);
+  }
+
+  private getStruggleIndicators(filePath: string): Set<string> {
+    return this.struggleIndicators.get(filePath) || new Set();
+  }
+
+  private clearStruggleIndicators(filePath: string): void {
+    this.struggleIndicators.delete(filePath);
+  }
+
   private async checkForStruggle(): Promise<void> {
+    // Check cooldown period
+    const now = Date.now();
+    if (now - this.lastSuggestionTime < COOLDOWN_PERIOD_MS) {
+      return; // Still in cooldown, skip to save API calls
+    }
+
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
       return;
@@ -127,6 +274,7 @@ export class PeerSuggestionService {
 
     const document = editor.document;
     const languageId = document.languageId;
+    const filePath = document.uri.fsPath;
 
     // Get code snippet around cursor (50 lines before and after)
     const cursorPosition = editor.selection.active;
@@ -136,14 +284,17 @@ export class PeerSuggestionService {
       new vscode.Range(startLine, 0, endLine, document.lineAt(endLine).text.length)
     );
 
-    // Check for struggle indicators
+    // Check for struggle indicators (including new ones)
+    const struggleIndicators = this.getStruggleIndicators(filePath);
     const hasStruggle = await this.detectStruggleIndicators(
       document,
       cursorPosition,
-      codeSnippet
+      codeSnippet,
+      struggleIndicators
     );
 
-    if (!hasStruggle) {
+    // Only proceed if we have multiple indicators or strong single indicator
+    if (!hasStruggle || struggleIndicators.size < 1) {
       return;
     }
 
@@ -171,6 +322,8 @@ export class PeerSuggestionService {
 
       if (response && response.hasSuggestion && response.recommendedPeer) {
         this.recordSuggestion(contextHash);
+        this.lastSuggestionTime = now; // Update cooldown
+        this.clearStruggleIndicators(filePath); // Clear indicators after suggestion
         this.presentSuggestion(response);
       }
     } catch (error) {
@@ -181,8 +334,12 @@ export class PeerSuggestionService {
   private async detectStruggleIndicators(
     document: vscode.TextDocument,
     cursorPosition: vscode.Position,
-    codeSnippet: string
+    codeSnippet: string,
+    existingIndicators: Set<string>
   ): Promise<boolean> {
+    const filePath = document.uri.fsPath;
+    let hasStruggle = false;
+
     // 1. Check for persistent diagnostics (errors/warnings)
     const diagnostics = vscode.languages.getDiagnostics(document.uri);
     const relevantDiagnostics = diagnostics.filter((d) => {
@@ -192,7 +349,8 @@ export class PeerSuggestionService {
     });
 
     if (relevantDiagnostics.length > 0) {
-      return true;
+      this.addStruggleIndicator(filePath, "diagnostics_errors");
+      hasStruggle = true;
     }
 
     // 2. Check for TODO/FIXME/HELP comments
@@ -204,7 +362,9 @@ export class PeerSuggestionService {
 
     for (const pattern of commentPatterns) {
       if (pattern.test(codeSnippet)) {
-        return true;
+        this.addStruggleIndicator(filePath, "todo_fixme_comments");
+        hasStruggle = true;
+        break;
       }
     }
 
@@ -216,12 +376,104 @@ export class PeerSuggestionService {
     for (const line of importLines) {
       for (const lib of COMPLEX_LIBRARIES) {
         if (line.toLowerCase().includes(lib.toLowerCase())) {
-          return true;
+          this.addStruggleIndicator(filePath, "complex_library_import");
+          hasStruggle = true;
+          break;
         }
       }
     }
 
-    return false;
+    // 4. Check for logic errors (function name vs implementation mismatch)
+    const logicErrors = this.detectLogicErrors(codeSnippet, document.languageId);
+    if (logicErrors.length > 0) {
+      this.addStruggleIndicator(filePath, "logic_errors");
+      hasStruggle = true;
+    }
+
+    // 5. Check existing indicators (from undo/inactivity detection)
+    if (existingIndicators.size > 0) {
+      hasStruggle = true;
+    }
+
+    return hasStruggle;
+  }
+
+  private detectLogicErrors(codeSnippet: string, languageId: string): string[] {
+    const errors: string[] = [];
+    const lines = codeSnippet.split("\n");
+
+    // Simple heuristic-based logic error detection
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      
+      // Check for function definitions - improved regex patterns
+      let functionMatch: RegExpMatchArray | null = null;
+      let functionName = "";
+      
+      // Pattern 1: function functionName() or functionName() {
+      functionMatch = line.match(/(?:function|def|fn)\s+(\w+)\s*[\(:]/);
+      if (functionMatch) {
+        functionName = functionMatch[1];
+      }
+      
+      // Pattern 2: const/let/var functionName = ( or const/let/var functionName = async (
+      if (!functionMatch) {
+        functionMatch = line.match(/(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s*)?\(/);
+        if (functionMatch) {
+          functionName = functionMatch[1];
+        }
+      }
+      
+      // Pattern 3: class methods
+      if (!functionMatch) {
+        functionMatch = line.match(/(\w+)\s*\([^)]*\)\s*[:{]/);
+        if (functionMatch) {
+          functionName = functionMatch[1];
+        }
+      }
+      
+      if (functionMatch && functionName) {
+        const functionNameLower = functionName.toLowerCase();
+        
+        // Look ahead for function body (next 30 lines to capture more context)
+        const functionBody = lines.slice(i, Math.min(i + 30, lines.length)).join("\n");
+        const functionBodyLower = functionBody.toLowerCase();
+        
+        // Check for common logic mismatches
+        if (functionNameLower.includes("add") || functionNameLower.includes("sum") || functionNameLower.includes("plus")) {
+          // Check if function primarily subtracts
+          const subtractOps = (functionBody.match(/-/g) || []).length;
+          const addOps = (functionBody.match(/\+/g) || []).length;
+          if (subtractOps > addOps && subtractOps > 2) {
+            errors.push(`Function "${functionName}" appears to subtract instead of add`);
+          }
+        }
+        
+        if (functionNameLower.includes("get") && (functionNameLower.includes("user") || functionNameLower.includes("data"))) {
+          if (!functionBody.match(/return|yield|await|fetch/i)) {
+            errors.push(`Function "${functionName}" may not return data as expected`);
+          }
+        }
+        
+        if (functionNameLower.includes("delete") || functionNameLower.includes("remove")) {
+          if (functionBodyLower.includes("add") || functionBodyLower.includes("insert") || functionBodyLower.includes("push") || functionBodyLower.includes("create")) {
+            errors.push(`Function "${functionName}" appears to add/create instead of delete/remove`);
+          }
+        }
+        
+        // Check if function has TODO/FIXME but is being called
+        if (functionBody.match(/(TODO|FIXME|HACK|XXX|BUG)/i)) {
+          // Check if function is called elsewhere in snippet
+          const functionCallPattern = new RegExp(`\\b${functionName}\\s*\\(`, "g");
+          const callMatches = codeSnippet.match(functionCallPattern);
+          if (callMatches && callMatches.length > 0) {
+            errors.push(`Function "${functionName}" has TODO/FIXME but is being called`);
+          }
+        }
+      }
+    }
+
+    return errors;
   }
 
   private async constructAIPeerSuggestionRequest(
@@ -281,6 +533,9 @@ export class PeerSuggestionService {
       programmingLanguages: member.programming_languages || "",
     }));
 
+    // Extract file name for better question generation
+    const fileName = path.basename(document.fileName);
+
     return {
       codeSnippet,
       languageId,
@@ -288,6 +543,7 @@ export class PeerSuggestionService {
         line: cursorPosition.line,
         character: cursorPosition.character,
       },
+      fileName,
       diagnostics: relevantDiagnostics,
       projectContext,
       teamMembers: formattedTeamMembers,
@@ -407,16 +663,45 @@ export class PeerSuggestionService {
     const project = await this.getActiveProjectContext();
     const editor = vscode.window.activeTextEditor;
 
+    // Get file name (just the filename, not full path)
+    const fileName = editor ? path.basename(editor.document.fileName) : "current file";
+    const filePath = editor ? editor.document.fileName : "";
+    
+    // Get code snippet around cursor for context
+    let codeContext = "";
+    if (editor) {
+      const cursorPosition = editor.selection.active;
+      const startLine = Math.max(0, cursorPosition.line - 10);
+      const endLine = Math.min(editor.document.lineCount - 1, cursorPosition.line + 10);
+      const codeSnippet = editor.document.getText(
+        new vscode.Range(startLine, 0, endLine, editor.document.lineAt(endLine).text.length)
+      );
+      codeContext = `\`\`\`${editor.document.languageId}\n${codeSnippet}\n\`\`\``;
+    }
+
+    // Use AI-generated question if available, otherwise create a template
+    const question = response.generatedQuestion || 
+      `Hey ${peer.name}, on file ${fileName} I'm having issues. Can you help me debug it? Let's start a Live Share session!`;
+
     const scratchpadContent = `# Collaboration Request for ${peer.name}
 
-## Context
+## Ready-to-Send Message
+
+Copy and paste this message:
+
+---
+${question}
+---
+
+## Context Details
+
 ${project ? `**Project:** ${project.name}\n\n**Description:** ${project.description || "N/A"}\n\n` : ""}**Reason for reaching out:** ${peer.reason}
 
-## Current Code Context
-${editor ? `**File:** ${editor.document.fileName}\n\n**Language:** ${editor.document.languageId}\n\n` : ""}${editor ? `\`\`\`${editor.document.languageId}\n${editor.document.getText().substring(0, 500)}\n\`\`\`` : ""}
+${filePath ? `**File:** ${filePath}\n\n` : ""}${editor ? `**Language:** ${editor.document.languageId}\n\n` : ""}
 
-## Question/Request
-[Describe what you need help with here]
+## Current Code Context
+
+${codeContext || "*No code context available*"}
 
 ---
 *Generated by AI Collab Agent - Peer Suggestion Feature*

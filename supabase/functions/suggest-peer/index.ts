@@ -15,6 +15,7 @@ interface AIPeerSuggestionRequest {
   codeSnippet: string;
   languageId: string;
   cursorPosition: { line: number; character: number };
+  fileName?: string; // File name for better question generation
   diagnostics: Array<{
     severity: number;
     message: string;
@@ -47,6 +48,7 @@ interface AIPeerSuggestionResponse {
   };
   confidence?: number;
   problemDomain?: string;
+  generatedQuestion?: string; // AI-generated ready-to-send question
 }
 
 serve(async (req) => {
@@ -119,11 +121,15 @@ function buildPrompt(request: AIPeerSuggestionRequest): string {
     codeSnippet,
     languageId,
     cursorPosition,
+    fileName,
     diagnostics,
     projectContext,
     teamMembers,
     currentUserId,
   } = request;
+
+  // Use provided file name or default
+  const fileReference = fileName || "the current file";
 
   // Format diagnostics
   const diagnosticsText = diagnostics.length > 0
@@ -163,6 +169,7 @@ CRITICAL RULES:
 4. If no suitable peer is found, set hasSuggestion to false.
 
 === CODE CONTEXT ===
+File: ${fileReference}
 Language: ${languageId}
 Cursor Position: Line ${cursorPosition.line + 1}, Character ${cursorPosition.character}
 
@@ -185,12 +192,14 @@ Analyze the code context and determine:
 1. What is the nature of the problem/struggle? (e.g., "database query optimization", "React state management", "machine learning model tuning")
 2. Which team member has the most relevant skills to help?
 3. Why is this team member the best match?
+4. Generate a ready-to-send question/message for the developer to copy-paste to the recommended peer
 
 IMPORTANT: 
 - Match the problem domain to team members' skills and programming languages.
 - Consider both explicit skills and programming language expertise.
 - If multiple peers are equally suitable, you can suggest the one with the strongest overall match.
 - If no suitable peer is found, indicate this clearly.
+- For the generatedQuestion: Extract function names, file references, or specific areas from the code snippet to make it specific and helpful.
 
 === OUTPUT FORMAT ===
 You MUST respond with ONLY valid JSON in this exact structure:
@@ -203,8 +212,19 @@ You MUST respond with ONLY valid JSON in this exact structure:
     "reason": "Brief reason why this peer is recommended based on their skills"
   },
   "confidence": 0.0 to 1.0,
-  "problemDomain": "Brief description of the problem domain identified"
+  "problemDomain": "Brief description of the problem domain identified",
+  "generatedQuestion": "A ready-to-send message formatted for direct copy-paste to the recommended peer"
 }
+
+CRITICAL: The "generatedQuestion" field MUST be a friendly, concise message ready to send via chat/Slack/email. Format:
+- Start with "Hey [Peer Name]," or "Hi [Peer Name],"
+- Mention the file name: "${fileReference}" (use this exact file name)
+- Mention the specific function/area having issues (extract function names from code snippet if visible)
+- Briefly describe the problem based on diagnostics and code context (1-2 sentences max)
+- End with: "Can you help me debug it? Let's start a Live Share session please!"
+- Keep it under 250 characters for quick copy-paste
+- Make it conversational and friendly
+- Example format: "Hey [Name], on file ${fileReference} I'm having issues with the function [functionName](). [Brief problem]. Can you help me debug it? Let's start a Live Share session please!"
 
 Example successful response:
 {
@@ -216,7 +236,8 @@ Example successful response:
     "reason": "Expert in Machine Learning and Python, which matches the tensorflow integration challenge"
   },
   "confidence": 0.85,
-  "problemDomain": "Machine Learning Integration"
+  "problemDomain": "Machine Learning Integration",
+  "generatedQuestion": "Hey James, on file model_training.py I'm having issues with the function trainModel(). The tensorflow integration is throwing errors. Can you help me debug it? Let's start a Live Share session please!"
 }
 
 Example no-suggestion response:
@@ -324,6 +345,7 @@ function parseLLMResponse(llmResponse: string): AIPeerSuggestionResponse {
       },
       confidence: parsed.confidence || 0.5,
       problemDomain: parsed.problemDomain || "",
+      generatedQuestion: parsed.generatedQuestion || "",
     };
   } catch (error) {
     console.error("Error parsing LLM response:", error);
