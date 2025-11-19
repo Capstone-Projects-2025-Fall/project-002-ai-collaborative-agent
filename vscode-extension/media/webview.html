@@ -1234,6 +1234,12 @@
 
             // Webview now only requests prompt generation from extension
             generateAIPrompt(projectId) {
+                // Set active project first
+                vscode.postMessage({
+                    type: 'setActiveProject',
+                    payload: { projectId: projectId }
+                });
+                
                 // Send projectId to the extension
                 vscode.postMessage({
                     type: 'generatePrompt',
@@ -1359,6 +1365,17 @@
                 const projectSelect = document.getElementById('promptProject');
                 projectSelect.innerHTML = '<option value="">Choose a project...</option>' +
                     this.projects.map(project => `<option value="${project.id}">${project.name}</option>`).join('');
+                
+                // Add change listener to send setActiveProject message
+                projectSelect.onchange = (e) => {
+                    const selectedProjectId = e.target.value;
+                    if (selectedProjectId) {
+                        vscode.postMessage({
+                            type: 'setActiveProject',
+                            payload: { projectId: selectedProjectId }
+                        });
+                    }
+                };
             }
 
             removeUser(userId) {

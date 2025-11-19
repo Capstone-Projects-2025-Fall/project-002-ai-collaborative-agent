@@ -38,6 +38,11 @@
         "category": "AI Collab Agent"
       },
       {
+        "command": "aiCollab.setLLMApiKey",
+        "title": "Configure LLM API Key",
+        "category": "AI Collab Agent"
+      },
+      {
         "command": "ai-code-reviewer.analyzeCode",
         "title": "Analyze Current Folder",
         "category": "AI Code Assistant",
