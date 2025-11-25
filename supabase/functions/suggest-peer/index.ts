@@ -193,6 +193,7 @@ Analyze the code context and determine:
 2. Which team member has the most relevant skills to help?
 3. Why is this team member the best match?
 4. Generate a ready-to-send question/message for the developer to copy-paste to the recommended peer
+5. Make the message readable, with line break before suggesting teammate and making the name of the teammate in bold format.
 
 IMPORTANT: 
 - Match the problem domain to team members' skills and programming languages.
@@ -205,7 +206,7 @@ IMPORTANT:
 You MUST respond with ONLY valid JSON in this exact structure:
 {
   "hasSuggestion": true or false,
-  "message": "User-friendly message acknowledging the problem and suggesting the peer",
+  "message": "User-friendly message acknowledging the problem and suggesting the peer, with the peer name in bold and a line break before suggesting them",
   "recommendedPeer": {
     "id": "team member id",
     "name": "Team Member Name",
