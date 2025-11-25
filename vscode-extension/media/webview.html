@@ -249,6 +249,79 @@
             font-family: inherit;
         }
 
+        .radio-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 12px;
+            margin-bottom: 15px;
+            padding: 15px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 2px solid #e5e7eb;
+        }
+
+        .radio-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .radio-option input[type="checkbox"],
+        .radio-option input[type="radio"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: #667eea;
+            margin: 0;
+            flex-shrink: 0;
+        }
+
+        .radio-option label {
+            font-weight: 500;
+            color: #475569;
+            cursor: pointer;
+            margin: 0;
+            font-size: 0.9rem;
+            user-select: none;
+        }
+
+        .radio-option:hover label {
+            color: #667eea;
+        }
+
+        .radio-option input[type="checkbox"]:checked + label,
+        .radio-option input[type="radio"]:checked + label {
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .other-input-group {
+            margin-top: 10px;
+        }
+
+        .other-input-group label {
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: #374151;
+            font-size: 0.9rem;
+        }
+
+        .other-input-group input {
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            background: white;
+            width: 100%;
+        }
+
+        .other-input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
         .button-group {
             display: flex;
             gap: 10px;
@@ -729,13 +802,126 @@
 
                 <div class="form-group">
                     <label for="userSkills">Skills</label>
-                    <textarea id="userSkills"
-                        placeholder="e.g., Leadership, Design, Analysis, Problem Solving"></textarea>
+                    <div class="radio-group">
+                        <div class="radio-option">
+                            <input type="checkbox" id="skill-ml" name="skills" value="Machine Learning">
+                            <label for="skill-ml">Machine Learning</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="skill-db" name="skills" value="Databases">
+                            <label for="skill-db">Databases</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="skill-cloud" name="skills" value="Cloud Computing">
+                            <label for="skill-cloud">Cloud Computing</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="skill-frontend" name="skills" value="Frontend Development">
+                            <label for="skill-frontend">Frontend Development</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="skill-backend" name="skills" value="Backend Development">
+                            <label for="skill-backend">Backend Development</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="skill-devops" name="skills" value="DevOps">
+                            <label for="skill-devops">DevOps</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="skill-security" name="skills" value="Security">
+                            <label for="skill-security">Security</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="skill-mobile" name="skills" value="Mobile Development">
+                            <label for="skill-mobile">Mobile Development</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="skill-testing" name="skills" value="Testing">
+                            <label for="skill-testing">Testing</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="skill-uiux" name="skills" value="UI/UX Design">
+                            <label for="skill-uiux">UI/UX Design</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="skill-data" name="skills" value="Data Science">
+                            <label for="skill-data">Data Science</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="skill-architecture" name="skills" value="Software Architecture">
+                            <label for="skill-architecture">Software Architecture</label>
+                        </div>
+                    </div>
+                    <div class="other-input-group">
+                        <label for="userSkillsOther">Other Skills (comma-separated)</label>
+                        <input type="text" id="userSkillsOther" placeholder="e.g., Leadership, Design, Analysis">
+                    </div>
                 </div>
 
                 <div class="form-group">
                     <label for="userLanguages">Programming Languages</label>
-                    <input type="text" id="userLanguages" placeholder="e.g., Python, JavaScript, TypeScript, Java">
+                    <div class="radio-group">
+                        <div class="radio-option">
+                            <input type="checkbox" id="lang-python" name="languages" value="Python">
+                            <label for="lang-python">Python</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="lang-java" name="languages" value="Java">
+                            <label for="lang-java">Java</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="lang-javascript" name="languages" value="JavaScript">
+                            <label for="lang-javascript">JavaScript</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="lang-typescript" name="languages" value="TypeScript">
+                            <label for="lang-typescript">TypeScript</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="lang-cpp" name="languages" value="C++">
+                            <label for="lang-cpp">C++</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="lang-csharp" name="languages" value="C#">
+                            <label for="lang-csharp">C#</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="lang-go" name="languages" value="Go">
+                            <label for="lang-go">Go</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="lang-rust" name="languages" value="Rust">
+                            <label for="lang-rust">Rust</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="lang-php" name="languages" value="PHP">
+                            <label for="lang-php">PHP</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="lang-ruby" name="languages" value="Ruby">
+                            <label for="lang-ruby">Ruby</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="lang-swift" name="languages" value="Swift">
+                            <label for="lang-swift">Swift</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="lang-kotlin" name="languages" value="Kotlin">
+                            <label for="lang-kotlin">Kotlin</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="lang-sql" name="languages" value="SQL">
+                            <label for="lang-sql">SQL</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="lang-html" name="languages" value="HTML/CSS">
+                            <label for="lang-html">HTML/CSS</label>
+                        </div>
+                    </div>
+                    <div class="other-input-group">
+                        <label for="userLanguagesOther">Other Languages (comma-separated)</label>
+                        <input type="text" id="userLanguagesOther" placeholder="e.g., R, Scala, Dart">
+                    </div>
                 </div>
 
                 <div class="form-group">
@@ -1061,8 +1247,13 @@
                 if (!this.currentUser) return;
 
                 document.getElementById('userName').value = this.currentUser.name;
-                document.getElementById('userSkills').value = this.currentUser.skills;
-                document.getElementById('userLanguages').value = this.currentUser.programmingLanguages;
+                
+                // Load skills - parse and set radio buttons + other
+                this.loadSkillsFromString(this.currentUser.skills || '');
+                
+                // Load programming languages - parse and set radio buttons + other
+                this.loadLanguagesFromString(this.currentUser.programmingLanguages || '');
+                
                 document.getElementById('userWilling').value = this.currentUser.willingToWorkOn;
                 document.getElementById('jiraBaseUrl').value = this.currentUser.jiraBaseUrl || '';
                 document.getElementById('jiraProjectKey').value = this.currentUser.jiraProjectKey || '';
@@ -1071,9 +1262,102 @@
                 document.getElementById('jiraProjectPrompt').value = this.currentUser.jiraProjectPrompt || '';
             }
 
+            loadSkillsFromString(skillsString) {
+                if (!skillsString) {
+                    // Clear all selections
+                    document.querySelectorAll('input[name="skills"]').forEach(radio => radio.checked = false);
+                    document.getElementById('userSkillsOther').value = '';
+                    return;
+                }
+
+                const skillsList = skillsString.split(',').map(s => s.trim()).filter(s => s);
+                const predefinedSkills = [
+                    'Machine Learning', 'Databases', 'Cloud Computing', 'Frontend Development',
+                    'Backend Development', 'DevOps', 'Security', 'Mobile Development',
+                    'Testing', 'UI/UX Design', 'Data Science', 'Software Architecture'
+                ];
+
+                const otherSkills = [];
+
+                // First, uncheck all checkboxes
+                document.querySelectorAll('input[name="skills"]').forEach(cb => cb.checked = false);
+
+                skillsList.forEach(skill => {
+                    if (predefinedSkills.includes(skill)) {
+                        // Check the corresponding checkbox
+                        const checkbox = document.querySelector(`input[name="skills"][value="${skill}"]`);
+                        if (checkbox) {
+                            checkbox.checked = true;
+                        }
+                    } else {
+                        otherSkills.push(skill);
+                    }
+                });
+
+                // Set other skills
+                document.getElementById('userSkillsOther').value = otherSkills.join(', ');
+            }
+
+            loadLanguagesFromString(languagesString) {
+                if (!languagesString) {
+                    // Clear all selections
+                    document.querySelectorAll('input[name="languages"]').forEach(radio => radio.checked = false);
+                    document.getElementById('userLanguagesOther').value = '';
+                    return;
+                }
+
+                const languagesList = languagesString.split(',').map(l => l.trim()).filter(l => l);
+                const predefinedLanguages = [
+                    'Python', 'Java', 'JavaScript', 'TypeScript', 'C++', 'C#',
+                    'Go', 'Rust', 'PHP', 'Ruby', 'Swift', 'Kotlin', 'SQL', 'HTML/CSS'
+                ];
+
+                const otherLanguages = [];
+
+                // First, uncheck all checkboxes
+                document.querySelectorAll('input[name="languages"]').forEach(cb => cb.checked = false);
+
+                languagesList.forEach(language => {
+                    if (predefinedLanguages.includes(language)) {
+                        // Check the corresponding checkbox
+                        const checkbox = document.querySelector(`input[name="languages"][value="${language}"]`);
+                        if (checkbox) {
+                            checkbox.checked = true;
+                        }
+                    } else {
+                        otherLanguages.push(language);
+                    }
+                });
+
+                // Set other languages
+                document.getElementById('userLanguagesOther').value = otherLanguages.join(', ');
+            }
+
             collectProfileFormData() {
-                const skills = (document.getElementById('userSkills')?.value || '').trim();
-                const programmingLanguages = (document.getElementById('userLanguages')?.value || '').trim();
+                // Collect selected skills from checkboxes
+                const selectedSkills = Array.from(document.querySelectorAll('input[name="skills"]:checked'))
+                    .map(checkbox => checkbox.value);
+                const otherSkills = (document.getElementById('userSkillsOther')?.value || '').trim();
+                const allSkills = [...selectedSkills];
+                if (otherSkills) {
+                    // Split comma-separated other skills and add them
+                    const otherSkillsList = otherSkills.split(',').map(s => s.trim()).filter(s => s);
+                    allSkills.push(...otherSkillsList);
+                }
+                const skills = allSkills.join(', ');
+
+                // Collect selected languages from checkboxes
+                const selectedLanguages = Array.from(document.querySelectorAll('input[name="languages"]:checked'))
+                    .map(checkbox => checkbox.value);
+                const otherLanguages = (document.getElementById('userLanguagesOther')?.value || '').trim();
+                const allLanguages = [...selectedLanguages];
+                if (otherLanguages) {
+                    // Split comma-separated other languages and add them
+                    const otherLanguagesList = otherLanguages.split(',').map(l => l.trim()).filter(l => l);
+                    allLanguages.push(...otherLanguagesList);
+                }
+                const programmingLanguages = allLanguages.join(', ');
+
                 const willingToWorkOn = (document.getElementById('userWilling')?.value || '').trim();
                 const jiraBaseUrl = (document.getElementById('jiraBaseUrl')?.value || '').trim();
                 const jiraProjectKey = (document.getElementById('jiraProjectKey')?.value || '').trim();
@@ -1709,8 +1993,29 @@
         function addUser() {
             try {
                 const name = document.getElementById('userName').value.trim();
-                const skills = document.getElementById('userSkills').value.trim();
-                const languages = document.getElementById('userLanguages').value.trim();
+                
+                // Collect skills from checkboxes
+                const selectedSkills = Array.from(document.querySelectorAll('input[name="skills"]:checked'))
+                    .map(checkbox => checkbox.value);
+                const otherSkills = (document.getElementById('userSkillsOther')?.value || '').trim();
+                const allSkills = [...selectedSkills];
+                if (otherSkills) {
+                    const otherSkillsList = otherSkills.split(',').map(s => s.trim()).filter(s => s);
+                    allSkills.push(...otherSkillsList);
+                }
+                const skills = allSkills.join(', ');
+
+                // Collect languages from checkboxes
+                const selectedLanguages = Array.from(document.querySelectorAll('input[name="languages"]:checked'))
+                    .map(checkbox => checkbox.value);
+                const otherLanguages = (document.getElementById('userLanguagesOther')?.value || '').trim();
+                const allLanguages = [...selectedLanguages];
+                if (otherLanguages) {
+                    const otherLanguagesList = otherLanguages.split(',').map(l => l.trim()).filter(l => l);
+                    allLanguages.push(...otherLanguagesList);
+                }
+                const languages = allLanguages.join(', ');
+
                 const willing = document.getElementById('userWilling').value.trim();
 
                 const user = app.addUser(name, skills, languages, willing);
@@ -1723,8 +2028,12 @@
 
         function clearUserForm() {
             document.getElementById('userName').value = '';
-            document.getElementById('userSkills').value = '';
-            document.getElementById('userLanguages').value = '';
+            // Clear all skill checkboxes
+            document.querySelectorAll('input[name="skills"]').forEach(cb => cb.checked = false);
+            document.getElementById('userSkillsOther').value = '';
+            // Clear all language checkboxes
+            document.querySelectorAll('input[name="languages"]').forEach(cb => cb.checked = false);
+            document.getElementById('userLanguagesOther').value = '';
             document.getElementById('userWilling').value = '';
         }
 
