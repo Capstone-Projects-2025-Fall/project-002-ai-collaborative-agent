@@ -42,4 +42,4 @@ env/
 .env
 **/.env
 !.env.example
-EOF
+EOFcoverage/
