@@ -1077,6 +1077,108 @@ If you cannot provide JSON, provide the response in the numbered format as befor
                 }
                 break;
             }
+            case "getWorkspaceFiles": {
+        try {
+          const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+          if (!workspaceFolder) {
+            panel.webview.postMessage({
+              type: "workspaceFilesError",
+              payload: { message: "No workspace folder open" },
+            });
+            break;
+          }
+
+          const files = await getWorkspaceFiles(workspaceFolder.uri.fsPath);
+          
+          panel.webview.postMessage({
+            type: "workspaceFilesLoaded",
+            payload: { files },
+          });
+        } catch (error) {
+          panel.webview.postMessage({
+            type: "workspaceFilesError",
+            payload: {
+              message:
+                error instanceof Error ? error.message : "Failed to load files",
+            },
+          });
+        }
+        break;
+      }
+
+      case "openFileInEditor": {
+        try {
+          const { filePath } = msg.payload;
+          const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+          
+          if (!workspaceFolder) {
+            vscode.window.showErrorMessage("No workspace folder open");
+            break;
+          }
+
+          const fullPath = path.join(workspaceFolder.uri.fsPath, filePath);
+          const doc = await vscode.workspace.openTextDocument(fullPath);
+          await vscode.window.showTextDocument(doc, {
+            viewColumn: vscode.ViewColumn.Beside,
+            preview: false,
+          });
+          
+          vscode.window.showInformationMessage(`Opened: ${filePath}`);
+        } catch (error) {
+          vscode.window.showErrorMessage(
+            `Failed to open file: ${
+              error instanceof Error ? error.message : "Unknown error"
+            }`
+          );
+        }
+        break;
+      }
+
+      // Add this to your extension.ts in the panel.webview.onDidReceiveMessage handler
+      // Add this case to your switch statement:
+
+      case "getFileTimeline": {
+        try {
+          const { filePath } = msg.payload;
+          
+          // For now, generate mock timeline data
+          // Later, we'll replace this with real data from file watching/git history
+          const mockTimeline = generateMockTimeline(filePath);
+          
+          panel.webview.postMessage({
+            type: "timelineDataLoaded",
+            payload: { timeline: mockTimeline },
+          });
+        } catch (error) {
+          panel.webview.postMessage({
+            type: "timelineError",
+            payload: {
+              message:
+                error instanceof Error ? error.message : "Failed to load timeline",
+            },
+          });
+        }
+        break;
+      }
+
+      case "viewTimelinePoint": {
+        try {
+          const { pointId } = msg.payload;
+          
+          // For now, just show a message
+          // Later, we'll implement diff viewing
+          vscode.window.showInformationMessage(
+            `Timeline point ${pointId} - Diff view coming soon!`
+          );
+        } catch (error) {
+          vscode.window.showErrorMessage(
+            `Failed to view timeline point: ${
+              error instanceof Error ? error.message : "Unknown error"
+            }`
+          );
+        }
+        break;
+      }
             case "showError": {
                 vscode.window.showErrorMessage(msg.payload.message);
                 break;
