@@ -205,24 +205,53 @@ async function saveInitialData(data: any): Promise<void> {
   }
 }
 
-export async function activate(context: vscode.ExtensionContext) {
-  activateCodeReviewer(context);
+export function activate(context: vscode.ExtensionContext) {
+  config({ path: path.join(__dirname, "..", ".env") });
+  config({ path: path.join(__dirname, "../../.env") });
 
-  // Store context globally first
+  vscode.window.showInformationMessage("AI Collab Agent activated");
   extensionContext = context;
 
-  const createJiraCmd = vscode.commands.registerCommand(
-    "ai.createJiraTasks",
-    async (options?: Partial<JiraTaskOptions>) => {
-      return await createJiraTasksCmd(context, options);
+  // Register commands FIRST, before any initialization
+  const openCommand = vscode.commands.registerCommand("aiCollab.openPanel", () => {
+    if (!authService || !databaseService) {
+      vscode.window.showErrorMessage("Extension not properly initialized. Check your .env file.");
+      return;
     }
-  );
-  context.subscriptions.push(createJiraCmd);
+    openMainPanel(context, authService);
+  });
+  context.subscriptions.push(openCommand);
 
-  // Initialize authentication service
+  // THEN do initialization
   try {
     authService = new AuthService();
     await authService.initialize();
+  } catch (error) {
+    vscode.window.showErrorMessage(
+      `Authentication setup failed: ${error instanceof Error ? error.message : "Unknown error"}`
+    );
+    return;
+  }
+
+  // Initialize database service
+  try {
+    const vsConfig = vscode.workspace.getConfiguration('aiCollab');
+    const supabaseUrl = vsConfig.get<string>('supabaseUrl') || process.env.SUPABASE_URL;
+    const supabaseAnonKey = vsConfig.get<string>('supabaseAnonKey') || process.env.SUPABASE_ANON_KEY;
+    
+    console.log('=== Configuration Check ===');
+    console.log('URL:', supabaseUrl ? 'present' : 'missing');
+    console.log('Key:', supabaseAnonKey ? 'present' : 'missing');
+    
+    if (!supabaseUrl || !supabaseAnonKey) {
+      vscode.window.showErrorMessage(
+        "Supabase configuration missing. Please configure in Settings: Search 'AI Collab' and set Supabase URL and Anon Key"
+      );
+      return;
+    }
+    
+    authService = new AuthService(supabaseUrl, supabaseAnonKey);
+    authService.initialize();
   } catch (error) {
     vscode.window.showErrorMessage(
       `Authentication setup failed: ${
@@ -232,68 +261,13 @@ export async function activate(context: vscode.ExtensionContext) {
     return;
   }
 
-  // Try to restore Supabase session from SecretStorage
-  const accessToken = await context.secrets.get("supabase_access_token");
-  const refreshToken = await context.secrets.get("supabase_refresh_token");
-
-  if (accessToken) {
-    try {
-      await authService.setSessionFromTokens(accessToken, refreshToken || undefined);
-      console.log("Restored Supabase session");
-    } catch (err) {
-      console.error("Failed to restore session:", err);
-      await extensionContext.secrets.delete("supabase_access_token");
-      await extensionContext.secrets.delete("supabase_refresh_token");
-    }
-  }
-
-  // keep secrets in sync when auth state changes
-  authService.onAuthStateChange(async (user) => {
-    if (user) {
-      const session = authService.getCurrentSession();
-      if (session) {
-        await extensionContext.secrets.store("supabase_access_token", session.access_token);
-        await extensionContext.secrets.store("supabase_refresh_token", session.refresh_token);
-        console.log(" Stored updated Supabase tokens");
-      }
-    } else {
-      await extensionContext.secrets.delete("supabase_access_token");
-      await extensionContext.secrets.delete("supabase_refresh_token");
-      console.log("Cleared Supabase tokens on logout");
-    }
-  });
-
-  // Auto-start Live Share session 
-  const shouldStartLiveShare = context.globalState.get(GLOBAL_LIVESHARE_KEY);
-  if (shouldStartLiveShare) {
-    await context.globalState.update(GLOBAL_LIVESHARE_KEY, false);
-
-    setTimeout(async () => {
-      try {
-        const liveShare = await vsls.getApi();
-        if (liveShare) {
-          await liveShare.share();
-          vscode.window.showInformationMessage("Live Share session restarted automatically!");
-          console.log("Auto Live Share session:", liveShare.session);
-        } else {
-          vscode.window.showErrorMessage("Live Share API unavailable on reload.");
-        }
-      } catch (err) {
-        console.error("Auto-Live Share restart failed:", err);
-      }
-    }, 2000); // delay to let extension host finish loading
-  }
-
-  vscode.window.showInformationMessage("AI Collab Agent activated");
-
-  // Store context globally for callback server
-  extensionContext = context;
-
-  // Initialize database service
-  try {
-    const supabaseUrl = getSupabaseUrl();
-    const supabaseAnonKey = getSupabaseAnonKey();
-    databaseService = new DatabaseService(supabaseUrl, supabaseAnonKey);
+// Initialize database service
+try {
+  const vsConfig = vscode.workspace.getConfiguration('aiCollab');
+  const supabaseUrl = vsConfig.get<string>('supabaseUrl') || process.env.SUPABASE_URL;
+  const supabaseAnonKey = vsConfig.get<string>('supabaseAnonKey') || process.env.SUPABASE_ANON_KEY;
+  
+  databaseService = new DatabaseService(supabaseUrl!, supabaseAnonKey!);
   } catch (error) {
     vscode.window.showErrorMessage(
       `Database setup failed: ${

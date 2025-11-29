@@ -8,8 +8,38 @@
 .env.test.local
 .env.production.local
 .env
+node_modules
 
+
+# VSCode extension
+vscode-extension/node_modules/
+vscode-extension/out/
+vscode-extension/*.vsix
+vscode-extension/.env
+
+# Node modules everywhere
+**/node_modules/
 node_modules/
-dist/
-build/
-out/
+
+# Build outputs
+**/out/
+**/dist/
+
+# VSCode extension artifacts
+**/*.vsix
+
+# Python virtual environments
+**/venv/
+venv/
+ENV/
+env/
+
+# Python cache
+**/__pycache__/
+*.pyc
+
+# Environment files with secrets
+.env
+**/.env
+!.env.example
+EOF

@@ -8,10 +8,7 @@
     "vscode": "^1.80.0"
   },
   "activationEvents": [
-    "onStartupFinished",
-    "onCommand:aiCollab.openPanel",
-    "onUri",
-    "onCommand:ai.createJiraTasks"
+    "onStartupFinished"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -75,6 +72,16 @@
     "configuration": {
       "title": "AI Collab Agent",
       "properties": {
+        "aiCollab.supabaseUrl": {
+          "type": "string",
+          "default": "",
+          "description": "Supabase project URL"
+        },
+        "aiCollab.supabaseAnonKey": {
+          "type": "string",
+          "default": "",
+          "description": "Supabase anonymous key"
+        },
         "aiCollab.apiBaseUrl": {
           "type": "string",
           "default": "http://localhost:4000",
@@ -202,6 +209,7 @@
   "devDependencies": {
     "@types/node": "^22.18.6",
     "@types/vscode": "^1.70.0",
+    "@vscode/vsce": "^3.6.2",
     "esbuild": "^0.25.10",
     "typescript": "^5.9.2",
     "vitest": "^3.2.4",

@@ -1,0 +1,8 @@
+version: "3.8"
+services:
+  vscode-extension:
+    build:
+      context: ./vscode-extension
+      dockerfile: Dockerfile
+    volumes:
+      - ./vscode-extension:/app

@@ -17,9 +17,19 @@ export class AuthService {
   private currentSession: Session | null = null;
   private localServer: http.Server | null = null;
 
-  constructor() {
-    // Use shared Supabase client configured in supabaseConfig
-    this.supabase = getSupabaseClient();
+  constructor(supabaseUrl?: string, supabaseKey?: string) {
+    // Get Supabase configuration from parameters or environment variables
+    const url = supabaseUrl || process.env.SUPABASE_URL;
+    const key = supabaseKey || process.env.SUPABASE_ANON_KEY;
+
+    if (!url || !key) {
+      throw new Error(
+        "Supabase configuration missing. Please set SUPABASE_URL and SUPABASE_ANON_KEY in your .env file."
+      );
+    }
+
+    this.supabaseUrl = url;
+    this.supabase = createClient(url, key);
   }
 
   async initialize(): Promise<void> {
