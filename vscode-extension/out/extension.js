@@ -221,22 +221,27 @@ class SidebarProvider {
                     break;
                 case "joinLiveShare":
                     try {
+                        const link = message.payload?.link;
+                        if (!link || !link.trim()) {
+                            vscode.window.showErrorMessage("No Live Share session link provided. Please provide a valid invite link.");
+                            break;
+                        }
                         const liveShare = await vsls.getApi();
-                        if (liveShare) {
-                            await liveShare.join(message.payload.link);
-                            this.sendMessage({
-                                type: "liveshareStatus",
-                                payload: { state: "active" },
-                            });
-                            vscode.window.showInformationMessage("Joined LiveShare session!");
+                        if (!liveShare) {
+                            vscode.window.showErrorMessage("Live Share extension is not installed or not activated. Please install and activate the Live Share extension to use this feature.");
+                            break;
                         }
-                        else {
-                            vscode.window.showErrorMessage("Live Share extension not available");
-                        }
+                        await liveShare.join(vscode.Uri.parse(link.trim()));
+                        this.sendMessage({
+                            type: "liveshareStatus",
+                            payload: { state: "active" },
+                        });
+                        vscode.window.showInformationMessage("Joined LiveShare session!");
                     }
                     catch (err) {
-                        console.error("Failed to join LiveShare:", err);
-                        vscode.window.showErrorMessage("Failed to join LiveShare session");
+                        const errorMessage = err instanceof Error ? err.message : String(err);
+                        console.error("Failed to join LiveShare:", errorMessage);
+                        vscode.window.showErrorMessage(`Failed to join LiveShare session: ${errorMessage}`);
                     }
                     break;
                 case "startLiveShare":

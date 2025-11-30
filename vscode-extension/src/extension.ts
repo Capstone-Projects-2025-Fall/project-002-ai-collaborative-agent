@@ -232,7 +232,7 @@ class SidebarProvider implements vscode.WebviewViewProvider {
       enableScripts: true,
       localResourceRoots: [this._extensionUri],
     };
-    
+
     console.log("SidebarProvider: resolveWebviewView called");
     webviewView.webview.html = await this._getHtmlForWebview(webviewView.webview);
 
@@ -256,20 +256,33 @@ class SidebarProvider implements vscode.WebviewViewProvider {
 
         case "joinLiveShare":
           try {
-            const liveShare = await vsls.getApi();
-            if (liveShare) {
-              await liveShare.join(message.payload.link);
-              this.sendMessage({
-                type: "liveshareStatus",
-                payload: { state: "active" },
-              });
-              vscode.window.showInformationMessage("Joined LiveShare session!");
-            } else {
-              vscode.window.showErrorMessage("Live Share extension not available");
+            const link = message.payload?.link;
+            if (!link || !link.trim()) {
+              vscode.window.showErrorMessage(
+                "No Live Share session link provided. Please provide a valid invite link."
+              );
+              break;
             }
+            
+            const liveShare = await vsls.getApi();
+            if (!liveShare) {
+              vscode.window.showErrorMessage(
+                "Live Share extension is not installed or not activated. Please install and activate the Live Share extension to use this feature."
+              );
+              break;
+            }
+            
+            await liveShare.join(vscode.Uri.parse(link.trim()));
+            
+            this.sendMessage({
+              type: "liveshareStatus",
+              payload: { state: "active" },
+            });
+            vscode.window.showInformationMessage("Joined LiveShare session!");
           } catch (err) {
-            console.error("Failed to join LiveShare:", err);
-            vscode.window.showErrorMessage("Failed to join LiveShare session");
+            const errorMessage = err instanceof Error ? err.message : String(err);
+            console.error("Failed to join LiveShare:", errorMessage);
+            vscode.window.showErrorMessage(`Failed to join LiveShare session: ${errorMessage}`);
           }
           break;
 
