@@ -1077,108 +1077,6 @@ If you cannot provide JSON, provide the response in the numbered format as befor
                 }
                 break;
             }
-            case "getWorkspaceFiles": {
-        try {
-          const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-          if (!workspaceFolder) {
-            panel.webview.postMessage({
-              type: "workspaceFilesError",
-              payload: { message: "No workspace folder open" },
-            });
-            break;
-          }
-
-          const files = await getWorkspaceFiles(workspaceFolder.uri.fsPath);
-          
-          panel.webview.postMessage({
-            type: "workspaceFilesLoaded",
-            payload: { files },
-          });
-        } catch (error) {
-          panel.webview.postMessage({
-            type: "workspaceFilesError",
-            payload: {
-              message:
-                error instanceof Error ? error.message : "Failed to load files",
-            },
-          });
-        }
-        break;
-      }
-
-      case "openFileInEditor": {
-        try {
-          const { filePath } = msg.payload;
-          const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-          
-          if (!workspaceFolder) {
-            vscode.window.showErrorMessage("No workspace folder open");
-            break;
-          }
-
-          const fullPath = path.join(workspaceFolder.uri.fsPath, filePath);
-          const doc = await vscode.workspace.openTextDocument(fullPath);
-          await vscode.window.showTextDocument(doc, {
-            viewColumn: vscode.ViewColumn.Beside,
-            preview: false,
-          });
-          
-          vscode.window.showInformationMessage(`Opened: ${filePath}`);
-        } catch (error) {
-          vscode.window.showErrorMessage(
-            `Failed to open file: ${
-              error instanceof Error ? error.message : "Unknown error"
-            }`
-          );
-        }
-        break;
-      }
-
-      // Add this to your extension.ts in the panel.webview.onDidReceiveMessage handler
-      // Add this case to your switch statement:
-
-      case "getFileTimeline": {
-        try {
-          const { filePath } = msg.payload;
-          
-          // For now, generate mock timeline data
-          // Later, we'll replace this with real data from file watching/git history
-          const mockTimeline = generateMockTimeline(filePath);
-          
-          panel.webview.postMessage({
-            type: "timelineDataLoaded",
-            payload: { timeline: mockTimeline },
-          });
-        } catch (error) {
-          panel.webview.postMessage({
-            type: "timelineError",
-            payload: {
-              message:
-                error instanceof Error ? error.message : "Failed to load timeline",
-            },
-          });
-        }
-        break;
-      }
-
-      case "viewTimelinePoint": {
-        try {
-          const { pointId } = msg.payload;
-          
-          // For now, just show a message
-          // Later, we'll implement diff viewing
-          vscode.window.showInformationMessage(
-            `Timeline point ${pointId} - Diff view coming soon!`
-          );
-        } catch (error) {
-          vscode.window.showErrorMessage(
-            `Failed to view timeline point: ${
-              error instanceof Error ? error.message : "Unknown error"
-            }`
-          );
-        }
-        break;
-      }
             case "showError": {
                 vscode.window.showErrorMessage(msg.payload.message);
                 break;
@@ -1558,6 +1456,61 @@ If you cannot provide JSON, provide the response in the numbered format as befor
                 }
                 break;
             }
+            case "getWorkspaceFiles": {
+                try {
+                    const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+                    if (!workspaceFolder) {
+                        panel.webview.postMessage({
+                            type: "workspaceFilesError",
+                            payload: { message: "No workspace folder open" },
+                        });
+                        break;
+                    }
+                    const files = await getWorkspaceFiles(workspaceFolder.uri.fsPath);
+                    panel.webview.postMessage({
+                        type: "workspaceFilesLoaded",
+                        payload: { files },
+                    });
+                }
+                catch (error) {
+                    panel.webview.postMessage({
+                        type: "workspaceFilesError",
+                        payload: {
+                            message: error instanceof Error ? error.message : "Failed to load files",
+                        },
+                    });
+                }
+                break;
+            }
+            case "getFileTimeline": {
+                try {
+                    const { filePath } = msg.payload;
+                    const mockTimeline = generateMockTimeline(filePath);
+                    panel.webview.postMessage({
+                        type: "timelineDataLoaded",
+                        payload: { timeline: mockTimeline },
+                    });
+                }
+                catch (error) {
+                    panel.webview.postMessage({
+                        type: "timelineError",
+                        payload: {
+                            message: error instanceof Error ? error.message : "Failed to load timeline",
+                        },
+                    });
+                }
+                break;
+            }
+            case "viewTimelinePoint": {
+                try {
+                    const { pointId } = msg.payload;
+                    vscode.window.showInformationMessage(`Timeline point ${pointId} - Diff view coming soon!`);
+                }
+                catch (error) {
+                    vscode.window.showErrorMessage(`Failed to view timeline point: ${error instanceof Error ? error.message : "Unknown error"}`);
+                }
+                break;
+            }
             case "signOut": {
                 try {
                     await authService.signOut();
@@ -1588,6 +1541,95 @@ If you cannot provide JSON, provide the response in the numbered format as befor
 function deactivate() {
     // Clean up resources if needed
 }
+async function getWorkspaceFiles(workspacePath) {
+    const fs = require("fs").promises;
+    const pathModule = require("path");
+    const files = [];
+    // File extensions to include
+    const codeExtensions = [
+        ".js",
+        ".ts",
+        ".jsx",
+        ".tsx",
+        ".py",
+        ".java",
+        ".cpp",
+        ".c",
+        ".cs",
+        ".go",
+        ".rb",
+        ".php",
+        ".swift",
+        ".kt",
+        ".rs",
+        ".html",
+        ".css",
+        ".scss",
+        ".json",
+        ".xml",
+        ".yaml",
+        ".yml",
+        ".sql",
+        ".sh",
+        ".md",
+        ".txt",
+    ];
+    // Folders to ignore
+    const ignoreFolders = [
+        "node_modules",
+        ".git",
+        "dist",
+        "build",
+        "out",
+        ".vscode",
+        "coverage",
+        ".next",
+        "__pycache__",
+        ".idea",
+        "target",
+        "bin",
+    ];
+    async function readDir(dirPath, relativePath = "") {
+        try {
+            const entries = await fs.readdir(dirPath, { withFileTypes: true });
+            for (const entry of entries) {
+                const fullPath = pathModule.join(dirPath, entry.name);
+                const relPath = pathModule.join(relativePath, entry.name);
+                if (entry.isDirectory()) {
+                    // Skip ignored folders
+                    if (!ignoreFolders.includes(entry.name)) {
+                        await readDir(fullPath, relPath);
+                    }
+                }
+                else if (entry.isFile()) {
+                    const ext = pathModule.extname(entry.name).toLowerCase();
+                    // Only include relevant files
+                    if (codeExtensions.includes(ext)) {
+                        try {
+                            const stats = await fs.stat(fullPath);
+                            files.push({
+                                path: relPath.replace(/\\/g, "/"), // Normalize path separators
+                                name: entry.name,
+                                type: ext.substring(1), // Remove the dot
+                                size: stats.size,
+                            });
+                        }
+                        catch (err) {
+                            console.log(`Could not read file stats: ${fullPath}`);
+                        }
+                    }
+                }
+            }
+        }
+        catch (err) {
+            console.log(`Could not read directory: ${dirPath}`);
+        }
+    }
+    await readDir(workspacePath);
+    return files.sort((a, b) => a.path.localeCompare(b.path));
+}
+// Add this helper function at the bottom of extension.ts (after getWorkspaceFiles)
+// This generates mock data for now - we'll replace it with real tracking later
 async function getLoginHtml(webview, context) {
     const nonce = getNonce();
     const htmlPath = path.join(context.extensionPath, "media", "login.html");
@@ -1635,5 +1677,41 @@ function getNonce() {
 }
 function mockAllocate(payload) {
     throw new Error("Function not implemented.");
+}
+// ============================================================================
+// TIMELINE FEATURE HELPER FUNCTIONS - ADD THESE
+// ============================================================================
+function generateMockTimeline(filePath) {
+    // Generate some realistic mock timeline data
+    const now = new Date();
+    const mockPoints = [];
+    // Create 5-10 random points going back in time
+    const numPoints = Math.floor(Math.random() * 6) + 5;
+    const changeTypes = [
+        { type: 'edit', desc: 'Updated code', major: false },
+        { type: 'feature', desc: 'Added new feature', major: true },
+        { type: 'bugfix', desc: 'Fixed bug', major: false },
+        { type: 'refactor', desc: 'Code refactoring', major: true },
+        { type: 'docs', desc: 'Updated documentation', major: false },
+        { type: 'style', desc: 'Code formatting', major: false },
+    ];
+    for (let i = 0; i < numPoints; i++) {
+        const hoursAgo = Math.floor(Math.random() * 72) + (i * 2); // Spread over 3 days
+        const timestamp = new Date(now.getTime() - hoursAgo * 60 * 60 * 1000);
+        const changeTemplate = changeTypes[Math.floor(Math.random() * changeTypes.length)];
+        const linesAdded = Math.floor(Math.random() * 100) + 1;
+        const linesRemoved = Math.floor(Math.random() * 50);
+        mockPoints.push({
+            id: `point-${i}-${Date.now()}`,
+            timestamp: timestamp.toISOString(),
+            description: changeTemplate.desc,
+            details: `Modified ${filePath.split('/').pop()}`,
+            linesAdded,
+            linesRemoved,
+            changeType: changeTemplate.major ? 'major' : 'minor',
+        });
+    }
+    // Sort by timestamp (newest first)
+    return mockPoints.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 }
 //# sourceMappingURL=extension.js.map

@@ -1245,10 +1245,100 @@
                 this.users = [];
                 this.projects = [];
                 this.promptCount = 0;
+                this.workspaceFiles = [];
+                this.filteredFiles = [];
 
                 // Request data from VS Code extension
                 vscode.postMessage({ type: 'loadData' });
+                vscode.postMessage({ type: 'getWorkspaceFiles' });  // ← Is this line there?
             }
+
+            // === TIMELINE FEATURE METHODS - ADD THESE ===
+            
+            loadWorkspaceFiles(files) {
+                this.workspaceFiles = files || [];
+                this.filteredFiles = [...this.workspaceFiles];
+                this.updateTimelineList();
+                this.updateFileCount();
+            }
+
+            searchFiles(query) {
+                const searchTerm = query.toLowerCase();
+                this.filteredFiles = this.workspaceFiles.filter(file => 
+                    file.path.toLowerCase().includes(searchTerm) ||
+                    file.name.toLowerCase().includes(searchTerm)
+                );
+                this.updateTimelineList();
+                this.updateFileCount();
+            }
+
+            filterFilesByType(fileType) {
+                if (!fileType) {
+                    this.filteredFiles = [...this.workspaceFiles];
+                } else {
+                    this.filteredFiles = this.workspaceFiles.filter(file => 
+                        file.type === fileType
+                    );
+                }
+                this.updateTimelineList();
+                this.updateFileCount();
+            }
+
+            updateTimelineList() {
+                const timelineList = document.getElementById('timelineList');
+                
+                if (!this.filteredFiles || this.filteredFiles.length === 0) {
+                    timelineList.innerHTML = '<p style="text-align: center; color: #64748b; padding: 15px;">No files found</p>';
+                    return;
+                }
+
+                let html = '';
+                this.filteredFiles.forEach(file => {
+                    const icon = this.getFileIcon(file.type);
+                    const sizeKB = (file.size / 1024).toFixed(1);
+                    
+                    html += `
+                        <div class="project-item file-item-clickable" 
+                             data-file-path="${file.path}" 
+                             data-file-name="${file.name}"
+                             style="cursor: pointer; transition: all 0.2s;">
+                            <h3>${icon} ${file.name}</h3>
+                            <p><strong>Path:</strong> ${file.path}</p>
+                            <p><strong>Type:</strong> ${file.type.toUpperCase()} | <strong>Size:</strong> ${sizeKB} KB</p>
+                        </div>
+                    `;
+                });
+
+                timelineList.innerHTML = html;
+
+                // Attach click listeners to all file items
+                document.querySelectorAll('.file-item-clickable').forEach(item => {
+                    item.addEventListener('click', function() {
+                        const filePath = this.getAttribute('data-file-path');
+                        const fileName = this.getAttribute('data-file-name');
+                        window.openFileTimeline(filePath, fileName);
+                    });
+                });
+            }
+
+            getFileIcon(type) {
+                const icons = {
+                    'js': '📜', 'ts': '📘', 'jsx': '⚛️', 'tsx': '⚛️',
+                    'py': '🐍', 'java': '☕', 'cpp': '⚙️', 'c': '⚙️',
+                    'html': '🌐', 'css': '🎨', 'json': '📋', 'md': '📝',
+                    'txt': '📄', 'xml': '📰', 'sql': '🗄️', 'sh': '⚡'
+                };
+                return icons[type] || '📄';
+            }
+
+            updateFileCount() {
+                const fileCount = document.getElementById('fileCount');
+                if (fileCount) {
+                    fileCount.textContent = `(${this.filteredFiles.length} files)`;
+                }
+            }
+
+            // === END TIMELINE METHODS ===
 
             // Updated to handle currentUser separately
             loadData(data) {
@@ -1692,6 +1782,166 @@
             }
         }
 
+        // === GLOBAL TIMELINE FUNCTIONS - ADD THESE ===
+        
+        window.openFileTimeline = function(filePath, fileName) {
+            console.log('Opening timeline for:', filePath);
+            
+            const timelineList = document.getElementById('timelineList');
+            const viewer = document.getElementById('timelineViewer');
+            const fileNameDisplay = document.getElementById('timelineFileName');
+            
+            if (!viewer || !timelineList || !fileNameDisplay) {
+                console.error('Timeline elements not found');
+                return;
+            }
+            
+            // Hide file list, show viewer
+            timelineList.style.display = 'none';
+            viewer.style.display = 'block';
+            viewer.classList.add('active');
+            
+            // Update header
+            fileNameDisplay.textContent = `📄 ${fileName}`;
+            
+            // Show loading state
+            const pointsContainer = document.getElementById('timelinePoints');
+            if (pointsContainer) {
+                pointsContainer.innerHTML = '<p style="text-align: center; color: #64748b; padding: 20px;">Loading timeline...</p>';
+            }
+            
+            // Request timeline data from extension
+            vscode.postMessage({ 
+                type: 'getFileTimeline', 
+                payload: { filePath } 
+            });
+        };
+
+        window.closeTimelineViewer = function() {
+            console.log('Closing timeline viewer');
+            
+            const viewer = document.getElementById('timelineViewer');
+            const list = document.getElementById('timelineList');
+            
+            if (!viewer || !list) {
+                console.error('Timeline elements not found');
+                return;
+            }
+            
+            viewer.classList.remove('active');
+            viewer.style.display = 'none';
+            list.style.display = 'block';
+        };
+
+        function displayTimelinePoints(timelineData) {
+            const pointsContainer = document.getElementById('timelinePoints');
+            const pointCountBadge = document.getElementById('timelinePointCount');
+            
+            if (!pointsContainer) {
+                console.error('Timeline points container not found');
+                return;
+            }
+            
+            if (!timelineData || timelineData.length === 0) {
+                pointsContainer.innerHTML = `
+                    <div class="timeline-empty">
+                        <div class="timeline-empty-icon">📭</div>
+                        <p>No timeline history available for this file</p>
+                    </div>
+                `;
+                if (pointCountBadge) {
+                    pointCountBadge.textContent = '0 points';
+                }
+                return;
+            }
+            
+            // Update point count
+            if (pointCountBadge) {
+                pointCountBadge.textContent = `${timelineData.length} points`;
+            }
+            
+            // Create timeline line
+            let html = '<div class="timeline-line"></div>';
+            
+            // Add timeline points
+            timelineData.forEach(point => {
+                const isMajor = point.changeType === 'major';
+                const timeAgo = formatTimeAgo(point.timestamp);
+                
+                html += `
+                    <div class="timeline-item" onclick="viewTimelinePoint('${point.id}')">
+                        <div class="timeline-dot ${isMajor ? 'major' : ''}"></div>
+                        <div class="timeline-content">
+                            <div class="timeline-time">${timeAgo}</div>
+                            <div class="timeline-description">
+                                ${point.description}
+                                ${isMajor ? '<span class="timeline-badge">MAJOR</span>' : ''}
+                            </div>
+                            <div class="timeline-details">${point.details}</div>
+                            <div class="timeline-stats">
+                                <span class="timeline-stat added">+${point.linesAdded} lines</span>
+                                <span class="timeline-stat removed">-${point.linesRemoved} lines</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            pointsContainer.innerHTML = html;
+        }
+
+        function formatTimeAgo(timestamp) {
+            const now = new Date();
+            const then = new Date(timestamp);
+            const diffMs = now - then;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffDays = Math.floor(diffMs / 86400000);
+            
+            if (diffMins < 1) return 'Just now';
+            if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
+            if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+            if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+            
+            return then.toLocaleDateString();
+        }
+
+        function viewTimelinePoint(pointId) {
+            console.log('Viewing timeline point:', pointId);
+            vscode.postMessage({ 
+                type: 'viewTimelinePoint', 
+                payload: { pointId } 
+            });
+        }
+
+        function refreshWorkspaceFiles() {
+            vscode.postMessage({ type: 'getWorkspaceFiles' });
+            const status = document.getElementById('timelineStatus');
+            if (status) {
+                status.textContent = 'Refreshing files...';
+                status.className = 'status-message';
+                status.style.display = 'block';
+                setTimeout(() => { status.style.display = 'none'; }, 2000);
+            }
+        }
+
+        function clearTimelineFilters() {
+            document.getElementById('timelineSearch').value = '';
+            document.getElementById('timelineFilter').value = '';
+            app.filteredFiles = [...app.workspaceFiles];
+            app.updateTimelineList();
+            app.updateFileCount();
+        }
+
+        function updateFileCount() {
+            const fileCount = document.getElementById('fileCount');
+            if (fileCount && app.filteredFiles) {
+                fileCount.textContent = `(${app.filteredFiles.length} files)`;
+            }
+        }
+
+        // === END GLOBAL TIMELINE FUNCTIONS ===
+
         // Global app instance
         const app = new TeamCollaborationApp();
 
@@ -1918,6 +2168,45 @@
                     setPromptLoading(false); // restore button + cursor
                     showStatus('promptStatus', `Error: ${message.payload.message}`, 'error');
                     break;
+                case 'workspaceFilesLoaded': {
+                    app.loadWorkspaceFiles(message.payload.files);
+                    const status = document.getElementById('timelineStatus');
+                    if (status) {
+                        status.textContent = `✅ Loaded ${message.payload.files.length} files`;
+                        status.className = 'status-message status-success';
+                        status.style.display = 'block';
+                        setTimeout(() => { status.style.display = 'none'; }, 3000);
+                    }
+                    break;
+                }
+                
+                case 'workspaceFilesError': {
+                    const status = document.getElementById('timelineStatus');
+                    if (status) {
+                        status.textContent = `❌ Error: ${message.payload.message}`;
+                        status.className = 'status-message status-error';
+                        status.style.display = 'block';
+                    }
+                    break;
+                }
+                
+                case 'timelineDataLoaded': {
+                    displayTimelinePoints(message.payload.timeline);
+                    break;
+                }
+                
+                case 'timelineError': {
+                    const pointsContainer = document.getElementById('timelinePoints');
+                    if (pointsContainer) {
+                        pointsContainer.innerHTML = `
+                            <div class="timeline-empty">
+                                <div class="timeline-empty-icon">⚠️</div>
+                                <p>Error loading timeline: ${message.payload.message}</p>
+                            </div>
+                        `;
+                    }
+                    break;
+                }
             }
         });
 
@@ -2252,6 +2541,33 @@
                 app.closeEditModal();
             });
 
+            // === TIMELINE EVENT LISTENERS - ADD THESE ===
+            
+            document.getElementById('refresh-files-btn')?.addEventListener('click', refreshWorkspaceFiles);
+            document.getElementById('clear-timeline-search-btn')?.addEventListener('click', clearTimelineFilters);
+            
+            document.getElementById('timelineSearch')?.addEventListener('input', (e) => {
+                app.searchFiles(e.target.value);
+            });
+            
+            document.getElementById('timelineFilter')?.addEventListener('change', (e) => {
+                app.filterFilesByType(e.target.value);
+            });
+
+            // Close button listener
+            const closeBtn = document.getElementById('closeTimelineBtn');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Close button clicked');
+                    window.closeTimelineViewer();
+                });
+                console.log('✅ Close button listener attached');
+            }
+            
+            // === END TIMELINE EVENT LISTENERS ===
+
             // Close modal when clicking outside
             document.getElementById('editProjectModal')?.addEventListener('click', (e) => {
                 if (e.target === document.getElementById('editProjectModal')) {
@@ -2263,6 +2579,8 @@
             app.updateUI();
             showTab('users', document.querySelector('.tab-button[data-tab="users"]'));
 
+            // Load workspace files on startup
+            vscode.postMessage({ type: 'getWorkspaceFiles' });
             console.log('🚀 AI Collab Agent - Team Platform initialized!');
         });
     </script>
