@@ -2,7 +2,9 @@ import { SupabaseClient, User, Session } from "@supabase/supabase-js";
 import * as vscode from "vscode";
 import * as http from "http";
 import * as url from "url";
-import { getSupabaseClient } from "./supabaseConfig";
+import { createClient } from "@supabase/supabase-js";
+import { getSupabaseUrl, getSupabaseAnonKey } from "./supabaseConfig";
+
 
 export interface AuthUser {
   id: string;
@@ -18,17 +20,15 @@ export class AuthService {
   private localServer: http.Server | null = null;
 
   constructor(supabaseUrl?: string, supabaseKey?: string) {
-    // Get Supabase configuration from parameters or environment variables
-    const url = supabaseUrl || process.env.SUPABASE_URL;
-    const key = supabaseKey || process.env.SUPABASE_ANON_KEY;
+    // Get Supabase configuration from hardcoded config file
+    const url = getSupabaseUrl();
+    const key = getSupabaseAnonKey();
 
     if (!url || !key) {
       throw new Error(
-        "Supabase configuration missing. Please set SUPABASE_URL and SUPABASE_ANON_KEY in your .env file."
+        "Supabase configuration missing. Please check supabaseConfig.ts"
       );
     }
-
-    this.supabaseUrl = url;
     this.supabase = createClient(url, key);
   }
 

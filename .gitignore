@@ -26,7 +26,7 @@ node_modules/
 **/dist/
 
 # VSCode extension artifacts
-**/*.vsix
+# **/*.vsix
 
 # Python virtual environments
 **/venv/
@@ -43,3 +43,4 @@ env/
 **/.env
 !.env.example
 EOFcoverage/
+coverage/

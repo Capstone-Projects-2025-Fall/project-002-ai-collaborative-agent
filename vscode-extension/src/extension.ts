@@ -7,6 +7,7 @@ import { AuthService, AuthUser } from "./authService";
 import { DatabaseService, Profile, Project, ProjectMember, AIPrompt } from "./databaseService";
 import { getSupabaseClient, getEdgeFunctionUrl, getSupabaseAnonKey, getSupabaseUrl } from "./supabaseConfig";
 import { createJiraTasksCmd, JiraTaskOptions } from "./commands/createJiraTasks";
+import { config } from "dotenv";
 
 // No .env loading needed; using hardcoded config in supabaseConfig
 
@@ -205,22 +206,12 @@ async function saveInitialData(data: any): Promise<void> {
   }
 }
 
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
   config({ path: path.join(__dirname, "..", ".env") });
   config({ path: path.join(__dirname, "../../.env") });
 
   vscode.window.showInformationMessage("AI Collab Agent activated");
   extensionContext = context;
-
-  // Register commands FIRST, before any initialization
-  const openCommand = vscode.commands.registerCommand("aiCollab.openPanel", () => {
-    if (!authService || !databaseService) {
-      vscode.window.showErrorMessage("Extension not properly initialized. Check your .env file.");
-      return;
-    }
-    openMainPanel(context, authService);
-  });
-  context.subscriptions.push(openCommand);
 
   // THEN do initialization
   try {
@@ -366,6 +357,14 @@ const handleUri = vscode.window.registerUriHandler({
     );
   });
   context.subscriptions.push(debugAuth);
+
+  // ---- Clear authentication tokens
+  const clearAuth = vscode.commands.registerCommand("aiCollab.clearAuth", async () => {
+    await context.secrets.delete("supabase_access_token");
+    await context.secrets.delete("supabase_refresh_token");
+    vscode.window.showInformationMessage("Auth tokens cleared! Please reload VS Code.");
+  });
+  context.subscriptions.push(clearAuth);
 
   const liveShare = (await vsls.getApi()) as vsls.LiveShare | null;
 	liveShare?.onDidChangeSession((e) =>

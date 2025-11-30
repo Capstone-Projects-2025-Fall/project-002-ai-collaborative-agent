@@ -2,7 +2,7 @@
   "name": "ai-collab-agent",
   "displayName": "AI Collab Agent",
   "description": "AI-powered team collaboration platform with intelligent code assistance. Manage projects, coordinate teams, and get real-time code analysis.",
-  "publisher": "your-publisher-id",
+  "publisher": "AI-Collab-Team-2",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.80.0"
@@ -16,8 +16,7 @@
       {
         "command": "aiCollab.openPanel",
         "title": "Open Team Platform",
-        "category": "AI Collab Agent",
-        "icon": "$(organization)"
+        "category": "AI Collab Agent"
       },
       {
         "command": "ai.createJiraTasks",
@@ -37,8 +36,7 @@
       {
         "command": "ai-code-reviewer.analyzeCode",
         "title": "Analyze Current Folder",
-        "category": "AI Code Assistant",
-        "icon": "$(lightbulb)"
+        "category": "AI Code Assistant"
       },
       {
         "command": "ai-code-reviewer.configure",
@@ -48,20 +46,17 @@
       {
         "command": "ai-code-reviewer.showResults",
         "title": "Show Analysis Results",
-        "category": "AI Code Assistant",
-        "icon": "$(output)"
+        "category": "AI Code Assistant"
       },
       {
         "command": "ai-code-reviewer.showChangeLog",
         "title": "Show Change Log",
-        "category": "AI Code Assistant",
-        "icon": "$(history)"
+        "category": "AI Code Assistant"
       },
       {
         "command": "ai-code-reviewer.toggleAutoAnalyze",
         "title": "Toggle Auto-Analysis",
-        "category": "AI Code Assistant",
-        "icon": "$(debug-pause)"
+        "category": "AI Code Assistant"
       }
     ],
     "menus": {
@@ -159,8 +154,7 @@
       "activitybar": [
         {
           "id": "aiCollab-sidebar",
-          "title": "AI Collab",
-          "icon": "media/collaboration.svg"
+          "title": "AI Collab"
         }
       ]
     },
@@ -177,8 +171,7 @@
     "activitybar": [
       {
         "id": "aiCollab-sidebar",
-        "title": "AI Collab",
-        "icon": "media/collaboration.svg"
+        "title": "AI Collab"
       }
     ]
   },
@@ -222,7 +215,6 @@
   "bugs": {
     "url": "https://github.com/your-username/ai-collab-agent/issues"
   },
-  "icon": "media/icon.png",
   "author": "",
   "license": "ISC"
 }
