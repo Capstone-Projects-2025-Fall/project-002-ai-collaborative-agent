@@ -11,7 +11,8 @@
     "onStartupFinished",
     "onCommand:aiCollab.openPanel",
     "onUri",
-    "onCommand:ai.createJiraTasks"
+    "onCommand:ai.createJiraTasks",
+    "onView:aiCollabView"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -152,7 +153,7 @@
       "activitybar": [
         {
           "id": "aiCollab-sidebar",
-          "title": "AI Collab",
+          "title": "Pallas AI",
           "icon": "media/collaboration.svg"
         }
       ]
@@ -161,27 +162,10 @@
       "aiCollab-sidebar": [
         {
           "id": "aiCollabView",
-          "name": "Team Panel"
+          "name": "User Panel"
         }
       ]
     }
-  },
-  "viewsContainers": {
-    "activitybar": [
-      {
-        "id": "aiCollab-sidebar",
-        "title": "AI Collab",
-        "icon": "media/collaboration.svg"
-      }
-    ]
-  },
-  "views": {
-    "aiCollab-sidebar": [
-      {
-        "id": "aiCollabView",
-        "name": "Team Panel"
-      }
-    ]
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",

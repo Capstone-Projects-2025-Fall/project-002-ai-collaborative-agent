@@ -190,6 +190,157 @@ async function saveInitialData(data) {
         vscode.window.showErrorMessage("Failed to save data to database.");
     }
 }
+class SidebarProvider {
+    _extensionUri;
+    _view;
+    constructor(_extensionUri) {
+        this._extensionUri = _extensionUri;
+    }
+    async resolveWebviewView(webviewView, context, _token) {
+        this._view = webviewView;
+        webviewView.webview.options = {
+            enableScripts: true,
+            localResourceRoots: [this._extensionUri],
+        };
+        webviewView.webview.html = await this._getHtmlForWebview(webviewView.webview);
+        // Handle messages from the webview
+        webviewView.webview.onDidReceiveMessage(async (message) => {
+            switch (message.type) {
+                case "sidebarReady":
+                    console.log("Sidebar ready");
+                    const initialData = await loadInitialData();
+                    this.sendMessage({ type: "dataLoaded", payload: initialData });
+                    break;
+                case "loadData":
+                    const data = await loadInitialData();
+                    this.sendMessage({ type: "dataLoaded", payload: data });
+                    break;
+                case "openProfile":
+                    await vscode.commands.executeCommand("aiCollab.openPanel");
+                    break;
+                case "joinLiveShare":
+                    try {
+                        const liveShare = await vsls.getApi();
+                        if (liveShare) {
+                            await liveShare.join(message.payload.link);
+                            this.sendMessage({
+                                type: "liveshareStatus",
+                                payload: { state: "active" },
+                            });
+                            vscode.window.showInformationMessage("Joined LiveShare session!");
+                        }
+                        else {
+                            vscode.window.showErrorMessage("Live Share extension not available");
+                        }
+                    }
+                    catch (err) {
+                        console.error("Failed to join LiveShare:", err);
+                        vscode.window.showErrorMessage("Failed to join LiveShare session");
+                    }
+                    break;
+                case "startLiveShare":
+                    try {
+                        const liveShare = await vsls.getApi();
+                        if (liveShare) {
+                            const session = await liveShare.share();
+                            if (session) {
+                                this.sendMessage({
+                                    type: "liveshareStatus",
+                                    payload: { state: "active" },
+                                });
+                                vscode.window.showInformationMessage("LiveShare session started!");
+                            }
+                        }
+                        else {
+                            vscode.window.showErrorMessage("Live Share extension not available");
+                        }
+                    }
+                    catch (err) {
+                        console.error("Failed to start LiveShare:", err);
+                        vscode.window.showErrorMessage("Failed to start LiveShare session");
+                    }
+                    break;
+                case "switchProject":
+                    await vscode.commands.executeCommand("aiCollab.openPanel");
+                    vscode.window.showInformationMessage("Switching to project...");
+                    break;
+            }
+        });
+        this._monitorLiveShare();
+    }
+    async _monitorLiveShare() {
+        try {
+            const liveShare = await vsls.getApi();
+            if (liveShare) {
+                liveShare.onDidChangeSession((e) => {
+                    const state = e.session ? "active" : "disconnected";
+                    this.sendMessage({
+                        type: "liveshareStatus",
+                        payload: { state },
+                    });
+                });
+                const initialState = liveShare.session ? "active" : "disconnected";
+                this.sendMessage({
+                    type: "liveshareStatus",
+                    payload: { state: initialState },
+                });
+            }
+        }
+        catch (err) {
+            console.error("Error monitoring LiveShare:", err);
+        }
+    }
+    sendMessage(message) {
+        if (this._view) {
+            this._view.webview.postMessage(message);
+        }
+    }
+    async _getHtmlForWebview(webview) {
+        const htmlPath = path.join(extensionContext.extensionPath, "media", "sidebar.html");
+        try {
+            let html = await fs.readFile(htmlPath, "utf-8");
+            const nonce = getNonce();
+            html = html
+                .replace(/<head>/, `<head>
+        <meta http-equiv="Content-Security-Policy" content="
+            default-src 'none';
+            style-src ${webview.cspSource} 'unsafe-inline';
+            script-src 'nonce-${nonce}';
+        ">`)
+                .replace(/<script>/, `<script nonce="${nonce}">`);
+            return html;
+        }
+        catch (err) {
+            console.error("Error loading sidebar.html:", err);
+            return `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="UTF-8">
+            <style>
+              body {
+                padding: 20px;
+                font-family: var(--vscode-font-family);
+                color: var(--vscode-foreground);
+              }
+            </style>
+          </head>
+          <body>
+            <h3>Error loading sidebar</h3>
+            <p>Could not load sidebar.html. Please check the file exists in the media folder.</p>
+          </body>
+        </html>
+      `;
+        }
+    }
+}
+// Helper function to update sidebar from anywhere
+function updateSidebar(data) {
+    const sidebarProvider = global.sidebarProvider;
+    if (sidebarProvider) {
+        sidebarProvider.sendMessage(data);
+    }
+}
 async function activate(context) {
     (0, ai_analyze_1.activateCodeReviewer)(context);
     // Store context globally first
@@ -271,6 +422,17 @@ async function activate(context) {
         vscode.window.showErrorMessage(`Database setup failed: ${error instanceof Error ? error.message : "Unknown error"}`);
         return;
     }
+    // Register sidebar provider
+    const sidebarProvider = new SidebarProvider(context.extensionUri);
+    context.subscriptions.push(vscode.window.registerWebviewViewProvider("aiCollabView", sidebarProvider, {
+        webviewOptions: {
+            retainContextWhenHidden: true
+        }
+    }));
+    vscode.window.showInformationMessage("sideview activated!");
+    console.log('Sidebar provider registered');
+    // Store sidebar provider globally
+    global.sidebarProvider = sidebarProvider;
     // Register URI handler for custom protocol
     // In your URI handler, add this additional check:
     const handleUri = vscode.window.registerUriHandler({

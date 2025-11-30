@@ -216,6 +216,175 @@ async function saveInitialData(data: any): Promise<void> {
   }
 }
 
+class SidebarProvider implements vscode.WebviewViewProvider {
+  private _view?: vscode.WebviewView;
+
+  constructor(private readonly _extensionUri: vscode.Uri) {}
+
+  public async resolveWebviewView(
+    webviewView: vscode.WebviewView,
+    context: vscode.WebviewViewResolveContext,
+    _token: vscode.CancellationToken
+  ) {
+    this._view = webviewView;
+
+    webviewView.webview.options = {
+      enableScripts: true,
+      localResourceRoots: [this._extensionUri],
+    };
+
+    webviewView.webview.html = await this._getHtmlForWebview(webviewView.webview);
+
+    // Handle messages from the webview
+    webviewView.webview.onDidReceiveMessage(async (message) => {
+      switch (message.type) {
+        case "sidebarReady":
+          console.log("Sidebar ready");
+          const initialData = await loadInitialData();
+          this.sendMessage({ type: "dataLoaded", payload: initialData });
+          break;
+
+        case "loadData":
+          const data = await loadInitialData();
+          this.sendMessage({ type: "dataLoaded", payload: data });
+          break;
+
+        case "openProfile":
+          await vscode.commands.executeCommand("aiCollab.openPanel");
+          break;
+
+        case "joinLiveShare":
+          try {
+            const liveShare = await vsls.getApi();
+            if (liveShare) {
+              await liveShare.join(message.payload.link);
+              this.sendMessage({
+                type: "liveshareStatus",
+                payload: { state: "active" },
+              });
+              vscode.window.showInformationMessage("Joined LiveShare session!");
+            } else {
+              vscode.window.showErrorMessage("Live Share extension not available");
+            }
+          } catch (err) {
+            console.error("Failed to join LiveShare:", err);
+            vscode.window.showErrorMessage("Failed to join LiveShare session");
+          }
+          break;
+
+        case "startLiveShare":
+          try {
+            const liveShare = await vsls.getApi();
+            if (liveShare) {
+              const session = await liveShare.share();
+              if (session) {
+                this.sendMessage({
+                  type: "liveshareStatus",
+                  payload: { state: "active" },
+                });
+                vscode.window.showInformationMessage("LiveShare session started!");
+              }
+            } else {
+              vscode.window.showErrorMessage("Live Share extension not available");
+            }
+          } catch (err) {
+            console.error("Failed to start LiveShare:", err);
+            vscode.window.showErrorMessage("Failed to start LiveShare session");
+          }
+          break;
+
+        case "switchProject":
+          await vscode.commands.executeCommand("aiCollab.openPanel");
+          vscode.window.showInformationMessage("Switching to project...");
+          break;
+      }
+    });
+
+    this._monitorLiveShare();
+  }
+
+  private async _monitorLiveShare() {
+    try {
+      const liveShare = await vsls.getApi();
+      if (liveShare) {
+        liveShare.onDidChangeSession((e) => {
+          const state = e.session ? "active" : "disconnected";
+          this.sendMessage({
+            type: "liveshareStatus",
+            payload: { state },
+          });
+        });
+
+        const initialState = liveShare.session ? "active" : "disconnected";
+        this.sendMessage({
+          type: "liveshareStatus",
+          payload: { state: initialState },
+        });
+      }
+    } catch (err) {
+      console.error("Error monitoring LiveShare:", err);
+    }
+  }
+
+  public sendMessage(message: any) {
+    if (this._view) {
+      this._view.webview.postMessage(message);
+    }
+  }
+
+  private async _getHtmlForWebview(webview: vscode.Webview): Promise<string> {
+    const htmlPath = path.join(extensionContext.extensionPath, "media", "sidebar.html");
+    
+    try {
+      let html = await fs.readFile(htmlPath, "utf-8");
+
+      const nonce = getNonce();
+      html = html
+        .replace(
+          /<head>/,
+          `<head>
+        <meta http-equiv="Content-Security-Policy" content="
+            default-src 'none';
+            style-src ${webview.cspSource} 'unsafe-inline';
+            script-src 'nonce-${nonce}';
+        ">`
+        )
+        .replace(/<script>/, `<script nonce="${nonce}">`);
+
+      return html;
+    } catch (err) {
+      console.error("Error loading sidebar.html:", err);
+      return `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="UTF-8">
+            <style>
+              body {
+                padding: 20px;
+                font-family: var(--vscode-font-family);
+                color: var(--vscode-foreground);
+              }
+            </style>
+          </head>
+          <body>
+            <h3>Error loading sidebar</h3>
+            <p>Could not load sidebar.html. Please check the file exists in the media folder.</p>
+          </body>
+        </html>
+      `;
+    }
+  }
+}
+
+// Helper function to update sidebar from anywhere
+function updateSidebar(data: any) {
+  const sidebarProvider = (global as any).sidebarProvider;
+  if (sidebarProvider) {
+    sidebarProvider.sendMessage(data);
+  }
+}
+
 export async function activate(context: vscode.ExtensionContext) {
   activateCodeReviewer(context);
 
@@ -314,63 +483,82 @@ export async function activate(context: vscode.ExtensionContext) {
     return;
   }
 
+  // Register sidebar provider
+  const sidebarProvider = new SidebarProvider(context.extensionUri);
+  context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider(
+      "aiCollabView", 
+      sidebarProvider,
+      {
+        webviewOptions: {
+          retainContextWhenHidden: true
+        }
+      }
+    )
+  );
+  console.log('Sidebar provider registered');
+
+  // Store sidebar provider globally
+  (global as any).sidebarProvider = sidebarProvider;
+
+
   // Register URI handler for custom protocol
   // In your URI handler, add this additional check:
-const handleUri = vscode.window.registerUriHandler({
-  handleUri(uri: vscode.Uri) {
-    console.log("=== OAuth Callback Debug ===");
-    console.log("Full URI:", uri.toString());
-    console.log("Scheme:", uri.scheme);
-    console.log("Authority:", uri.authority);
-    console.log("Query:", uri.query);
+  const handleUri = vscode.window.registerUriHandler({
+    handleUri(uri: vscode.Uri) {
+      console.log("=== OAuth Callback Debug ===");
+      console.log("Full URI:", uri.toString());
+      console.log("Scheme:", uri.scheme);
+      console.log("Authority:", uri.authority);
+      console.log("Query:", uri.query);
 
-    if (uri.scheme === "vscode" && uri.authority === "ai-collab-agent.auth") {
-      console.log("OAuth callback received via VS Code URI");
+      if (uri.scheme === "vscode" && uri.authority === "ai-collab-agent.auth") {
+        console.log("OAuth callback received via VS Code URI");
 
-      // Extract tokens from query parameters
-      const urlParams = new URLSearchParams(uri.query);
-      const accessToken = urlParams.get('access_token');
-      const refreshToken = urlParams.get('refresh_token');
+        // Extract tokens from query parameters
+        const urlParams = new URLSearchParams(uri.query);
+        const accessToken = urlParams.get('access_token');
+        const refreshToken = urlParams.get('refresh_token');
 
-      console.log("Parsed tokens:", {
-        accessToken: accessToken ? accessToken.substring(0, 20) + "..." : "None",
-        refreshToken: refreshToken ? refreshToken.substring(0, 20) + "..." : "None"
-      });
+        console.log("Parsed tokens:", {
+          accessToken: accessToken ? accessToken.substring(0, 20) + "..." : "None",
+          refreshToken: refreshToken ? refreshToken.substring(0, 20) + "..." : "None"
+        });
 
-      if (accessToken) {
-        console.log("Access token received, setting session...");
+        if (accessToken) {
+          console.log("Access token received, setting session...");
 
-        // Set the session in Supabase
-        authService
-          .setSessionFromTokens(accessToken, refreshToken || undefined)
-          .then(() => {
-            console.log("Session set successfully");
-            vscode.window.showInformationMessage(
-              "Authentication successful! Redirecting to main app..."
-            );
+          // Set the session in Supabase
+          authService
+            .setSessionFromTokens(accessToken, refreshToken || undefined)
+            .then(() => {
+              console.log("Session set successfully");
+              vscode.window.showInformationMessage(
+                "Authentication successful! Redirecting to main app..."
+              );
 
-            // Open the main panel after successful authentication
-            setTimeout(() => {
-              openMainPanel(extensionContext, authService);
-            }, 1000);
-          })
-          .catch((error) => {
-            console.error("Error setting session:", error);
-            vscode.window.showErrorMessage(
-              "Authentication failed: " + error.message
-            );
-          });
+              // Open the main panel after successful authentication
+              setTimeout(() => {
+                openMainPanel(extensionContext, authService);
+              }, 1000);
+            })
+            .catch((error) => {
+              console.error("Error setting session:", error);
+              vscode.window.showErrorMessage(
+                "Authentication failed: " + error.message
+              );
+            });
+        } else {
+          console.error("No access token found in callback");
+          vscode.window.showErrorMessage(
+            "Authentication failed: No access token received"
+          );
+        }
       } else {
-        console.error("No access token found in callback");
-        vscode.window.showErrorMessage(
-          "Authentication failed: No access token received"
-        );
+        console.log("URI not recognized:", uri.toString());
       }
-    } else {
-      console.log("URI not recognized:", uri.toString());
-    }
-  },
-});
+    },
+  });
 
   context.subscriptions.push(handleUri);
 
