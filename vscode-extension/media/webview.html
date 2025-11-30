@@ -168,7 +168,6 @@
         .info-icon:focus-visible::before {
             opacity: 1;
             transform: translate(-50%, 0);
->>>>>>> origin/main
         }
 
         @keyframes slideIn {
@@ -968,12 +967,12 @@
                         placeholder="Technical requirements and constraints..."></textarea>
                 </div>
 
-                <div class="form-group">
+                <!-- <div class="form-group">
                     <label>Select Team Members *</label>
                     <div id="userSelection" class="multi-select">
                         <p style="text-align: center; color: #64748b; padding: 10px;">Add team members first</p>
                     </div>
-                </div>
+                </div> -->
             </form>
 
             <div class="button-group">
@@ -982,6 +981,8 @@
             </div>
 
             <div id="projectStatus" class="status-message" style="display: none;"></div>
+
+            <br><br>
 
             <div class="section-title">Jira Task Generator</div>
             <p style="color: #475569; margin-bottom: 12px;">Connect to Jira Cloud to auto-generate a backlog for the selected project.</p>
@@ -1635,6 +1636,11 @@
 
             updateUserSelection() {
                 const userSelection = document.getElementById('userSelection');
+                if (!userSelection) {
+                    // Element doesn't exist (might be commented out), skip updating
+                    return;
+                }
+                
                 if (this.users.length === 0) {
                     userSelection.innerHTML = '<p style="text-align: center; color: #64748b; padding: 10px;">Add team members first</p>';
                     return;
@@ -1650,6 +1656,11 @@
 
             updateProjectSelection() {
                 const projectSelect = document.getElementById('promptProject');
+                if (!projectSelect) {
+                    // Element doesn't exist, skip updating
+                    return;
+                }
+                
                 projectSelect.innerHTML = '<option value="">Choose a project...</option>' +
                     this.projects.map(project => `<option value="${project.id}">${project.name}</option>`).join('');
                 
