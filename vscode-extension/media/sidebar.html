@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pallas AI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--vscode-font-family);
+            color: var(--vscode-foreground);
+            background-color: var(--vscode-sidebar-background);
+            padding: 12px;
+            font-size: 13px;
+        }
+
+        /* Profile Section */
+        .profile-section {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--vscode-panel-border);
+        }
+
+        .profile-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .profile-avatar:hover {
+            transform: scale(1.05);
+        }
+
+        /* LiveShare Section */
+        .section {
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--vscode-descriptionForeground);
+            margin-bottom: 8px;
+            letter-spacing: 0.5px;
+        }
+
+        .liveshare-container {
+            background: var(--vscode-input-background);
+            border: 1px solid var(--vscode-input-border);
+            border-radius: 6px;
+            padding: 10px;
+        }
+
+        .liveshare-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+            font-size: 12px;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--vscode-testing-iconFailed);
+        }
+
+        .status-indicator.active {
+            background: var(--vscode-testing-iconPassed);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .input-group {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+
+        input {
+            flex: 1;
+            background: var(--vscode-input-background);
+            color: var(--vscode-input-foreground);
+            border: 1px solid var(--vscode-input-border);
+            border-radius: 4px;
+            padding: 6px 8px;
+            font-size: 12px;
+            font-family: inherit;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--vscode-focusBorder);
+        }
+
+        input::placeholder {
+            color: var(--vscode-input-placeholderForeground);
+        }
+
+        button {
+            background: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+            border: none;
+            border-radius: 4px;
+            padding: 6px 12px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        button:hover {
+            background: var(--vscode-button-hoverBackground);
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        button.secondary {
+            background: var(--vscode-button-secondaryBackground);
+            color: var(--vscode-button-secondaryForeground);
+        }
+
+        button.secondary:hover {
+            background: var(--vscode-button-secondaryHoverBackground);
+        }
+
+        /* Project Section */
+        .project-selector {
+            background: var(--vscode-input-background);
+            border: 1px solid var(--vscode-input-border);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .project-header {
+            padding: 10px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--vscode-input-background);
+            border-bottom: 1px solid var(--vscode-panel-border);
+        }
+
+        .project-header:hover {
+            background: var(--vscode-list-hoverBackground);
+        }
+
+        .project-name {
+            font-weight: 600;
+            font-size: 12px;
+        }
+
+        .chevron {
+            transition: transform 0.2s ease;
+            font-size: 10px;
+        }
+
+        .chevron.expanded {
+            transform: rotate(180deg);
+        }
+
+        .project-list {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .project-list.expanded {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .project-item {
+            padding: 10px;
+            border-bottom: 1px solid var(--vscode-panel-border);
+            cursor: pointer;
+            transition: background 0.1s ease;
+        }
+
+        .project-item:hover {
+            background: var(--vscode-list-hoverBackground);
+        }
+
+        .project-item:last-child {
+            border-bottom: none;
+        }
+
+        .project-item-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+            font-size: 12px;
+        }
+
+        .project-item-desc {
+            font-size: 11px;
+            color: var(--vscode-descriptionForeground);
+            margin-bottom: 6px;
+            line-height: 1.4;
+        }
+
+        .project-members {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 6px;
+        }
+
+        .member-badge {
+            background: var(--vscode-badge-background);
+            color: var(--vscode-badge-foreground);
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 10px;
+        }
+
+        .project-detail-panel {
+            padding: 12px;
+            background: var(--vscode-editor-background);
+            border-top: 1px solid var(--vscode-panel-border);
+        }
+
+        .detail-section {
+            margin-bottom: 12px;
+        }
+
+        .detail-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--vscode-descriptionForeground);
+            margin-bottom: 4px;
+        }
+
+        .detail-content {
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        .switch-project-btn {
+            width: 100%;
+            margin-top: 8px;
+        }
+
+        .empty-state {
+            padding: 20px;
+            text-align: center;
+            color: var(--vscode-descriptionForeground);
+            font-size: 12px;
+        }
+
+        .no-projects {
+            padding: 12px;
+            text-align: center;
+            color: var(--vscode-descriptionForeground);
+            font-size: 11px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Profile Section -->
+    <div class="profile-section">
+        <div class="profile-avatar" id="profileAvatar" title="View Profile">
+            ?
+        </div>
+    </div>
+
+    <!-- LiveShare Section -->
+    <div class="section">
+        <div class="section-title">🔗 Live Collaboration</div>
+        <div class="liveshare-container">
+            <div class="liveshare-status">
+                <span class="status-indicator" id="statusIndicator"></span>
+                <span id="statusText">Not connected</span>
+            </div>
+            <div class="input-group">
+                <input 
+                    type="text" 
+                    id="liveshareInput" 
+                    placeholder="Paste LiveShare link..."
+                />
+                
+            </div>
+            <button id="joinBtn" style="width: 100%;" >Join</button>
+            <button id="startSessionBtn" class="secondary" style="width: 100%;">
+                Start New Session
+            </button>
+        </div>
+    </div>
+
+    <!-- Projects Section -->
+    <div class="section">
+        <div class="section-title">📋 Projects</div>
+        <div class="project-selector">
+            <div class="project-header" id="projectHeader">
+                <span class="project-name" id="currentProjectName">Select a project</span>
+                <span class="chevron" id="chevron">▼</span>
+            </div>
+            <div class="project-list" id="projectList">
+                <div class="no-projects">Loading projects...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Project Detail Panel (hidden by default) -->
+    <div id="projectDetailPanel" style="display: none;">
+        <div class="section-title" style="margin-top: 16px;">Project Details</div>
+        <div class="project-detail-panel">
+            <div class="detail-section">
+                <div class="detail-label">Description</div>
+                <div class="detail-content" id="detailDescription">-</div>
+            </div>
+            <div class="detail-section">
+                <div class="detail-label">Goals</div>
+                <div class="detail-content" id="detailGoals">-</div>
+            </div>
+            <div class="detail-section">
+                <div class="detail-label">Team Members</div>
+                <div class="project-members" id="detailMembers"></div>
+            </div>
+            <button class="switch-project-btn" id="switchProjectBtn">
+                Switch to This Project
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const vscode = acquireVsCodeApi();
+
+        // State
+        let projects = [];
+        let users = [];
+        let currentUser = null;
+        let selectedProjectId = null;
+        let isListExpanded = false;
+        let liveshareStatus = 'disconnected';
+
+        // Initialize
+        vscode.postMessage({ type: 'sidebarReady' });
+        vscode.postMessage({ type: 'loadData' });
+
+        // Profile Avatar Click
+        document.getElementById('profileAvatar').addEventListener('click', () => {
+            vscode.postMessage({ type: 'openProfile' });
+        });
+
+        // LiveShare Input - Auto-join on paste
+        document.getElementById('liveshareInput').addEventListener('paste', (e) => {
+            setTimeout(() => {
+                const link = e.target.value.trim();
+                if (link && link.includes('https://')) {
+                    joinLiveShare(link);
+                }
+            }, 100);
+        });
+
+        // LiveShare Join Button
+        document.getElementById('joinBtn').addEventListener('click', () => {
+            const link = document.getElementById('liveshareInput').value.trim();
+            if (link) {
+                joinLiveShare(link);
+            }
+        });
+
+        // Start LiveShare Session
+        document.getElementById('startSessionBtn').addEventListener('click', () => {
+            vscode.postMessage({ type: 'startLiveShare' });
+        });
+
+        function joinLiveShare(link) {
+            vscode.postMessage({ 
+                type: 'joinLiveShare', 
+                payload: { link } 
+            });
+            document.getElementById('liveshareInput').value = '';
+        }
+
+        // Project List Toggle
+        document.getElementById('projectHeader').addEventListener('click', () => {
+            isListExpanded = !isListExpanded;
+            const list = document.getElementById('projectList');
+            const chevron = document.getElementById('chevron');
+            
+            if (isListExpanded) {
+                list.classList.add('expanded');
+                chevron.classList.add('expanded');
+            } else {
+                list.classList.remove('expanded');
+                chevron.classList.remove('expanded');
+            }
+        });
+
+        // Switch Project Button
+        document.getElementById('switchProjectBtn').addEventListener('click', () => {
+            if (selectedProjectId) {
+                vscode.postMessage({ 
+                    type: 'switchProject', 
+                    payload: { projectId: selectedProjectId } 
+                });
+            }
+        });
+
+        // Listen for messages from extension
+        window.addEventListener('message', event => {
+            const message = event.data;
+            
+            switch (message.type) {
+                case 'dataLoaded':
+                    loadData(message.payload);
+                    break;
+                case 'liveshareStatus':
+                    updateLiveShareStatus(message.payload);
+                    break;
+                case 'projectSwitched':
+                    // Optionally update UI to show switched project
+                    break;
+            }
+        });
+
+        function loadData(data) {
+            if (data.currentUser) {
+                currentUser = data.currentUser;
+                updateProfileAvatar();
+            }
+
+            if (data.users) {
+                users = data.users;
+            }
+
+            if (data.projects) {
+                projects = data.projects;
+                renderProjectList();
+            }
+        }
+
+        function updateProfileAvatar() {
+            if (currentUser && currentUser.name) {
+                const initials = currentUser.name
+                    .split(' ')
+                    .map(n => n[0])
+                    .join('')
+                    .toUpperCase()
+                    .slice(0, 2);
+                document.getElementById('profileAvatar').textContent = initials;
+            }
+        }
+
+        function updateLiveShareStatus(status) {
+            liveshareStatus = status.state;
+            const indicator = document.getElementById('statusIndicator');
+            const text = document.getElementById('statusText');
+            
+            if (status.state === 'active') {
+                indicator.classList.add('active');
+                text.textContent = 'Connected';
+            } else {
+                indicator.classList.remove('active');
+                text.textContent = 'Not connected';
+            }
+        }
+
+        function renderProjectList() {
+            const list = document.getElementById('projectList');
+            
+            if (projects.length === 0) {
+                list.innerHTML = '<div class="no-projects">No projects yet. Create one in the main panel.</div>';
+                return;
+            }
+
+            list.innerHTML = projects.map(project => {
+                const teamMembers = users.filter(user => 
+                    project.selectedMemberIds && project.selectedMemberIds.includes(user.id)
+                );
+                
+                return `
+                    <div class="project-item" data-project-id="${project.id}">
+                        <div class="project-item-name">${project.name}</div>
+                        <div class="project-item-desc">${truncate(project.description, 80)}</div>
+                        <div class="project-members">
+                            ${teamMembers.map(m => `<span class="member-badge">${m.name}</span>`).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // Add click handlers
+            document.querySelectorAll('.project-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const projectId = item.dataset.projectId;
+                    showProjectDetails(projectId);
+                });
+            });
+        }
+
+        function showProjectDetails(projectId) {
+            const project = projects.find(p => String(p.id) === String(projectId));
+            if (!project) return;
+
+            selectedProjectId = projectId;
+
+            const teamMembers = users.filter(user => 
+                project.selectedMemberIds && project.selectedMemberIds.includes(user.id)
+            );
+
+            document.getElementById('detailDescription').textContent = project.description || 'No description';
+            document.getElementById('detailGoals').textContent = project.goals || 'No goals specified';
+            
+            const membersHtml = teamMembers.length > 0 
+                ? teamMembers.map(m => `<span class="member-badge">${m.name}</span>`).join('')
+                : '<span style="font-size: 11px; color: var(--vscode-descriptionForeground);">No members</span>';
+            
+            document.getElementById('detailMembers').innerHTML = membersHtml;
+            document.getElementById('projectDetailPanel').style.display = 'block';
+        }
+
+        function truncate(str, maxLen) {
+            if (!str) return '';
+            return str.length > maxLen ? str.substring(0, maxLen) + '...' : str;
+        }
+    </script>
+</body>
+</html>
