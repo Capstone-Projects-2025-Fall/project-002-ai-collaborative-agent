@@ -38,6 +38,11 @@
         "category": "AI Collab Agent"
       },
       {
+        "command": "aiCollab.setLLMApiKey",
+        "title": "Configure LLM API Key",
+        "category": "AI Collab Agent"
+      },
+      {
         "command": "ai-code-reviewer.analyzeCode",
         "title": "Analyze Current Folder",
         "category": "AI Code Assistant",
@@ -68,8 +73,24 @@
       }
     ],
     "menus": {
+      "editor/context": [
+        {
+          "command": "ai-code-reviewer.analyzeCode",
+          "group": "aiCollab@1",
+          "when": "editorTextFocus"
+        }
+      ],
       "commandPalette": [
-        { "command": "ai.createJiraTasks", "when": "true" }
+        {
+          "command": "ai-code-reviewer.analyzeCode",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "command": "ai-code-reviewer.showResults"
+        },
+        {
+          "command": "ai-code-reviewer.toggleAutoAnalyze"
+        }
       ]
     },
     "configuration": {
@@ -127,27 +148,6 @@
         "mac": "cmd+shift+r"
       }
     ],
-    "menus": {
-      "editor/context": [
-        {
-          "command": "ai-code-reviewer.analyzeCode",
-          "group": "aiCollab@1",
-          "when": "editorTextFocus"
-        }
-      ],
-      "commandPalette": [
-        {
-          "command": "ai-code-reviewer.analyzeCode",
-          "when": "workspaceFolderCount > 0"
-        },
-        {
-          "command": "ai-code-reviewer.showResults"
-        },
-        {
-          "command": "ai-code-reviewer.toggleAutoAnalyze"
-        }
-      ]
-    },
     "viewsContainers": {
       "activitybar": [
         {
@@ -194,18 +194,18 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.8",
-    "dotenv": "^16.4.5",
-    "vsls": "^1.0.4634",
     "axios": "^1.6.5",
-    "node-fetch": "^2.7.0"
+    "dotenv": "^16.4.5",
+    "node-fetch": "^2.7.0",
+    "vsls": "^1.0.4634"
   },
   "devDependencies": {
     "@types/node": "^22.18.6",
+    "@types/node-fetch": "^2.6.13",
     "@types/vscode": "^1.70.0",
     "esbuild": "^0.25.10",
     "typescript": "^5.9.2",
-    "vitest": "^3.2.4",
-    "@types/node-fetch": "^2.6.13"
+    "vitest": "^3.2.4"
   },
   "repository": {
     "type": "git",
