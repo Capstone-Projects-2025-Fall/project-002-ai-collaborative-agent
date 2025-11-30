@@ -232,7 +232,8 @@ class SidebarProvider implements vscode.WebviewViewProvider {
       enableScripts: true,
       localResourceRoots: [this._extensionUri],
     };
-
+    
+    console.log("SidebarProvider: resolveWebviewView called");
     webviewView.webview.html = await this._getHtmlForWebview(webviewView.webview);
 
     // Handle messages from the webview

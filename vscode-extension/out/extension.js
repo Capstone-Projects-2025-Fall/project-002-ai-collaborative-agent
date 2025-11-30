@@ -202,6 +202,7 @@ class SidebarProvider {
             enableScripts: true,
             localResourceRoots: [this._extensionUri],
         };
+        console.log("SidebarProvider: resolveWebviewView called");
         webviewView.webview.html = await this._getHtmlForWebview(webviewView.webview);
         // Handle messages from the webview
         webviewView.webview.onDidReceiveMessage(async (message) => {
@@ -429,7 +430,6 @@ async function activate(context) {
             retainContextWhenHidden: true
         }
     }));
-    vscode.window.showInformationMessage("sideview activated!");
     console.log('Sidebar provider registered');
     // Store sidebar provider globally
     global.sidebarProvider = sidebarProvider;

@@ -162,7 +162,8 @@
       "aiCollab-sidebar": [
         {
           "id": "aiCollabView",
-          "name": "User Panel"
+          "name": "User Panel",
+          "type": "webview"
         }
       ]
     }
