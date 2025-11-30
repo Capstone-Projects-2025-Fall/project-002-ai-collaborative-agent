@@ -41,6 +41,7 @@ let resultsPanel;
 let extensionContext;
 let autoAnalyzeTimer;
 let isAutoAnalyzeEnabled = true;
+let notificationCallback;
 // Change tracking
 let changeLog = [];
 let lastAnalysisTime = new Date();
@@ -54,12 +55,13 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const SIGNIFICANT_CHANGE_THRESHOLD = 3; // Number of significant changes before analyzing
 const TIME_BASED_CHECK_INTERVAL = 10; // Minutes between time-based checks
 const LINES_CHANGED_THRESHOLD = 20; // Consider it significant if 20+ lines changed
-function activateCodeReviewer(context) {
+function activateCodeReviewer(context, addNotification) {
     try {
         console.log('AI Code Assistant extension is now active!');
         extensionContext = context;
+        notificationCallback = addNotification;
         statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
-        statusBarItem.command = 'ai-code-reviewer.showChangeLog';
+        statusBarItem.command = 'ai-code-reviewer.analyzeCode';
         context.subscriptions.push(statusBarItem);
         const analyzeCommand = vscode.commands.registerCommand('ai-code-reviewer.analyzeCode', async () => {
             await analyzeCurrentFile(true); // Force analysis
@@ -320,29 +322,45 @@ async function analyzeCurrentFile(forceAnalysis = false, reason) {
         // Update last analysis time
         lastAnalysisTime = new Date();
         significantChangesCount = 0; // Reset counter
-        // Parse the response to determine severity
+        // Parse the response to determine severity - check both old and new formats
         const hasErrors = data.message.includes('🚨 ERRORS');
         const hasWarnings = data.message.includes('⚠️ WARNINGS');
+        const hasCritical = data.message.includes('🔴') &&
+            (data.message.includes('CRITICAL') || data.message.includes('LOGIC ERRORS'));
+        const hasImprovements = data.message.includes('🟡') &&
+            (data.message.includes('IMPROVEMENTS') || data.message.includes('CODE QUALITY'));
         // Only intervene if there are issues or forced
-        if (hasErrors || hasWarnings || forceAnalysis) {
+        if (hasErrors || hasWarnings || hasCritical || hasImprovements || forceAnalysis) {
             const analysisReason = unsavedCount > 0
                 ? `${reason || 'Analysis'} (${unsavedCount} unsaved file${unsavedCount > 1 ? 's' : ''})`
                 : reason;
             showResultsPanel(data.message, folderContents.length, folderPath, analysisReason);
-            if (hasErrors) {
+            if (hasErrors || hasCritical) {
                 vscode.window.setStatusBarMessage('$(error) Issues detected - check AI Assistant', 5000);
+                if (notificationCallback) {
+                    notificationCallback(`AI analysis found critical issues in ${folderContents.length} file(s)`, 'error');
+                }
             }
-            else if (hasWarnings) {
+            else if (hasWarnings || hasImprovements) {
                 vscode.window.setStatusBarMessage('$(warning) Warnings - check AI Assistant', 5000);
+                if (notificationCallback) {
+                    notificationCallback(`AI analysis found warnings in ${folderContents.length} file(s)`, 'warning');
+                }
             }
             else {
                 vscode.window.setStatusBarMessage('$(check) Analysis complete', 3000);
+                if (notificationCallback) {
+                    notificationCallback(`AI analysis complete - ${folderContents.length} file(s) analyzed`, 'success');
+                }
             }
         }
         else {
             // Silently update without showing panel
             updateResultsPanel(data.message, folderContents.length, folderPath, reason);
             vscode.window.setStatusBarMessage('$(check) Looking good!', 2000);
+            if (notificationCallback) {
+                notificationCallback(`Code looks good - ${folderContents.length} file(s) analyzed`, 'success');
+            }
         }
         // Clear old change logs after successful analysis
         changeLog = changeLog.filter(c => (new Date().getTime() - c.timestamp.getTime()) / 1000 / 60 < 10);
@@ -351,6 +369,9 @@ async function analyzeCurrentFile(forceAnalysis = false, reason) {
     catch (error) {
         console.error('Analysis error:', error);
         vscode.window.setStatusBarMessage('$(warning) Analysis failed', 3000);
+        if (notificationCallback) {
+            notificationCallback(`AI analysis failed: ${error.message || 'Unknown error'}`, 'error');
+        }
     }
 }
 function getRecentChangeSummary() {
@@ -671,18 +692,30 @@ function updateResultsPanel(analysisResult, fileCount, folderPath, reason) {
     }
 }
 function getWebviewContent(analysisResult, fileCount, folderPath, reason) {
+    // Check for new AI response format
+    const hasCritical = analysisResult.includes('🔴') &&
+        (analysisResult.includes('CRITICAL') || analysisResult.includes('LOGIC ERRORS'));
+    const hasImprovements = analysisResult.includes('🟡') &&
+        (analysisResult.includes('IMPROVEMENTS') || analysisResult.includes('CODE QUALITY'));
+    const allGood = analysisResult.includes('✅') ||
+        analysisResult.toLowerCase().includes('no logic errors') ||
+        analysisResult.toLowerCase().includes('code looks solid');
+    // Also check for old format for backwards compatibility
     const hasErrors = analysisResult.includes('🚨 ERRORS');
     const hasWarnings = analysisResult.includes('⚠️ WARNINGS');
-    const allGood = analysisResult.includes('✅');
     let statusColor = '#27ae60';
     let statusText = 'All Clear';
-    if (hasErrors) {
+    if (hasCritical || hasErrors) {
         statusColor = '#e74c3c';
         statusText = 'Issues Found';
     }
-    else if (hasWarnings) {
+    else if (hasImprovements || hasWarnings) {
         statusColor = '#f39c12';
         statusText = 'Needs Attention';
+    }
+    else if (allGood) {
+        statusColor = '#27ae60';
+        statusText = 'All Clear';
     }
     return `
     <!DOCTYPE html>
@@ -915,16 +948,16 @@ async function updateStatusBar() {
     if (isAutoAnalyzeEnabled) {
         if (recentChanges.length > 0) {
             statusBarItem.text = `$(eye) AI Assistant (${recentChanges.length})`;
-            statusBarItem.tooltip = `Monitoring: ${recentChanges.length} recent changes\nClick to view change log`;
+            statusBarItem.tooltip = `Monitoring: ${recentChanges.length} recent changes\nClick to run AI analysis`;
         }
         else {
             statusBarItem.text = '$(eye) AI Assistant';
-            statusBarItem.tooltip = 'Monitoring for changes\nClick to view change log';
+            statusBarItem.tooltip = 'Monitoring for changes\nClick to run AI analysis';
         }
     }
     else {
         statusBarItem.text = '$(eye-closed) AI Assistant';
-        statusBarItem.tooltip = 'Monitoring disabled\nClick to view status';
+        statusBarItem.tooltip = 'Monitoring disabled\nClick to run AI analysis';
     }
     statusBarItem.backgroundColor = undefined;
     statusBarItem.show();

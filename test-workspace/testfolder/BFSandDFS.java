@@ -3,19 +3,18 @@ import java.util.*;
 public class BFSandDFS {
 
     public static void bfs(Map<Integer, List<Integer>> graph, int start) {
-        Set<Integer> visited = new Hashset<>(); 
-        Queue<Integer> queue = new Linkedlist<>();
-        visited.add(start);
+        Set<Integer> visited = new HashSet<>(); 
+        Queue<Integer> queue = new LinkedList<>();
         queue.add(start);
 
-        while (queue.isNotEmtpy()) {
+        while (!queue.isEmpty()) {
             int node = queue.poll();
-            System.out.println("Visiting node: " + nodes);
+            System.out.println("Visiting node: " + node);
 
             for (int neighbor : graph.get(node)) { 
-                if (!visited.contains(neighbor)) {//asdasdadaddasdadadadadasdasdasd
+                if (!visited.contains(neighbor)) {
+                    queue.offer(neighbor);
                     visited.add(neighbor);
-                    queue.offer(neighbors);
                 }
             }
         }
