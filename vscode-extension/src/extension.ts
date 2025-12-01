@@ -8,6 +8,7 @@ import { DatabaseService, Profile, Project, ProjectMember, AIPrompt } from "./da
 import { getSupabaseClient, getEdgeFunctionUrl, getSupabaseAnonKey, getSupabaseUrl } from "./supabaseConfig";
 import { createJiraTasksCmd, JiraTaskOptions } from "./commands/createJiraTasks";
 import { TimelineManager } from './timelineManager';
+import { PeerSuggestionService } from "./peerSuggestionService";
 
 // No .env loading needed; using hardcoded config in supabaseConfig
 
@@ -16,6 +17,7 @@ let authService: AuthService;
 let databaseService: DatabaseService;
 let extensionContext: vscode.ExtensionContext;
 let timelineManager: TimelineManager;
+let peerSuggestionService: PeerSuggestionService | undefined;
 
 type CachedJiraProfile = {
   baseUrl?: string;
@@ -64,6 +66,67 @@ async function setCachedJiraProfile(
 const GLOBAL_STATE_KEY = "reopenAiCollabAgent";
 // When new workspace is open, liveshare begins
 const GLOBAL_LIVESHARE_KEY = "reopenLiveShareSession";
+
+// LLM API Key Management
+const LLM_API_KEY_SECRET = "llm_api_key";
+const ACTIVE_PROJECT_KEY = "activeProjectId";
+
+// API Key Management Functions
+async function getLLMApiKey(): Promise<string | undefined> {
+  if (!extensionContext) {
+    return undefined;
+  }
+  return await extensionContext.secrets.get(LLM_API_KEY_SECRET);
+}
+
+async function setLLMApiKey(key: string): Promise<void> {
+  if (!extensionContext) {
+    return;
+  }
+  await extensionContext.secrets.store(LLM_API_KEY_SECRET, key);
+}
+
+// Active Project Tracking Functions
+async function getActiveProjectContext(): Promise<Project | null> {
+  if (!extensionContext || !databaseService) {
+    return null;
+  }
+  
+  const activeProjectId = extensionContext.globalState.get<string>(ACTIVE_PROJECT_KEY);
+  if (!activeProjectId) {
+    return null;
+  }
+
+  try {
+    // Get all projects for current user to find the active one
+    const user = authService.getCurrentUser();
+    if (!user) {
+      return null;
+    }
+    
+    const profile = await databaseService.getProfile(user.id);
+    if (!profile) {
+      return null;
+    }
+
+    const projects = await databaseService.getProjectsForUser(profile.id);
+    return projects.find(p => p.id === activeProjectId) || null;
+  } catch (error) {
+    console.error("Error getting active project context:", error);
+    return null;
+  }
+}
+
+async function setActiveProject(projectId: string | null): Promise<void> {
+  if (!extensionContext) {
+    return;
+  }
+  if (projectId) {
+    await extensionContext.globalState.update(ACTIVE_PROJECT_KEY, projectId);
+  } else {
+    await extensionContext.globalState.update(ACTIVE_PROJECT_KEY, undefined);
+  }
+}
 
 
 // Helper function to get the full path to our data file
@@ -236,6 +299,37 @@ export async function activate(context: vscode.ExtensionContext) {
   );
   context.subscriptions.push(createJiraCmd);
 
+  // Register LLM API key configuration command
+  const setLLMKeyCmd = vscode.commands.registerCommand(
+    "aiCollab.setLLMApiKey",
+    async () => {
+      const currentKey = await getLLMApiKey();
+      const prompt = currentKey
+        ? "Enter your LLM API key (leave empty to clear):"
+        : "Enter your LLM API key:";
+      
+      const apiKey = await vscode.window.showInputBox({
+        prompt,
+        password: true,
+        placeHolder: "sk-...",
+        ignoreFocusOut: true,
+      });
+
+      if (apiKey === undefined) {
+        return; // User cancelled
+      }
+
+      if (apiKey === "") {
+        await setLLMApiKey("");
+        vscode.window.showInformationMessage("LLM API key cleared.");
+      } else {
+        await setLLMApiKey(apiKey);
+        vscode.window.showInformationMessage("LLM API key saved successfully.");
+      }
+    }
+  );
+  context.subscriptions.push(setLLMKeyCmd);
+
   // Initialize authentication service
   try {
     authService = new AuthService();
@@ -319,6 +413,52 @@ export async function activate(context: vscode.ExtensionContext) {
     );
     return;
   }
+
+  // Initialize peer suggestion service (after auth and database services are ready)
+  // Note: This will be initialized lazily when needed, or can be enabled via command
+  // For now, we'll initialize it but it will only work when user is authenticated
+  try {
+    // Only initialize if user is authenticated
+    if (authService.isAuthenticated()) {
+      peerSuggestionService = new PeerSuggestionService(
+        context,
+        databaseService,
+        authService,
+        getActiveProjectContext
+      );
+      context.subscriptions.push({
+        dispose: () => {
+          peerSuggestionService?.dispose();
+        },
+      });
+    }
+  } catch (error) {
+    console.error("Failed to initialize peer suggestion service:", error);
+  }
+
+  // Re-initialize peer suggestion service when auth state changes
+  authService.onAuthStateChange(async (user) => {
+    if (user && !peerSuggestionService) {
+      try {
+        peerSuggestionService = new PeerSuggestionService(
+          context,
+          databaseService,
+          authService,
+          getActiveProjectContext
+        );
+        context.subscriptions.push({
+          dispose: () => {
+            peerSuggestionService?.dispose();
+          },
+        });
+      } catch (error) {
+        console.error("Failed to initialize peer suggestion service on auth change:", error);
+      }
+    } else if (!user && peerSuggestionService) {
+      peerSuggestionService.dispose();
+      peerSuggestionService = undefined;
+    }
+  });
 
   // Register URI handler for custom protocol
   // In your URI handler, add this additional check:
@@ -1017,8 +1157,20 @@ async function openMainPanel(
         break;
       }
 
+      case "setActiveProject": {
+        const { projectId } = msg.payload;
+        await setActiveProject(projectId || null);
+        console.log("Active project set to:", projectId);
+        break;
+      }
+
       case "generatePrompt": {
         const { projectId } = msg.payload;
+        
+        // Also set as active project when generating prompt
+        if (projectId) {
+          await setActiveProject(projectId);
+        }
 
         const currentData = await loadInitialData();
         const projectToPrompt = currentData.projects.find(
@@ -1952,21 +2104,28 @@ async function getHtml(
 
 	const htmlPath = path.join(context.extensionPath, "media", "webview.html");
 
+  const logoUri = webview.asWebviewUri(
+    vscode.Uri.joinPath(context.extensionUri, "media", "logo.png")
+  );
+
 	let htmlContent = await fs.readFile(htmlPath, "utf-8");
 
 	htmlContent = htmlContent
-		.replace(
-			/<head>/,
-			`<head>
-        <meta http-equiv="Content-Security-Policy" content="
-            default-src 'none';
-            style-src ${webview.cspSource} 'unsafe-inline';
-            img-src ${webview.cspSource} https:;
-            script-src 'nonce-${nonce}';
-        ">`
-		)
-		.replace(/<script>/, `<script nonce="${nonce}">`);
 
+      .replace(/\{\{logoUri\}\}/g, logoUri.toString())
+      // Inject CSP
+      .replace(
+          /<head>/,
+          `<head>
+      <meta http-equiv="Content-Security-Policy" content="
+          default-src 'none';
+          style-src ${webview.cspSource} 'unsafe-inline';
+          img-src ${webview.cspSource} https:;
+          script-src 'nonce-${nonce}';
+      ">`
+      )
+      .replace(/<script>/, `<script nonce="${nonce}">`);
+      
 	return htmlContent;
 }
 
