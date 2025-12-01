@@ -282,47 +282,11 @@ async function saveInitialData(data: any): Promise<void> {
 export async function activate(context: vscode.ExtensionContext) {
   activateCodeReviewer(context);
 
+  checkLiveShareInstalled()
+
   // Store context globally first
   extensionContext = context;
 
-  const createJiraCmd = vscode.commands.registerCommand(
-    "ai.createJiraTasks",
-    async (options?: Partial<JiraTaskOptions>) => {
-      return await createJiraTasksCmd(context, options);
-    }
-  );
-  context.subscriptions.push(createJiraCmd);
-
-  // Register LLM API key configuration command
-  const setLLMKeyCmd = vscode.commands.registerCommand(
-    "aiCollab.setLLMApiKey",
-    async () => {
-      const currentKey = await getLLMApiKey();
-      const prompt = currentKey
-        ? "Enter your LLM API key (leave empty to clear):"
-        : "Enter your LLM API key:";
-      
-      const apiKey = await vscode.window.showInputBox({
-        prompt,
-        password: true,
-        placeHolder: "sk-...",
-        ignoreFocusOut: true,
-      });
-
-      if (apiKey === undefined) {
-        return; // User cancelled
-      }
-
-      if (apiKey === "") {
-        await setLLMApiKey("");
-        vscode.window.showInformationMessage("LLM API key cleared.");
-      } else {
-        await setLLMApiKey(apiKey);
-        vscode.window.showInformationMessage("LLM API key saved successfully.");
-      }
-    }
-  );
-  context.subscriptions.push(setLLMKeyCmd);
 
   // Initialize authentication service
   try {
@@ -1940,4 +1904,18 @@ function getNonce() {
 }
 function mockAllocate(payload: { [key: string]: any }): any {
 	throw new Error("Function not implemented.");
+}
+
+function checkLiveShareInstalled() {
+  const liveshareExtension = vscode.extensions.getExtension('ms-vsliveshare.vsliveshare');
+  if (!liveshareExtension) {
+    vscode.window.showWarningMessage(
+      'Live Share is not installed. Please install it for collaboration features.',
+      'Install Live Share'
+    ).then(selection => {
+      if (selection === 'Install Live Share') {
+        vscode.env.openExternal(vscode.Uri.parse('vscode:extension/ms-vsliveshare.vsliveshare'));
+      }
+    });
+  }
 }

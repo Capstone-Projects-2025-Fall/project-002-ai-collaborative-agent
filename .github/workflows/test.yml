@@ -5,6 +5,7 @@ on:
     branches: [ "main" , "master", "develop" ]
   pull_request:
     branches: [ "main" , "master", "develop" ]
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -17,9 +18,12 @@ jobs:
         with:
           node-version: 18
           cache: 'npm'
+          cache-dependency-path: 'vscode-extension/package-lock.json'
 
       - name: Install dependencies
+        working-directory: ./vscode-extension
         run: npm ci
 
-      - name: Run tests
-        run: npm test -- --coverage
+      - name: Run tests with coverage
+        working-directory: ./vscode-extension
+        run: npm run test:coverage

@@ -4,17 +4,24 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   test: {
     globals: true,
-    environment: "jsdom",
-    // ... other settings
-
-    // 👇 ADD THIS COVERAGE SECTION
+    environment: "node", // ← Changed from "jsdom" to "node"
+    
+    // Coverage configuration
     coverage: {
-      // Choose the provider
       provider: "v8",
-      // Specify the reporters, including 'html'
       reporter: ["text", "json", "html"],
-      // The directory where reports will be generated
       reportsDirectory: "./coverage",
+      
+      // Optional: Exclude files you don't want in coverage
+      exclude: [
+        "node_modules/",
+        "out/",
+        "**/*.d.ts",
+        "**/*.config.*",
+        "**/mockData",
+        "test/**",
+        "coverage/**"
+      ]
     },
   },
 });
