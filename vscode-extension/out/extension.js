@@ -193,6 +193,7 @@ async function saveInitialData(data) {
 class SidebarProvider {
     _extensionUri;
     _view;
+    _activeProjectId = null;
     constructor(_extensionUri) {
         this._extensionUri = _extensionUri;
     }
@@ -202,7 +203,6 @@ class SidebarProvider {
             enableScripts: true,
             localResourceRoots: [this._extensionUri],
         };
-        console.log("SidebarProvider: resolveWebviewView called");
         webviewView.webview.html = await this._getHtmlForWebview(webviewView.webview);
         // Handle messages from the webview
         webviewView.webview.onDidReceiveMessage(async (message) => {
@@ -215,6 +215,48 @@ class SidebarProvider {
                 case "loadData":
                     const data = await loadInitialData();
                     this.sendMessage({ type: "dataLoaded", payload: data });
+                    break;
+                case "getActiveProject":
+                    await this.sendActiveProject();
+                    break;
+                case "setActiveProject":
+                    await this.setActiveProject(message.payload.projectId);
+                    break;
+                case "clearActiveProject":
+                    this._activeProjectId = null;
+                    await extensionContext.globalState.update('activeProjectId', null);
+                    this.sendMessage({
+                        type: "activeProjectChanged",
+                        payload: { project: null }
+                    });
+                    break;
+                case "openProfile":
+                    await vscode.commands.executeCommand("aiCollab.openPanel");
+                    break;
+                case "joinProjectByCode":
+                    try {
+                        const { inviteCode } = message.payload;
+                        const profileId = await getCurrentUserProfileId(authService, databaseService);
+                        if (!profileId) {
+                            vscode.window.showErrorMessage("Please log in to join a project.");
+                            break;
+                        }
+                        const project = await databaseService.joinProjectByCode(inviteCode, profileId);
+                        if (project) {
+                            vscode.window.showInformationMessage(`Joined project "${project.name}"!`);
+                            await this.setActiveProject(project.id);
+                            // Reload data
+                            const data = await loadInitialData();
+                            this.sendMessage({ type: "dataLoaded", payload: data });
+                        }
+                        else {
+                            vscode.window.showErrorMessage("Invalid invite code.");
+                        }
+                    }
+                    catch (err) {
+                        console.error("Failed to join project:", err);
+                        vscode.window.showErrorMessage("Failed to join project");
+                    }
                     break;
                 case "openProfile":
                     await vscode.commands.executeCommand("aiCollab.openPanel");
@@ -270,9 +312,85 @@ class SidebarProvider {
                     await vscode.commands.executeCommand("aiCollab.openPanel");
                     vscode.window.showInformationMessage("Switching to project...");
                     break;
+                case "copyLiveShareLink":
+                    try {
+                        await vscode.env.clipboard.writeText(message.payload.link);
+                        vscode.window.showInformationMessage("LiveShare link copied to clipboard!");
+                    }
+                    catch (err) {
+                        vscode.window.showErrorMessage("Failed to copy link");
+                    }
+                    break;
+                case "showError":
+                    vscode.window.showErrorMessage(message.payload.message);
+                    break;
             }
         });
         this._monitorLiveShare();
+        await this.loadActiveProject();
+    }
+    async loadActiveProject() {
+        // Don't auto-load saved project on startup
+        // User must explicitly select/join a project
+        this._activeProjectId = null;
+        await extensionContext.globalState.update('activeProjectId', null);
+        this.sendMessage({
+            type: "activeProjectChanged",
+            payload: { project: null }
+        });
+    }
+    async setActiveProject(projectId) {
+        this._activeProjectId = projectId;
+        await extensionContext.globalState.update('activeProjectId', projectId);
+        // Load fresh data and send the active project
+        const data = await loadInitialData();
+        const project = data.projects.find((p) => String(p.id) === String(projectId));
+        if (project) {
+            // Send updated data first
+            this.sendMessage({ type: "dataLoaded", payload: data });
+            // Then send active project
+            this.sendMessage({
+                type: "activeProjectChanged",
+                payload: { project }
+            });
+            vscode.window.showInformationMessage(`Switched to project: ${project.name}`);
+        }
+        else {
+            vscode.window.showErrorMessage("Project not found");
+            this._activeProjectId = null;
+            await extensionContext.globalState.update('activeProjectId', null);
+        }
+    }
+    async sendActiveProject() {
+        if (!this._activeProjectId) {
+            this.sendMessage({
+                type: "activeProjectChanged",
+                payload: { project: null }
+            });
+            return;
+        }
+        try {
+            const data = await loadInitialData();
+            const project = data.projects.find((p) => String(p.id) === String(this._activeProjectId));
+            if (project) {
+                this.sendMessage({
+                    type: "activeProjectChanged",
+                    payload: { project }
+                });
+            }
+            else {
+                // Project not found, clear active project
+                this._activeProjectId = null;
+                await extensionContext.globalState.update('activeProjectId', null);
+                this.sendMessage({
+                    type: "activeProjectChanged",
+                    payload: { project: null }
+                });
+            }
+        }
+        catch (err) {
+            console.error("Error loading active project:", err);
+        }
     }
     async _monitorLiveShare() {
         try {
@@ -430,12 +548,15 @@ async function activate(context) {
     }
     // Register sidebar provider
     const sidebarProvider = new SidebarProvider(context.extensionUri);
+    // After registering the sidebar provider, add this:
     context.subscriptions.push(vscode.window.registerWebviewViewProvider("aiCollabView", sidebarProvider, {
         webviewOptions: {
             retainContextWhenHidden: true
         }
     }));
     console.log('Sidebar provider registered');
+    // Clear any saved active project on startup
+    await context.globalState.update('activeProjectId', null);
     // Store sidebar provider globally
     global.sidebarProvider = sidebarProvider;
     // Register URI handler for custom protocol

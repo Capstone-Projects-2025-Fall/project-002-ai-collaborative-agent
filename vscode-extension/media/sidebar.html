@@ -19,6 +19,10 @@
             font-size: 13px;
         }
 
+        .hidden {
+            display: none !important;
+        }
+
         /* Profile Section */
         .profile-section {
             display: flex;
@@ -48,7 +52,7 @@
             transform: scale(1.05);
         }
 
-        /* LiveShare Section */
+        /* Section Styles */
         .section {
             margin-bottom: 20px;
         }
@@ -62,19 +66,51 @@
             letter-spacing: 0.5px;
         }
 
-        .liveshare-container {
-            background: var(--vscode-input-background);
-            border: 1px solid var(--vscode-input-border);
-            border-radius: 6px;
-            padding: 10px;
+        /* Active Project Mode */
+        .active-project-container {
+            background: var(--vscode-editor-background);
+            border: 1px solid var(--vscode-panel-border);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 16px;
         }
 
-        .liveshare-status {
+        .project-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .project-name-large {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--vscode-foreground);
+        }
+
+        .switch-btn {
+            background: var(--vscode-button-secondaryBackground);
+            color: var(--vscode-button-secondaryForeground);
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .switch-btn:hover {
+            background: var(--vscode-button-secondaryHoverBackground);
+        }
+
+        .liveshare-status-box {
             display: flex;
             align-items: center;
             gap: 8px;
-            margin-bottom: 10px;
-            font-size: 12px;
+            padding: 8px;
+            background: var(--vscode-input-background);
+            border-radius: 6px;
+            margin-bottom: 8px;
         }
 
         .status-indicator {
@@ -92,6 +128,69 @@
         @keyframes pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.5; }
+        }
+
+        .status-text {
+            font-size: 12px;
+            flex: 1;
+        }
+
+        .copy-link-btn {
+            background: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+            border: none;
+            border-radius: 4px;
+            padding: 6px 12px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 8px;
+            transition: background 0.2s ease;
+        }
+
+        .copy-link-btn:hover {
+            background: var(--vscode-button-hoverBackground);
+        }
+
+        .copy-link-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .team-members-list {
+            margin-top: 12px;
+        }
+
+        .team-member-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 8px;
+            background: var(--vscode-input-background);
+            border-radius: 4px;
+            margin-bottom: 4px;
+            font-size: 12px;
+        }
+
+        .member-status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--vscode-descriptionForeground);
+        }
+
+        .member-status-dot.online {
+            background: var(--vscode-testing-iconPassed);
+        }
+
+        /* No Project Mode */
+        .no-project-container {
+            background: var(--vscode-input-background);
+            border: 1px solid var(--vscode-input-border);
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 16px;
         }
 
         .input-group {
@@ -149,15 +248,26 @@
             background: var(--vscode-button-secondaryHoverBackground);
         }
 
-        /* Project Section */
-        .project-selector {
+        .full-width-btn {
+            width: 100%;
+            margin-bottom: 8px;
+        }
+
+        .divider {
+            height: 1px;
+            background: var(--vscode-panel-border);
+            margin: 12px 0;
+        }
+
+        /* Project List */
+        .project-list-container {
             background: var(--vscode-input-background);
             border: 1px solid var(--vscode-input-border);
             border-radius: 6px;
             overflow: hidden;
         }
 
-        .project-header {
+        .project-list-header {
             padding: 10px;
             cursor: pointer;
             display: flex;
@@ -167,13 +277,8 @@
             border-bottom: 1px solid var(--vscode-panel-border);
         }
 
-        .project-header:hover {
+        .project-list-header:hover {
             background: var(--vscode-list-hoverBackground);
-        }
-
-        .project-name {
-            font-weight: 600;
-            font-size: 12px;
         }
 
         .chevron {
@@ -239,112 +344,97 @@
             font-size: 10px;
         }
 
-        .project-detail-panel {
-            padding: 12px;
-            background: var(--vscode-editor-background);
-            border-top: 1px solid var(--vscode-panel-border);
-        }
-
-        .detail-section {
-            margin-bottom: 12px;
-        }
-
-        .detail-label {
-            font-size: 11px;
-            font-weight: 600;
-            color: var(--vscode-descriptionForeground);
-            margin-bottom: 4px;
-        }
-
-        .detail-content {
-            font-size: 12px;
-            line-height: 1.4;
-        }
-
-        .switch-project-btn {
-            width: 100%;
-            margin-top: 8px;
-        }
-
-        .empty-state {
-            padding: 20px;
-            text-align: center;
-            color: var(--vscode-descriptionForeground);
-            font-size: 12px;
-        }
-
         .no-projects {
             padding: 12px;
             text-align: center;
             color: var(--vscode-descriptionForeground);
             font-size: 11px;
         }
+
+        .join-code-section {
+            margin-top: 12px;
+        }
     </style>
 </head>
 <body>
-    <!-- Profile Section -->
+    <!-- Profile Section (Always visible) -->
     <div class="profile-section">
-        <div class="profile-avatar" id="profileAvatar" title="View Profile">
-            ?
+        <div class="profile-avatar" id="profileAvatar" title="View Profile">?</div>
+    </div>
+
+    <!-- MODE 1: Active Project View -->
+    <div id="activeProjectMode" class="hidden">
+        <div class="section">
+            <div class="section-title">📋 Current Project</div>
+            <div class="active-project-container">
+                <div class="project-header">
+                    <div class="project-name-large" id="currentProjectName">-</div>
+                    <button class="switch-btn" id="switchProjectBtn">Switch</button>
+                </div>
+
+                <div class="liveshare-status-box">
+                    <span class="status-indicator" id="projectStatusIndicator"></span>
+                    <span class="status-text" id="projectStatusText">Not connected</span>
+                </div>
+
+                <button class="copy-link-btn" id="copyLinkBtn" disabled>
+                    Copy LiveShare Link
+                </button>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">👥 Team Members</div>
+            <div class="team-members-list" id="teamMembersList">
+                <div class="no-projects">No team members</div>
+            </div>
         </div>
     </div>
 
-    <!-- LiveShare Section -->
-    <div class="section">
-        <div class="section-title">🔗 Live Collaboration</div>
-        <div class="liveshare-container">
-            <div class="liveshare-status">
-                <span class="status-indicator" id="statusIndicator"></span>
-                <span id="statusText">Not connected</span>
+    <!-- MODE 2: No Active Project View -->
+    <div id="noProjectMode">
+        <div class="section">
+            <div class="section-title">🔗 Join Collaboration</div>
+            <div class="no-project-container">
+                <div class="input-group">
+                    <input 
+                        type="text" 
+                        id="liveshareInput" 
+                        placeholder="Paste LiveShare link..."
+                    />
+                    <button id="joinBtn">Join</button>
+                </div>
+                <button id="startSessionBtn" class="secondary full-width-btn">
+                    Start New Session
+                </button>
             </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">📋 My Projects</div>
+            <div class="project-list-container">
+                <div class="project-list-header" id="projectListHeader">
+                    <span>Select a project</span>
+                    <span class="chevron" id="chevron">▼</span>
+                </div>
+                <div class="project-list" id="projectList">
+                    <div class="no-projects">Loading projects...</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section join-code-section">
+            <div class="section-title">🔑 Join via Code</div>
             <div class="input-group">
                 <input 
                     type="text" 
-                    id="liveshareInput" 
-                    placeholder="Paste LiveShare link..."
+                    id="joinCodeInput" 
+                    placeholder="Enter 6-character code" 
+                    maxlength="6"
+                    style="text-transform: uppercase;"
                 />
-                
+                <button id="joinCodeBtn">Join</button>
             </div>
-            <button id="joinBtn" style="width: 100%;" >Join</button>
-            <button id="startSessionBtn" class="secondary" style="width: 100%;">
-                Start New Session
-            </button>
-        </div>
-    </div>
-
-    <!-- Projects Section -->
-    <div class="section">
-        <div class="section-title">📋 Projects</div>
-        <div class="project-selector">
-            <div class="project-header" id="projectHeader">
-                <span class="project-name" id="currentProjectName">Select a project</span>
-                <span class="chevron" id="chevron">▼</span>
-            </div>
-            <div class="project-list" id="projectList">
-                <div class="no-projects">Loading projects...</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Project Detail Panel (hidden by default) -->
-    <div id="projectDetailPanel" style="display: none;">
-        <div class="section-title" style="margin-top: 16px;">Project Details</div>
-        <div class="project-detail-panel">
-            <div class="detail-section">
-                <div class="detail-label">Description</div>
-                <div class="detail-content" id="detailDescription">-</div>
-            </div>
-            <div class="detail-section">
-                <div class="detail-label">Goals</div>
-                <div class="detail-content" id="detailGoals">-</div>
-            </div>
-            <div class="detail-section">
-                <div class="detail-label">Team Members</div>
-                <div class="project-members" id="detailMembers"></div>
-            </div>
-            <button class="switch-project-btn" id="switchProjectBtn">
-                Switch to This Project
-            </button>
         </div>
     </div>
 
@@ -352,23 +442,29 @@
         const vscode = acquireVsCodeApi();
 
         // State
+        // State
         let projects = [];
         let users = [];
         let currentUser = null;
-        let selectedProjectId = null;
+        let activeProject = null;  // Always start with no active project
         let isListExpanded = false;
         let liveshareStatus = 'disconnected';
+        let liveshareLink = null;
 
         // Initialize
         vscode.postMessage({ type: 'sidebarReady' });
         vscode.postMessage({ type: 'loadData' });
+        // Remove this line: vscode.postMessage({ type: 'getActiveProject' });
+
+        // Ensure we start in no-project mode
+        switchToNoProjectMode();
 
         // Profile Avatar Click
         document.getElementById('profileAvatar').addEventListener('click', () => {
             vscode.postMessage({ type: 'openProfile' });
         });
 
-        // LiveShare Input - Auto-join on paste
+        // LiveShare Join Button (No Project Mode)
         document.getElementById('liveshareInput').addEventListener('paste', (e) => {
             setTimeout(() => {
                 const link = e.target.value.trim();
@@ -378,17 +474,11 @@
             }, 100);
         });
 
-        // LiveShare Join Button
         document.getElementById('joinBtn').addEventListener('click', () => {
             const link = document.getElementById('liveshareInput').value.trim();
             if (link) {
                 joinLiveShare(link);
             }
-        });
-
-        // Start LiveShare Session
-        document.getElementById('startSessionBtn').addEventListener('click', () => {
-            vscode.postMessage({ type: 'startLiveShare' });
         });
 
         function joinLiveShare(link) {
@@ -399,8 +489,29 @@
             document.getElementById('liveshareInput').value = '';
         }
 
+        // Start LiveShare Session
+        document.getElementById('startSessionBtn').addEventListener('click', () => {
+            vscode.postMessage({ type: 'startLiveShare' });
+        });
+
+        // Copy LiveShare Link (Active Project Mode)
+        document.getElementById('copyLinkBtn').addEventListener('click', () => {
+            if (liveshareLink) {
+                vscode.postMessage({ 
+                    type: 'copyLiveShareLink', 
+                    payload: { link: liveshareLink } 
+                });
+            }
+        });
+
+        // Switch Project Button
+        document.getElementById('switchProjectBtn').addEventListener('click', () => {
+            vscode.postMessage({ type: 'clearActiveProject' });
+            switchToNoProjectMode();
+        });
+
         // Project List Toggle
-        document.getElementById('projectHeader').addEventListener('click', () => {
+        document.getElementById('projectListHeader').addEventListener('click', () => {
             isListExpanded = !isListExpanded;
             const list = document.getElementById('projectList');
             const chevron = document.getElementById('chevron');
@@ -414,12 +525,19 @@
             }
         });
 
-        // Switch Project Button
-        document.getElementById('switchProjectBtn').addEventListener('click', () => {
-            if (selectedProjectId) {
+        // Join via Code
+        document.getElementById('joinCodeBtn').addEventListener('click', () => {
+            const code = document.getElementById('joinCodeInput').value.trim().toUpperCase();
+            if (code && code.length === 6) {
                 vscode.postMessage({ 
-                    type: 'switchProject', 
-                    payload: { projectId: selectedProjectId } 
+                    type: 'joinProjectByCode', 
+                    payload: { inviteCode: code } 
+                });
+                document.getElementById('joinCodeInput').value = '';
+            } else {
+                vscode.postMessage({ 
+                    type: 'showError', 
+                    payload: { message: 'Please enter a valid 6-character code' } 
                 });
             }
         });
@@ -432,11 +550,11 @@
                 case 'dataLoaded':
                     loadData(message.payload);
                     break;
+                case 'activeProjectChanged':
+                    setActiveProject(message.payload.project);
+                    break;
                 case 'liveshareStatus':
                     updateLiveShareStatus(message.payload);
-                    break;
-                case 'projectSwitched':
-                    // Optionally update UI to show switched project
                     break;
             }
         });
@@ -455,6 +573,16 @@
                 projects = data.projects;
                 renderProjectList();
             }
+
+            // Check if there's an active project
+            // if (data.activeProject) {
+            //     setActiveProject(data.activeProject);
+            // }
+
+            // Always start in no-project mode until user explicitly selects one
+            if (!activeProject) {
+                switchToNoProjectMode();
+            }
         }
 
         function updateProfileAvatar() {
@@ -469,17 +597,69 @@
             }
         }
 
+        function setActiveProject(project) {
+            if (!project) {
+                switchToNoProjectMode();
+                return;
+            }
+
+            activeProject = project;
+            switchToActiveProjectMode();
+
+            // Update project name
+            document.getElementById('currentProjectName').textContent = project.name || 'Unknown Project';
+
+            // Update team members
+            const teamMembers = users.filter(user => 
+                project.selectedMemberIds && project.selectedMemberIds.includes(user.id)
+            );
+            renderTeamMembers(teamMembers);
+        }
+
+        function switchToActiveProjectMode() {
+            document.getElementById('activeProjectMode').classList.remove('hidden');
+            document.getElementById('noProjectMode').classList.add('hidden');
+        }
+
+        function switchToNoProjectMode() {
+            document.getElementById('activeProjectMode').classList.add('hidden');
+            document.getElementById('noProjectMode').classList.remove('hidden');
+            activeProject = null;
+        }
+
+        function renderTeamMembers(members) {
+            const container = document.getElementById('teamMembersList');
+            
+            if (members.length === 0) {
+                container.innerHTML = '<div class="no-projects">No team members</div>';
+                return;
+            }
+
+            container.innerHTML = members.map(member => `
+                <div class="team-member-item">
+                    <span class="member-status-dot"></span>
+                    <span>${member.name}</span>
+                </div>
+            `).join('');
+        }
+
         function updateLiveShareStatus(status) {
             liveshareStatus = status.state;
-            const indicator = document.getElementById('statusIndicator');
-            const text = document.getElementById('statusText');
+            liveshareLink = status.link || null;
+
+            // Update Active Project Mode status
+            const indicator = document.getElementById('projectStatusIndicator');
+            const text = document.getElementById('projectStatusText');
+            const copyBtn = document.getElementById('copyLinkBtn');
             
             if (status.state === 'active') {
                 indicator.classList.add('active');
                 text.textContent = 'Connected';
+                copyBtn.disabled = false;
             } else {
                 indicator.classList.remove('active');
                 text.textContent = 'Not connected';
+                copyBtn.disabled = true;
             }
         }
 
@@ -511,30 +691,15 @@
             document.querySelectorAll('.project-item').forEach(item => {
                 item.addEventListener('click', () => {
                     const projectId = item.dataset.projectId;
-                    showProjectDetails(projectId);
+                    const project = projects.find(p => String(p.id) === String(projectId));
+                    if (project) {
+                        vscode.postMessage({ 
+                            type: 'setActiveProject', 
+                            payload: { projectId } 
+                        });
+                    }
                 });
             });
-        }
-
-        function showProjectDetails(projectId) {
-            const project = projects.find(p => String(p.id) === String(projectId));
-            if (!project) return;
-
-            selectedProjectId = projectId;
-
-            const teamMembers = users.filter(user => 
-                project.selectedMemberIds && project.selectedMemberIds.includes(user.id)
-            );
-
-            document.getElementById('detailDescription').textContent = project.description || 'No description';
-            document.getElementById('detailGoals').textContent = project.goals || 'No goals specified';
-            
-            const membersHtml = teamMembers.length > 0 
-                ? teamMembers.map(m => `<span class="member-badge">${m.name}</span>`).join('')
-                : '<span style="font-size: 11px; color: var(--vscode-descriptionForeground);">No members</span>';
-            
-            document.getElementById('detailMembers').innerHTML = membersHtml;
-            document.getElementById('projectDetailPanel').style.display = 'block';
         }
 
         function truncate(str, maxLen) {
