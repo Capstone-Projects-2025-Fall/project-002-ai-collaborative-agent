@@ -1752,21 +1752,28 @@ async function getHtml(
 
 	const htmlPath = path.join(context.extensionPath, "media", "webview.html");
 
+  const logoUri = webview.asWebviewUri(
+    vscode.Uri.joinPath(context.extensionUri, "media", "logo.png")
+  );
+
 	let htmlContent = await fs.readFile(htmlPath, "utf-8");
 
 	htmlContent = htmlContent
-		.replace(
-			/<head>/,
-			`<head>
-        <meta http-equiv="Content-Security-Policy" content="
-            default-src 'none';
-            style-src ${webview.cspSource} 'unsafe-inline';
-            img-src ${webview.cspSource} https:;
-            script-src 'nonce-${nonce}';
-        ">`
-		)
-		.replace(/<script>/, `<script nonce="${nonce}">`);
 
+      .replace(/\{\{logoUri\}\}/g, logoUri.toString())
+      // Inject CSP
+      .replace(
+          /<head>/,
+          `<head>
+      <meta http-equiv="Content-Security-Policy" content="
+          default-src 'none';
+          style-src ${webview.cspSource} 'unsafe-inline';
+          img-src ${webview.cspSource} https:;
+          script-src 'nonce-${nonce}';
+      ">`
+      )
+      .replace(/<script>/, `<script nonce="${nonce}">`);
+      
 	return htmlContent;
 }
 

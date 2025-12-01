@@ -740,6 +740,10 @@
             transform: translateX(-50%);
             margin: 0;
             text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
         }
 
         .signout-btn {
@@ -882,7 +886,28 @@
         .edit-profile-link:hover {
             background: #f8fafc;
             color: #764ba2;
-        }   
+        }
+        
+        .app-logo {
+            height: 120px;
+            width: auto;
+            margin-right: 0;
+            padding: 0;
+            vertical-align: middle;
+        }
+
+        .projects-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+            gap: 24px;
+            align-items: flex-start;
+        }
+
+        @media (max-width: 1000px) {
+            .projects-layout {
+                grid-template-columns:
+            }
+        }
     </style>
 </head>
 
@@ -924,7 +949,7 @@
                 </div>
                 
 
-                <h1>🚀 AI Collab Agent</h1>
+                <h1><img src="{{logoUri}}" alt="AI Collab Agent logo" class="app-logo">Pallas AI</h1>
                 <div style="width: 140px;"></div> <!-- Spacer -->
             </div>
             <p>Team Collaboration & AI-Powered Project Management</p>
@@ -933,7 +958,6 @@
 
         <div class="tabs">
             <button class="tab-button" data-tab="projects">📋 Projects</button>
-            <button class="tab-button" data-tab="join">🔗 Join Project</button>
             <button class="tab-button" data-tab="prompts">🤖 Workspace</button>
         </div>
 
@@ -1090,118 +1114,77 @@
         </div>
 
         <div id="projects" class="tab-content active">
-            <div class="section-title">Create Project</div>
+            <div class="projects-layout">
+                <!-- Left Column -->
+                <div>
+                    <div class="section-title">Create Project</div>
 
-            <form class="form-grid">
-                <div class="form-group">
-                    <label for="projectName">Project Name *</label>
-                    <input type="text" id="projectName" required placeholder="Enter project name">
-                </div>
+                    <form class="form-grid">
+                    
+                        <div class="form-group">
+                            <label for="projectName">Project Name *</label>
+                            <input type="text" id="projectName" required placeholder="Enter project name">
+                        </div>
 
-                <div class="form-group">
-                    <label for="projectDescription">Description *</label>
-                    <textarea id="projectDescription" required placeholder="Describe the project..."></textarea>
-                </div>
+                        <div class="form-group">
+                            <label for="projectDescription">Description *</label>
+                            <textarea id="projectDescription" required placeholder="Describe the project..."></textarea>
+                        </div>
+                    
+                        <div class="form-group">
+                            <label for="projectGoals">Goals</label>
+                            <textarea id="projectGoals" placeholder="List main objectives..."></textarea>
+                        </div>
 
-                <div class="form-group">
-                    <label for="projectGoals">Goals</label>
-                    <textarea id="projectGoals" placeholder="List main objectives..."></textarea>
-                </div>
+                        <div class="form-group">
+                            <label for="projectRequirements">Requirements</label>
+                            <textarea id="projectRequirements"
+                            placeholder="Technical requirements and constraints..."></textarea>
+                        </div>
 
-                <div class="form-group">
-                    <label for="projectRequirements">Requirements</label>
-                    <textarea id="projectRequirements"
-                        placeholder="Technical requirements and constraints..."></textarea>
-                </div>
+                        <div class="form-group">
+                            <label>Select Team Members *</label>
+                            <div id="userSelection" class="multi-select">
+                                <p style="text-align: center; color: #64748b; padding: 10px;">Add team members first</p>
+                            </div>
+                        </div>
+                    </form>
 
-                <div class="form-group">
-                    <label>Select Team Members *</label>
-                    <div id="userSelection" class="multi-select">
-                        <p style="text-align: center; color: #64748b; padding: 10px;">Add team members first</p>
+                    <div class="button-group">
+                        <button id="create-project-btn" class="btn btn-primary">Create Project</button>
+                        <button id="clear-project-form-btn" class="btn btn-secondary">Clear Form</button>
                     </div>
+
+                    <div id="projectStatus" class="status-message" style="display: none;"></div>
+
                 </div>
-            </form>
 
-            <div class="button-group">
-                <button id="create-project-btn" class="btn btn-primary">Create Project</button>
-                <button id="clear-project-form-btn" class="btn btn-secondary">Clear Form</button>
-            </div>
+                <!-- Right Column -->
+                <div>
+                    <div class="section-title">Join Project</div>
 
-            <div id="projectStatus" class="status-message" style="display: none;"></div>
-
-            <div class="section-title">Jira Task Generator</div>
-            <p style="color: #475569; margin-bottom: 12px;">Connect to Jira Cloud to auto-generate a backlog for the selected project.</p>
-            <div class="button-group" style="justify-content: flex-start; margin-bottom: 0;">
-                <button type="button" id="toggle-jira-credentials-btn" class="btn btn-primary" aria-expanded="false">Generate Jira Tasks</button>
-            </div>
-            <div id="jiraCredentialsCard" class="profile-card hidden">
-                <div class="profile-card-title">Jira Credentials</div>
-                <div class="form-grid">
                     <div class="form-group">
-                        <label for="jiraBaseUrl">
-                            Jira Cloud base URL (e.g. https://your-team.atlassian.net)
-                            <span class="info-icon" tabindex="0" role="button" aria-label="How to find your Jira Cloud base URL" data-tooltip="1. Sign in to Jira Cloud in your browser.&#10;2. Copy the site URL up to atlassian.net (e.g., https://team.atlassian.net).&#10;3. Remove everything after the domain before pasting here.">?</span>
-                        </label>
-                        <input type="text" id="jiraBaseUrl" placeholder="https://your-team.atlassian.net">
+                        <label for="inviteCode">Invite Code</label>
+                        <input type="text" id="inviteCode" placeholder="Enter 6-character invite code" maxlength="6"
+                            style="text-transform: uppercase;">
                     </div>
-                    <div class="form-group">
-                        <label for="jiraProjectKey">
-                            Jira Project Key (e.g. STAR, TUFF, ENG)
-                            <span class="info-icon" tabindex="0" role="button" aria-label="How to find your Jira Project Key" data-tooltip="1. In Jira, open Project settings &gt; Details.&#10;2. Find the Project key (2-10 uppercase letters shown under the project name).&#10;3. Paste that exact key here—do not use the project name.">?</span>
-                        </label>
-                        <input type="text" id="jiraProjectKey" placeholder="TEAM">
+
+                    <div class="button-group">
+                        <button id="join-project-btn" class="btn btn-primary">Join Project</button>
                     </div>
-                    <div class="form-group">
-                        <label for="jiraEmail">
-                            Jira account email (the one tied to the API token)
-                            <span class="info-icon" tabindex="0" role="button" aria-label="Which email to use for Jira" data-tooltip="1. Use the Atlassian account email tied to your API token.&#10;2. Confirm it from https://id.atlassian.com/manage-profile.&#10;3. This email must have access to the Jira site you entered.">?</span>
-                        </label>
-                        <input type="email" id="jiraEmail" placeholder="you@company.com">
+
+                    <div id="joinStatus" class="status-message" style="display: none;"></div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin: 25px 0 15px;">
+                        <div class="section-title" style="margin-bottom: 0;">Projects</div>
+                        <button id="refresh-projects-btn" class="btn btn-secondary" style="padding: 8px 16px; font-size: 0.85rem;" title="Refresh projects from database">🔄 Refresh</button>
                     </div>
-                    <div class="form-group">
-                        <label for="jiraApiToken">
-                            Jira API Token
-                            <span class="info-icon" tabindex="0" role="button" aria-label="How to generate a Jira API token" data-tooltip="1. Go to https://id.atlassian.com/manage-profile/security/api-tokens (while logged in).&#10;2. Click Create API token, give it a label, then Create.&#10;3. Copy the token once and paste it here—store it securely because it cannot be shown again.">?</span>
-                        </label>
-                        <input type="password" id="jiraApiToken" placeholder="••••••••">
-                    </div>
-                    <div class="form-group" style="grid-column: 1 / -1;">
-                        <label for="jiraProjectPrompt">
-                            Project prompt (Describe your project to generate a Jira backlog)
-                            <span class="info-icon" tabindex="0" role="button" aria-label="What to include in the Jira project prompt" data-tooltip="Describe what Jira should build for you.&#10;Include the product vision, target users, tech stack, constraints, and any priority backlog items or milestones.">?</span>
-                        </label>
-                        <textarea id="jiraProjectPrompt" placeholder="e.g., Build a fitness app that tracks workouts and suggests plans…" rows="4"></textarea>
+
+                    <div id="projectList" class="project-list">
+                        <p style="text-align: center; color: #64748b; padding: 15px;">No projects yet</p>
                     </div>
                 </div>
-                <div class="button-group" style="justify-content: flex-end;">
-                    <button type="button" id="jira-profile-create-btn" class="btn btn-primary">Create Jira Tasks</button>
-                </div>
-                <div id="jiraStatus" class="status-message" style="display: none;"></div>
             </div>
-            
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <div class="section-title" style="margin-bottom: 0;">Projects</div>
-                <button id="refresh-projects-btn" class="btn btn-secondary" style="padding: 8px 16px; font-size: 0.85rem;" title="Refresh projects from database">🔄 Refresh</button>
-            </div>
-            <div id="projectList" class="project-list">
-                <p style="text-align: center; color: #64748b; padding: 15px;">No projects yet</p>
-            </div>
-        </div>
-
-        <div id="join" class="tab-content">
-            <div class="section-title">Join Project</div>
-
-            <div class="form-group">
-                <label for="inviteCode">Invite Code</label>
-                <input type="text" id="inviteCode" placeholder="Enter 6-character invite code" maxlength="6"
-                    style="text-transform: uppercase;">
-            </div>
-
-            <div class="button-group">
-                <button id="join-project-btn" class="btn btn-primary">Join Project</button>
-            </div>
-
-            <div id="joinStatus" class="status-message" style="display: none;"></div>
         </div>
 
         <!-- Edit Project Modal -->
@@ -1254,7 +1237,7 @@
             <div class="section-title">AI Prompt Generator</div>
 
             <div class="form-group">
-                <label for="promptProject">Select Project</label>
+                <label for="promptProject">Current Project</label>
                 <select id="promptProject">
                     <option value="">Choose a project...</option>
                 </select>
@@ -1401,11 +1384,22 @@
                 this.loadLanguagesFromString(this.currentUser.programmingLanguages || '');
                 
                 document.getElementById('userWilling').value = this.currentUser.willingToWorkOn;
-                document.getElementById('jiraBaseUrl').value = this.currentUser.jiraBaseUrl || '';
-                document.getElementById('jiraProjectKey').value = this.currentUser.jiraProjectKey || '';
-                document.getElementById('jiraEmail').value = this.currentUser.jiraEmail || '';
-                document.getElementById('jiraApiToken').value = this.currentUser.jiraApiToken || '';
-                document.getElementById('jiraProjectPrompt').value = this.currentUser.jiraProjectPrompt || '';
+
+                const jiraBaseUrlInput = document.getElementById('jiraBaseUrl');
+                if (jiraBaseUrlInput) jiraBaseUrlInput.value = this.currentUser.jiraBaseUrl || '';
+
+                const jiraProjectKeyInput = document.getElementById('jiraProjectKey');
+                if (jiraProjectKeyInput) jiraProjectKeyInput.value = this.currentUser.jiraProjectKey || '';
+
+                const jiraEmailInput = document.getElementById('jiraEmail');
+                if (jiraEmailInput) jiraEmailInput.value = this.currentUser.jiraEmail || '';
+
+                const jiraApiTokenInput = document.getElementById('jiraApiToken');
+                if (jiraApiTokenInput) jiraApiTokenInput.value = this.currentUser.jiraApiToken || '';
+
+                const jiraProjectPromptInput = document.getElementById('jiraProjectPrompt');
+                if (jiraProjectPromptInput) jiraProjectPromptInput.value = this.currentUser.jiraProjectPrompt || '';
+
                 updateProfileDropdown();
             }
 
@@ -2129,9 +2123,12 @@
 
         function showStatus(elementId, message, type = 'success') {
             const statusElement = document.getElementById(elementId);
-            statusElement.textContent = message;
-            statusElement.className = 'status-message status-' + type;
-            statusElement.style.display = 'block';
+
+            if (statusElement) {
+                statusElement.textContent = message;
+                statusElement.className = 'status-message status-' + type;
+                statusElement.style.display = 'block';
+            }
 
             setTimeout(() => {
                 statusElement.style.display = 'none';
@@ -2381,19 +2378,6 @@
                 vscode.postMessage({ type: 'loadData' });
             });
 
-            document.getElementById('jira-profile-create-btn')?.addEventListener('click', () => app.createJiraTasksFromProfile());
-            const jiraToggleBtn = document.getElementById('toggle-jira-credentials-btn');
-            const jiraCredentialsCard = document.getElementById('jiraCredentialsCard');
-            jiraToggleBtn?.addEventListener('click', () => {
-                if (!jiraCredentialsCard) return;
-                const isHidden = jiraCredentialsCard.classList.toggle('hidden');
-                jiraToggleBtn.textContent = isHidden ? 'Generate Jira Tasks' : 'Hide Jira Credentials';
-                jiraToggleBtn.setAttribute('aria-expanded', String(!isHidden));
-                if (!isHidden) {
-                    document.getElementById('jiraBaseUrl')?.focus();
-                }
-            });
-
             document.getElementById('profileBtn')?.addEventListener('click', (e) => {
                 e.stopPropagation();
                 toggleProfileDropdown();
@@ -2512,7 +2496,7 @@
             app.updateUI();
             showTab('projects', document.querySelector('.tab-button[data-tab="projects"]'));
 
-            console.log('🚀 AI Collab Agent - Team Platform initialized!');
+            console.log('Pallas AI - Team Platform initialized!');
         });
     </script>
 </body>
