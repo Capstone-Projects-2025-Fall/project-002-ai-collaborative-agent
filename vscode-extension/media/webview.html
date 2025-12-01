@@ -486,7 +486,7 @@
             width: 100%;
             height: 100%;
             overflow: auto;
-            background-color: rgba(0,0,0,0.5);
+            background-color: rgba(0, 0, 0, 0.5);
             backdrop-filter: blur(5px);
         }
 
@@ -676,8 +676,8 @@
             color: #667eea;
         }
 
-        .radio-option input[type="checkbox"]:checked + label,
-        .radio-option input[type="radio"]:checked + label {
+        .radio-option input[type="checkbox"]:checked+label,
+        .radio-option input[type="radio"]:checked+label {
             color: #667eea;
             font-weight: 600;
         }
@@ -841,7 +841,7 @@
             border-radius: 12px;
             padding: 20px;
             margin-bottom: 20px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
 
         .analysis-section h3 {
@@ -942,7 +942,7 @@
             margin-bottom: 8px;
             border-radius: 8px;
             border-left: 4px solid #667eea;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
 
         .task-list li::before {
@@ -952,7 +952,9 @@
             margin-right: 10px;
         }
 
-        .challenge-item, .risk-item, .recommendation-item {
+        .challenge-item,
+        .risk-item,
+        .recommendation-item {
             background: #fef3c7;
             padding: 12px;
             margin-bottom: 10px;
@@ -1147,6 +1149,182 @@
             background: rgba(255, 255, 255, 0.3);
             transform: translateY(-1px);
         }
+
+        .profile-dropdown-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        .profile-button {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            font-size: 0.9rem;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 600;
+        }
+
+        .profile-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .profile-button .profile-icon {
+            font-size: 1.2rem;
+        }
+
+        .profile-dropdown {
+            display: none;
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 0;
+            min-width: 320px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            animation: dropdownSlide 0.2s ease-out;
+        }
+
+        .profile-dropdown.show {
+            display: block;
+        }
+
+        @keyframes dropdownSlide {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .profile-dropdown-header {
+            padding: 20px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .profile-dropdown-header h3 {
+            margin: 0 0 8px 0;
+            color: #1e293b;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .profile-dropdown-content {
+            padding: 15px 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .profile-dropdown-item {
+            margin-bottom: 12px;
+        }
+
+        .profile-dropdown-item label {
+            display: block;
+            font-weight: 600;
+            color: #475569;
+            font-size: 0.85rem;
+            margin-bottom: 4px;
+        }
+
+        .profile-dropdown-item p {
+            color: #64748b;
+            margin: 0;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .profile-dropdown-footer {
+            padding: 15px 20px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .profile-dropdown-footer .btn {
+            width: 100%;
+            justify-content: center;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .edit-profile-link {
+            display: block;
+            text-align: center;
+            padding: 10px;
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .edit-profile-link:hover {
+            background: #f8fafc;
+            color: #764ba2;
+        }
+
+        .app-logo {
+            height: 120px;
+            width: auto;
+            margin-right: 0;
+            padding: 0;
+            vertical-align: middle;
+        }
+
+        .projects-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+            gap: 24px;
+            align-items: flex-start;
+        }
+
+        @media (max-width: 1000px) {
+            .projects-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        #projects .project-list {
+            max-height: 55vh;
+            overflow-y: auto;
+            margin-bottom: 0;
+
+            /* Firefox */
+            scrollbar-width: thin;
+            scrollbar-color: rgba(148, 163, 184, 0.4) transparent;
+        }
+
+        /* Chrome / Edge / VS Code webview (WebKit-based) */
+        #projects .project-list::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        #projects .project-list::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        #projects .project-list::-webkit-scrollbar-thumb {
+            background: rgba(148, 163, 184, 0.35);
+            border-radius: 999px;
+        }
+
+        #projects .project-list::-webkit-scrollbar-thumb:hover {
+            background: rgba(148, 163, 184, 0.6);
+        }
     </style>
 </head>
 
@@ -1154,8 +1332,42 @@
     <div class="container">
         <div class="header">
             <div class="header-top">
-                <h1>🚀 AI Collab Agent</h1>
-                <button id="signOutBtn" class="btn btn-secondary signout-btn">Sign Out</button>
+                <div class="profile-dropdown-container">
+                    <button id="profileBtn" class="profile-button">
+                        <span class="profile-icon">👤</span>
+                        <span id="profileBtnName">Profile</span>
+                    </button>
+                    <div id="profileDropdown" class="profile-dropdown">
+                        <div class="profile-dropdown-header">
+                            <h3><span>👤</span> <span id="dropdownUserName">User</span></h3>
+                        </div>
+                        <div class="profile-dropdown-content">
+                            <div class="profile-dropdown-item">
+                                <label>Skills</label>
+                                <p id="dropdownSkills">Not specified</p>
+                            </div>
+                            <div class="profile-dropdown-item">
+                                <label>Programming Languages</label>
+                                <p id="dropdownLanguages">Not specified</p>
+                            </div>
+                            <div class="profile-dropdown-item">
+                                <label>Willing to Work On</label>
+                                <p id="dropdownWilling">Not specified</p>
+                            </div>
+                        </div>
+                        <a class="edit-profile-link" id="editProfileLink">✏️ Edit Profile</a>
+                        <div class="profile-dropdown-footer">
+                            <button id="signOutBtn" class="btn btn-secondary">
+                                <span>🚪</span>
+                                <span>Sign Out</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+
+                <h1><img src="{{logoUri}}" alt="AI Collab Agent logo" class="app-logo">Pallas AI</h1>
+                <div style="width: 140px;"></div> <!-- Spacer -->
             </div>
             <p>Team Collaboration & AI-Powered Project Management</p>
 
@@ -1322,7 +1534,7 @@
                         placeholder="Describe your interests and preferred project types..."></textarea>
                 </div>
             </form>
-           <div class="button-group">
+            <div class="button-group">
                 <button id="update-profile-btn" class="btn btn-primary">Update Profile</button>
                 <button id="clear-profile-form-btn" class="btn btn-secondary">Reset Form</button>
             </div>
@@ -1454,35 +1666,38 @@
 
         <!-- Edit Project Modal -->
         <div id="editProjectModal" class="modal" style="display: none;">
-            <div class="modal-content" style="max-width: 600px; margin: 50px auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+            <div class="modal-content"
+                style="max-width: 600px; margin: 50px auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                     <h2 style="margin: 0;">Edit Project</h2>
-                    <button id="closeEditModal" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #64748b;">&times;</button>
+                    <button id="closeEditModal"
+                        style="background: none; border: none; font-size: 24px; cursor: pointer; color: #64748b;">&times;</button>
                 </div>
-                
+
                 <form id="editProjectForm">
                     <input type="hidden" id="editProjectId">
-                    
+
                     <div class="form-group">
                         <label for="editProjectName">Project Name *</label>
                         <input type="text" id="editProjectName" required placeholder="Enter project name">
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="editProjectDescription">Description *</label>
                         <textarea id="editProjectDescription" required placeholder="Describe the project..."></textarea>
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="editProjectGoals">Goals</label>
                         <textarea id="editProjectGoals" placeholder="List main objectives..."></textarea>
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="editProjectRequirements">Requirements</label>
-                        <textarea id="editProjectRequirements" placeholder="Technical requirements and constraints..."></textarea>
+                        <textarea id="editProjectRequirements"
+                            placeholder="Technical requirements and constraints..."></textarea>
                     </div>
-                    
+
                     <div class="form-group" id="memberManagementSection" style="display: none;">
                         <label>Team Members (Owner can remove members)</label>
                         <div id="editProjectMembers" style="margin-top: 10px;">
@@ -1490,7 +1705,7 @@
                         </div>
                     </div>
                 </form>
-                
+
                 <div class="button-group" style="margin-top: 20px;">
                     <button id="saveProjectBtn" class="btn btn-primary">Save Changes</button>
                     <button id="cancelEditBtn" class="btn btn-secondary">Cancel</button>
@@ -1531,7 +1746,7 @@
                     </ul>
                 </div>
             </div>
-            
+
             <!-- New structured visualization container -->
             <div id="aiAnalysisVisualization" style="display: none;"></div>
             <div class="button-group" style="justify-content: right">
@@ -1787,13 +2002,13 @@
                 if (!this.currentUser) return;
 
                 document.getElementById('userName').value = this.currentUser.name;
-                
+
                 // Load skills - parse and set radio buttons + other
                 this.loadSkillsFromString(this.currentUser.skills || '');
-                
+
                 // Load programming languages - parse and set radio buttons + other
                 this.loadLanguagesFromString(this.currentUser.programmingLanguages || '');
-                
+
                 document.getElementById('userWilling').value = this.currentUser.willingToWorkOn;
                 this.populateJiraCredentialsForm();
             }
@@ -2770,7 +2985,7 @@
                     type: 'setActiveProject',
                     payload: { projectId: projectId }
                 });
-                
+
                 // Send projectId to the extension
                 vscode.postMessage({
                     type: 'generatePrompt',
@@ -2953,7 +3168,7 @@
                     const isMember = this.currentUser && (project.selectedMemberIds || []).includes(String(this.currentUser.id));
                     const ownerBadge = isOwner ? '<span style="background: #10b981; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; margin-left: 8px;">Owner</span>' : '';
                     const canEdit = isOwner || isMember;
-                    
+
                     return `
                         <div class="project-item">
                             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
@@ -2972,10 +3187,10 @@
                                 ${isOwner ? '<p style="margin-top: 8px; font-size: 0.85rem; color: #64748b;">As owner, you can remove members by editing the project.</p>' : ''}
                             </div>
                             <p style="margin-top: 10px;"><strong>Created:</strong> ${new Date(project.createdAt).toLocaleString()}</p>
-                            ${isOwner 
-                                ? `<button class="btn btn-danger delete-project-btn" data-project-id="${project.id}" style='margin-top: 8px; padding: 6px 12px; font-size: 0.8rem; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer;'>Delete Project</button>`
-                                : `<button class="btn btn-secondary leave-project-btn" data-project-id="${project.id}" style='margin-top: 8px; padding: 6px 12px; font-size: 0.8rem; border: none; border-radius: 4px; cursor: pointer;'>Leave Project</button>`
-                            }
+                            ${isOwner
+                            ? `<button class="btn btn-danger delete-project-btn" data-project-id="${project.id}" style='margin-top: 8px; padding: 6px 12px; font-size: 0.8rem; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer;'>Delete Project</button>`
+                            : `<button class="btn btn-secondary leave-project-btn" data-project-id="${project.id}" style='margin-top: 8px; padding: 6px 12px; font-size: 0.8rem; border: none; border-radius: 4px; cursor: pointer;'>Leave Project</button>`
+                        }
                         </div>
                     `;
                 }).join('');
@@ -2987,7 +3202,7 @@
                     // Element doesn't exist (might be commented out), skip updating
                     return;
                 }
-                
+
                 if (this.users.length === 0) {
                     userSelection.innerHTML = '<p style="text-align: center; color: #64748b; padding: 10px;">Add team members first</p>';
                     return;
@@ -3007,10 +3222,10 @@
                     // Element doesn't exist, skip updating
                     return;
                 }
-                
+
                 projectSelect.innerHTML = '<option value="">Choose a project...</option>' +
                     this.projects.map(project => `<option value="${project.id}">${project.name}</option>`).join('');
-                
+
                 // Add change listener to send setActiveProject message
                 projectSelect.onchange = (e) => {
                     const selectedProjectId = e.target.value;
@@ -3146,11 +3361,11 @@
                 // This method is kept for backward compatibility but now calls backend
                 const project = this.projects.find(p => p.id === projectId);
                 if (!project) return;
-                
+
                 const currentUserId = this.currentUser ? String(this.currentUser.id) : null;
                 const projectOwnerId = project.owner_id ? String(project.owner_id) : null;
                 const isOwner = currentUserId && projectOwnerId && currentUserId === projectOwnerId;
-                
+
                 if (isOwner) {
                     // Owner deletes the project
                     vscode.postMessage({
@@ -3173,7 +3388,7 @@
                 const currentUserId = this.currentUser ? String(this.currentUser.id) : null;
                 const projectOwnerId = project.owner_id ? String(project.owner_id) : null;
                 const isOwner = currentUserId && projectOwnerId && currentUserId === projectOwnerId;
-                
+
                 // Populate form
                 document.getElementById('editProjectId').value = project.id;
                 document.getElementById('editProjectName').value = project.name;
@@ -3184,7 +3399,7 @@
                 // Populate members list (only show if owner)
                 const membersSection = document.getElementById('memberManagementSection');
                 const membersContainer = document.getElementById('editProjectMembers');
-                
+
                 if (isOwner) {
                     membersSection.style.display = 'block';
                     const teamMembers = this.users.filter(user => project.selectedMemberIds && project.selectedMemberIds.includes(user.id));
@@ -3216,7 +3431,7 @@
         // Render AI Analysis Visualization
         function renderAnalysisVisualization(data, projectName) {
             if (!data) return '<p>No analysis data available</p>';
-            
+
             let html = `<div style="margin-bottom: 20px;">
                 <h2 style="color: #1e293b; font-size: 1.8rem; margin-bottom: 5px;">${projectName || 'Project'} Analysis</h2>
                 <p style="color: #64748b; font-size: 0.9rem;">AI-powered team analysis and task delegation</p>
@@ -3412,11 +3627,11 @@
                     const promptOutput = document.getElementById('promptOutput');
                     const visualization = document.getElementById('aiAnalysisVisualization');
                     const { parsed, projectId } = message.payload;
-                    
+
                     if (projectId && parsed) {
                         app.storeAiAnalysis(projectId, parsed);
                     }
-                    
+
                     if (parsed) {
                         // Hide text output, show visualization
                         if (promptOutput) {
@@ -3533,7 +3748,7 @@
         function addUser() {
             try {
                 const name = document.getElementById('userName').value.trim();
-                
+
                 // Collect skills from checkboxes
                 const selectedSkills = Array.from(document.querySelectorAll('input[name="skills"]:checked'))
                     .map(checkbox => checkbox.value);
@@ -3835,12 +4050,12 @@
                 const deleteBtn = target.closest('.delete-project-btn');
                 const leaveBtn = target.closest('.leave-project-btn');
                 const removeBtn = target.closest('.remove-project-btn');
-                
+
                 if (deleteBtn || leaveBtn || removeBtn) {
                     const button = deleteBtn || leaveBtn || removeBtn;
                     const projectId = button.dataset.projectId;
                     console.log('Button clicked:', { type: deleteBtn ? 'delete' : leaveBtn ? 'leave' : 'remove', projectId });
-                    
+
                     if (projectId) {
                         if (deleteBtn) {
                             // Send message directly - extension will handle confirmation
@@ -3951,4 +4166,5 @@
         });
     </script>
 </body>
+
 </html>
