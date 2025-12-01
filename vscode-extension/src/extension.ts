@@ -230,9 +230,7 @@ async function loadInitialData(): Promise<any> {
     const promptCount = allPrompts.flat().length;
 
     const sanitizedProfiles = allProfiles.map((profileItem: Profile) => {
-      const isCurrentProfile =
-        profileItem.id === profileId ||
-        (!!profileItem.user_id && profileItem.user_id === user.id);
+      const isCurrentProfile = profileItem.id === profileId;
       const cached = isCurrentProfile ? cachedJiraProfile : undefined; // Only current user gets cached Jira secrets merged
       return {
         ...profileItem,
