@@ -434,20 +434,66 @@
 
         .empty-state-message {
             color: #e2e8f0;
-            line-height: 1.6;
+            line-height: 1.4;
+            font-size: 0.9rem;
+            padding: 15px;
+        }
+
+        .empty-state-message p {
+            margin: 0 0 8px 0;
         }
 
         .empty-state-message ul {
-            margin: 10px 0 0 20px;
+            margin: 5px 0 0 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px 10px;
         }
 
         .empty-state-message li {
-            margin: 5px 0;
+            margin: 0;
+            font-size: 0.85rem;
         }
 
         /* AI Analysis Visualization Styles */
         #aiAnalysisVisualization {
             margin-top: 20px;
+        }
+
+        /* Past Analysis Styles */
+        .past-analysis-item {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 12px 15px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .past-analysis-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateX(5px);
+        }
+
+        .past-analysis-item.selected {
+            background: rgba(102, 126, 234, 0.2);
+            border-color: #667eea;
+        }
+
+        .past-analysis-date {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            margin-bottom: 4px;
+        }
+
+        .past-analysis-preview {
+            color: #e2e8f0;
+            font-size: 0.85rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .analysis-section {
@@ -1269,8 +1315,28 @@
                 </select>
             </div>
 
+            <!-- RAG Status Indicator -->
+            <div id="rag-status-container" style="margin: 15px 0; padding: 12px; background: rgba(59, 130, 246, 0.1); border-radius: 8px; border-left: 3px solid #3b82f6;">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <div>
+                        <strong>📚 Workspace Intelligence</strong>
+                        <div id="rag-status-text" style="font-size: 0.85rem; color: #64748b; margin-top: 4px;">
+                            Not indexed
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button id="index-workspace-btn" class="btn btn-secondary" style="font-size: 0.85rem; padding: 6px 12px;">
+                            📂 Index Workspace
+                        </button>
+                        <button id="toggle-rag-btn" class="btn btn-secondary" style="font-size: 0.85rem; padding: 6px 12px; display: none;">
+                            🔄 Toggle RAG
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <div class="button-group">
-                <button id="generate-prompt-btn" class="btn btn-primary">Generate AI Prompt</button>
+                <button id="generate-prompt-btn" class="btn btn-primary">Generate AI Analysis</button>
                 <button id="copy-prompt-btn" class="btn btn-secondary">Copy Prompt</button>
             </div>
 
@@ -1279,14 +1345,14 @@
             <div class="section-title">AI Analysis & Task Delegation</div>
             <div id="promptOutput" class="prompt-output">
                 <div class="empty-state-message">
-                    <p>Select a project above to generate an AI-optimized analysis and task allocation.</p>
-                    <p>The analysis will include:</p>
+                    <p><strong>Select a project to generate AI-powered task delegation</strong></p>
+                    <p style="font-size: 0.8rem; opacity: 0.8;">Analysis includes:</p>
                     <ul>
-                        <li>Team composition analysis</li>
-                        <li>Project feasibility assessment</li>
-                        <li>Role assignments for each team member</li>
-                        <li>Task breakdown (immediate & future)</li>
-                        <li>Optimization recommendations</li>
+                        <li>Team composition</li>
+                        <li>Feasibility assessment</li>
+                        <li>Role assignments</li>
+                        <li>Task breakdown</li>
+                        <li>Optimization tips</li>
                         <li>Risk assessment</li>
                         <li>Deliverables mapping</li>
                     </ul>
@@ -1297,6 +1363,30 @@
             <div id="aiAnalysisVisualization" style="display: none;"></div>
             <div class="button-group" style="justify-content: right">
                 <button id="start-project" class="btn btn-primary">Start Project</button>
+            </div>
+
+            <!-- Past AI Analyses Section -->
+            <div style="margin-top: 40px; padding-top: 30px; border-top: 2px solid rgba(255,255,255,0.1);">
+                <div class="section-title">📜 Past AI Analyses</div>
+                <p style="color: #e2e8f0; font-size: 0.85rem; margin-bottom: 15px;">View previously generated task delegations</p>
+                
+                <div class="form-group">
+                    <label for="pastAnalysisProject">Select Project</label>
+                    <select id="pastAnalysisProject">
+                        <option value="">Choose a project...</option>
+                    </select>
+                </div>
+
+                <div id="pastAnalysisList" style="display: none; margin-top: 15px;">
+                    <label style="color: #e2e8f0; font-size: 0.9rem; margin-bottom: 10px; display: block;">Analysis History</label>
+                    <div id="pastAnalysisItems" style="max-height: 300px; overflow-y: auto;">
+                        <!-- Will be populated dynamically -->
+                    </div>
+                </div>
+
+                <div id="pastAnalysisView" style="display: none; margin-top: 20px;">
+                    <!-- Selected analysis will be displayed here -->
+                </div>
             </div>
         </div>
     </div>
@@ -1847,6 +1937,23 @@
                         });
                     }
                 };
+
+                // Also update past analysis project dropdown
+                const pastProjectSelect = document.getElementById('pastAnalysisProject');
+                if (pastProjectSelect) {
+                    pastProjectSelect.innerHTML = '<option value="">Choose a project...</option>' +
+                        this.projects.map(project => `<option value="${project.id}">${project.name}</option>`).join('');
+                    
+                    pastProjectSelect.onchange = (e) => {
+                        const projectId = e.target.value;
+                        if (projectId) {
+                            loadPastAnalyses(projectId);
+                        } else {
+                            document.getElementById('pastAnalysisList').style.display = 'none';
+                            document.getElementById('pastAnalysisView').style.display = 'none';
+                        }
+                    };
+                }
             }
 
             removeUser(userId) {
@@ -2138,7 +2245,16 @@
                         }
                         if (visualization) {
                             visualization.style.display = 'block';
-                            visualization.innerHTML = renderAnalysisVisualization(message.payload.parsed, message.payload.projectName);
+                            
+                            // Add RAG indicator if used
+                            let ragBadge = '';
+                            if (message.payload.ragUsed && message.payload.ragStats) {
+                                ragBadge = `<div style="display: inline-block; padding: 4px 10px; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 12px; font-size: 0.75rem; color: #10b981; margin-bottom: 10px;">
+                                    ✓ Powered by ${message.payload.ragStats.filesUsed} indexed files
+                                </div>`;
+                            }
+                            
+                            visualization.innerHTML = ragBadge + renderAnalysisVisualization(message.payload.parsed, message.payload.projectName);
                         }
                     } else {
                         // Fallback to text output if no parsed data
@@ -2150,11 +2266,56 @@
                             visualization.style.display = 'none';
                         }
                     }
-                    showStatus('promptStatus', '✅ AI analysis complete! Tasks delegated to team members.', 'success');
+                    
+                    const statusMsg = message.payload.ragUsed 
+                        ? `✅ AI analysis complete with workspace context! (${message.payload.ragStats?.filesUsed} files used)`
+                        : '✅ AI analysis complete! Tasks delegated to team members.';
+                    showStatus('promptStatus', statusMsg, 'success');
                     break;
                 case 'promptGenerationError': // NEW: Handle errors from extension
                     setPromptLoading(false); // restore button + cursor
                     showStatus('promptStatus', `Error: ${message.payload.message}`, 'error');
+                    break;
+                
+                case 'ragStatsUpdated':
+                    updateRAGStatus(message.payload.stats);
+                    break;
+                
+                case 'indexingProgress':
+                    // Update UI during indexing
+                    const statusText = document.getElementById('rag-status-text');
+                    if (statusText) {
+                        statusText.textContent = `${message.payload.message} (${Math.round(message.payload.percent)}%)`;
+                    }
+                    break;
+                
+                case 'indexingComplete':
+                    console.log('Indexing complete:', message.payload);
+                    if (message.payload.success) {
+                        console.log('Updating RAG status with stats:', message.payload.stats);
+                        updateRAGStatus(message.payload.stats);
+                        showStatus('promptStatus', '✅ Workspace indexed successfully!', 'success');
+                    } else {
+                        const btn = document.getElementById('index-workspace-btn');
+                        if (btn) {
+                            btn.textContent = '📂 Index Workspace';
+                            btn.disabled = false;
+                        }
+                        showStatus('promptStatus', '❌ Indexing failed', 'error');
+                    }
+                    break;
+                
+                case 'indexingError':
+                    const btn = document.getElementById('index-workspace-btn');
+                    if (btn) {
+                        btn.textContent = '📂 Index Workspace';
+                        btn.disabled = false;
+                    }
+                    showStatus('promptStatus', `Error: ${message.payload.message}`, 'error');
+                    break;
+                
+                case 'pastAnalysesLoaded':
+                    displayPastAnalyses(message.payload.analyses);
                     break;
             }
         });
@@ -2374,6 +2535,153 @@
             }
         }
 
+        // RAG Functions
+        function indexWorkspace() {
+            try {
+                const projectId = document.getElementById('promptProject').value;
+                if (!projectId) {
+                    throw new Error('Please select a project first');
+                }
+
+                // Show loading state
+                const btn = document.getElementById('index-workspace-btn');
+                if (btn) {
+                    btn.disabled = true;
+                    btn.textContent = '⏳ Indexing...';
+                }
+
+                // Send message to extension
+                vscode.postMessage({
+                    type: 'indexWorkspace',
+                    payload: { projectId }
+                });
+
+            } catch (error) {
+                showStatus('promptStatus', 'Error: ' + error.message, 'error');
+            }
+        }
+
+        function toggleRAG() {
+            const projectId = document.getElementById('promptProject').value;
+            if (!projectId) {
+                showStatus('promptStatus', 'Please select a project first', 'error');
+                return;
+            }
+
+            vscode.postMessage({
+                type: 'toggleRAG',
+                payload: { projectId }
+            });
+        }
+
+        // Past Analyses Functions
+        function loadPastAnalyses(projectId) {
+            // Request past analyses from extension
+            vscode.postMessage({
+                type: 'loadPastAnalyses',
+                payload: { projectId }
+            });
+        }
+
+        function displayPastAnalyses(analyses) {
+            const listContainer = document.getElementById('pastAnalysisList');
+            const itemsContainer = document.getElementById('pastAnalysisItems');
+            
+            if (!analyses || analyses.length === 0) {
+                listContainer.style.display = 'none';
+                return;
+            }
+
+            listContainer.style.display = 'block';
+            
+            itemsContainer.innerHTML = analyses.map((analysis, index) => {
+                const date = new Date(analysis.created_at);
+                const dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const preview = analysis.ai_response.substring(0, 100).replace(/\n/g, ' ');
+                
+                return `
+                    <div class="past-analysis-item" data-analysis-id="${analysis.id}">
+                        <div class="past-analysis-date">${dateStr}</div>
+                        <div class="past-analysis-preview">${preview}...</div>
+                    </div>
+                `;
+            }).join('');
+
+            // Add click handlers
+            itemsContainer.querySelectorAll('.past-analysis-item').forEach((item, index) => {
+                item.addEventListener('click', () => {
+                    // Remove selected class from all
+                    itemsContainer.querySelectorAll('.past-analysis-item').forEach(i => i.classList.remove('selected'));
+                    // Add to clicked
+                    item.classList.add('selected');
+                    // Display the analysis
+                    displaySelectedAnalysis(analyses[index]);
+                });
+            });
+        }
+
+        function displaySelectedAnalysis(analysis) {
+            const viewContainer = document.getElementById('pastAnalysisView');
+            
+            try {
+                // Try to parse the AI response as JSON
+                const parsed = JSON.parse(analysis.ai_response);
+                viewContainer.innerHTML = renderAnalysisVisualization(parsed, 'Past Analysis');
+                viewContainer.style.display = 'block';
+            } catch (e) {
+                // Fallback to raw text if not JSON
+                viewContainer.innerHTML = `
+                    <div style="background: rgba(255,255,255,0.05); border-radius: 8px; padding: 20px; color: #e2e8f0; white-space: pre-wrap;">
+                        ${analysis.ai_response}
+                    </div>
+                `;
+                viewContainer.style.display = 'block';
+            }
+        }
+
+        function updateRAGStatus(stats) {
+            console.log('updateRAGStatus called with:', stats);
+            const statusText = document.getElementById('rag-status-text');
+            const indexBtn = document.getElementById('index-workspace-btn');
+            const toggleBtn = document.getElementById('toggle-rag-btn');
+
+            console.log('Elements found:', { statusText: !!statusText, indexBtn: !!indexBtn, toggleBtn: !!toggleBtn });
+
+            if (!stats) {
+                statusText.textContent = 'Not indexed';
+                indexBtn.textContent = '📂 Index Workspace';
+                indexBtn.disabled = false;
+                toggleBtn.style.display = 'none';
+                return;
+            }
+
+            console.log('Stats values:', { enabled: stats.enabled, totalFiles: stats.totalFiles, totalChunks: stats.totalChunks });
+
+            if (stats.enabled) {
+                statusText.innerHTML = `✓ Indexed: ${stats.totalFiles} files, ${stats.totalChunks} chunks<br>` +
+                    `<span style="color: #10b981;">RAG Enabled</span>` +
+                    (stats.lastIndexed ? ` • Last: ${new Date(stats.lastIndexed).toLocaleString()}` : '');
+                indexBtn.textContent = '🔄 Re-index';
+                toggleBtn.style.display = 'inline-block';
+                toggleBtn.textContent = '🔴 Disable RAG';
+                console.log('Set toggle button to visible (Disable RAG)');
+            } else if (stats.totalFiles > 0) {
+                statusText.innerHTML = `⚠️ Indexed: ${stats.totalFiles} files, ${stats.totalChunks} chunks<br>` +
+                    `<span style="color: #f59e0b;">RAG Disabled</span>`;
+                indexBtn.textContent = '🔄 Re-index';
+                toggleBtn.style.display = 'inline-block';
+                toggleBtn.textContent = '🟢 Enable RAG';
+                console.log('Set toggle button to visible (Enable RAG)');
+            } else {
+                statusText.textContent = 'Not indexed';
+                indexBtn.textContent = '📂 Index Workspace';
+                toggleBtn.style.display = 'none';
+                console.log('Hiding toggle button (no files)');
+            }
+
+            indexBtn.disabled = false;
+        }
+
 
 
         // Add form validation animations
@@ -2425,6 +2733,8 @@
             document.getElementById('generate-prompt-btn')?.addEventListener('click', generatePrompt);
             document.getElementById('copy-prompt-btn')?.addEventListener('click', copyPrompt);
             document.getElementById('start-project')?.addEventListener('click', startProject);
+            document.getElementById('index-workspace-btn')?.addEventListener('click', indexWorkspace);
+            document.getElementById('toggle-rag-btn')?.addEventListener('click', toggleRAG);
             document.getElementById('signOutBtn')?.addEventListener('click', () => {
                 vscode.postMessage({ type: 'signOut' });
             });

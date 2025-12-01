@@ -45,10 +45,12 @@ const databaseService_1 = require("./databaseService");
 const supabaseConfig_1 = require("./supabaseConfig");
 const createJiraTasks_1 = require("./commands/createJiraTasks");
 const peerSuggestionService_1 = require("./peerSuggestionService");
+const ragService_1 = require("./ragService");
 // No .env loading needed; using hardcoded config in supabaseConfig
 // Global variables for OAuth callback handling
 let authService;
 let databaseService;
+let ragService;
 let extensionContext;
 let peerSuggestionService;
 const JIRA_PROFILE_KEY_PREFIX = "jiraProfile:";
@@ -76,6 +78,7 @@ const GLOBAL_STATE_KEY = "reopenAiCollabAgent";
 const GLOBAL_LIVESHARE_KEY = "reopenLiveShareSession";
 // LLM API Key Management
 const LLM_API_KEY_SECRET = "llm_api_key";
+const OPENAI_API_KEY_SECRET = "openai_api_key"; // For RAG embeddings
 const ACTIVE_PROJECT_KEY = "activeProjectId";
 // API Key Management Functions
 async function getLLMApiKey() {
@@ -83,6 +86,18 @@ async function getLLMApiKey() {
         return undefined;
     }
     return await extensionContext.secrets.get(LLM_API_KEY_SECRET);
+}
+async function getOpenAIApiKey() {
+    if (!extensionContext) {
+        return undefined;
+    }
+    return await extensionContext.secrets.get(OPENAI_API_KEY_SECRET);
+}
+async function setOpenAIApiKey(key) {
+    if (!extensionContext) {
+        return;
+    }
+    await extensionContext.secrets.store(OPENAI_API_KEY_SECRET, key);
 }
 async function setLLMApiKey(key) {
     if (!extensionContext) {
@@ -280,6 +295,78 @@ async function activate(context) {
         }
     });
     context.subscriptions.push(setLLMKeyCmd);
+    // Register RAG commands
+    const indexWorkspaceCmd = vscode.commands.registerCommand("aiCollab.indexWorkspace", async () => {
+        // Check if workspace is open
+        const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+        if (!workspaceFolder) {
+            vscode.window.showErrorMessage("Please open a workspace folder first.");
+            return;
+        }
+        // Check if user is authenticated
+        if (!authService.isAuthenticated()) {
+            vscode.window.showErrorMessage("Please log in first.");
+            return;
+        }
+        // Get active project
+        const activeProjectId = extensionContext.globalState.get(ACTIVE_PROJECT_KEY);
+        if (!activeProjectId) {
+            vscode.window.showWarningMessage("No active project selected. Please select a project first in the AI Collab panel.");
+            return;
+        }
+        // Confirm indexing
+        const confirm = await vscode.window.showInformationMessage(`Index workspace for RAG? This will scan code files and generate embeddings.`, "Index Now", "Cancel");
+        if (confirm !== "Index Now") {
+            return;
+        }
+        // Start indexing with progress
+        await vscode.window.withProgress({
+            location: vscode.ProgressLocation.Notification,
+            title: "Indexing Workspace for RAG",
+            cancellable: false,
+        }, async (progress) => {
+            const user = authService.getCurrentUser();
+            if (!user) {
+                return;
+            }
+            const success = await ragService.indexWorkspace(activeProjectId, workspaceFolder.uri.fsPath, user.id, (percent, message) => {
+                progress.report({ increment: percent, message });
+            });
+            if (success) {
+                // Enable RAG for this project
+                await ragService.setEnabled(activeProjectId, true);
+                vscode.window.showInformationMessage("✓ Workspace indexed! RAG enabled for AI features.");
+            }
+            else {
+                vscode.window.showErrorMessage("Failed to index workspace.");
+            }
+        });
+    });
+    context.subscriptions.push(indexWorkspaceCmd);
+    const toggleRAGCmd = vscode.commands.registerCommand("aiCollab.toggleRAG", async () => {
+        const activeProjectId = extensionContext.globalState.get(ACTIVE_PROJECT_KEY);
+        if (!activeProjectId) {
+            vscode.window.showWarningMessage("No active project selected.");
+            return;
+        }
+        const currentStatus = await ragService.isEnabled(activeProjectId);
+        const newStatus = !currentStatus;
+        await ragService.setEnabled(activeProjectId, newStatus);
+        vscode.window.showInformationMessage(`RAG ${newStatus ? "enabled" : "disabled"} for AI features.`);
+    });
+    context.subscriptions.push(toggleRAGCmd);
+    const ragStatsCmd = vscode.commands.registerCommand("aiCollab.ragStats", async () => {
+        const activeProjectId = extensionContext.globalState.get(ACTIVE_PROJECT_KEY);
+        if (!activeProjectId) {
+            vscode.window.showWarningMessage("No active project selected.");
+            return;
+        }
+        const stats = await ragService.getStats(activeProjectId);
+        vscode.window.showInformationMessage(`RAG Status: ${stats.enabled ? "Enabled" : "Disabled"}\n` +
+            `Files: ${stats.totalFiles}, Chunks: ${stats.totalChunks}\n` +
+            `Last indexed: ${stats.lastIndexed ? stats.lastIndexed.toLocaleString() : "Never"}`);
+    });
+    context.subscriptions.push(ragStatsCmd);
     // Initialize authentication service
     try {
         authService = new authService_1.AuthService();
@@ -348,6 +435,10 @@ async function activate(context) {
         const supabaseUrl = (0, supabaseConfig_1.getSupabaseUrl)();
         const supabaseAnonKey = (0, supabaseConfig_1.getSupabaseAnonKey)();
         databaseService = new databaseService_1.DatabaseService(supabaseUrl, supabaseAnonKey);
+        // Initialize RAG service with user ID getter
+        const supabaseClient = (0, supabaseConfig_1.getSupabaseClient)();
+        const getUserId = () => authService.getCurrentUser()?.id || null;
+        ragService = new ragService_1.RAGService(supabaseClient, getUserId);
     }
     catch (error) {
         vscode.window.showErrorMessage(`Database setup failed: ${error instanceof Error ? error.message : "Unknown error"}`);
@@ -1001,6 +1092,124 @@ async function openMainPanel(context, authService) {
                 const { projectId } = msg.payload;
                 await setActiveProject(projectId || null);
                 console.log("Active project set to:", projectId);
+                // Send RAG stats to webview when project is selected
+                if (projectId) {
+                    const ragStats = await ragService.getStats(projectId);
+                    panel.webview.postMessage({
+                        type: "ragStatsUpdated",
+                        payload: { stats: ragStats }
+                    });
+                }
+                break;
+            }
+            case "indexWorkspace": {
+                const { projectId } = msg.payload;
+                const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+                if (!workspaceFolder) {
+                    vscode.window.showErrorMessage("No workspace folder open");
+                    panel.webview.postMessage({
+                        type: "indexingError",
+                        payload: { message: "No workspace folder open" }
+                    });
+                    break;
+                }
+                if (!authService.isAuthenticated()) {
+                    vscode.window.showErrorMessage("Please log in first");
+                    break;
+                }
+                const user = authService.getCurrentUser();
+                if (!user) {
+                    break;
+                }
+                // Start indexing with progress
+                vscode.window.withProgress({
+                    location: vscode.ProgressLocation.Notification,
+                    title: "Indexing Workspace for RAG",
+                    cancellable: false
+                }, async (progress) => {
+                    progress.report({ increment: 0, message: "Starting..." });
+                    const success = await ragService.indexWorkspace(projectId, workspaceFolder.uri.fsPath, user.id, (percent, message) => {
+                        progress.report({ increment: percent, message });
+                        panel.webview.postMessage({
+                            type: "indexingProgress",
+                            payload: { percent, message }
+                        });
+                    });
+                    if (success) {
+                        // Enable RAG for this project
+                        await ragService.setEnabled(projectId, true);
+                        // Send updated stats to webview
+                        const ragStats = await ragService.getStats(projectId);
+                        panel.webview.postMessage({
+                            type: "indexingComplete",
+                            payload: { success: true, stats: ragStats }
+                        });
+                        vscode.window.showInformationMessage("✓ Workspace indexed! RAG enabled for AI features.");
+                    }
+                    else {
+                        panel.webview.postMessage({
+                            type: "indexingComplete",
+                            payload: { success: false }
+                        });
+                        vscode.window.showErrorMessage("Failed to index workspace.");
+                    }
+                });
+                break;
+            }
+            case "toggleRAG": {
+                const { projectId } = msg.payload;
+                const currentStatus = await ragService.isEnabled(projectId);
+                const newStatus = !currentStatus;
+                await ragService.setEnabled(projectId, newStatus);
+                // Send updated stats to webview
+                const ragStats = await ragService.getStats(projectId);
+                panel.webview.postMessage({
+                    type: "ragStatsUpdated",
+                    payload: { stats: ragStats }
+                });
+                vscode.window.showInformationMessage(`RAG ${newStatus ? "enabled" : "disabled"} for AI features.`);
+                break;
+            }
+            case "getRAGStats": {
+                const { projectId } = msg.payload;
+                const ragStats = await ragService.getStats(projectId);
+                panel.webview.postMessage({
+                    type: "ragStatsUpdated",
+                    payload: { stats: ragStats }
+                });
+                break;
+            }
+            case "loadPastAnalyses": {
+                const { projectId } = msg.payload;
+                console.log('Extension: Loading past analyses for project:', projectId);
+                try {
+                    const supabase = (0, supabaseConfig_1.getSupabaseClient)();
+                    const { data: analyses, error } = await supabase
+                        .from('ai_prompts')
+                        .select('id, created_at, ai_response, prompt_content')
+                        .eq('project_id', projectId)
+                        .order('created_at', { ascending: false })
+                        .limit(20); // Last 20 analyses
+                    console.log('Extension: Query result:', {
+                        error: error,
+                        count: analyses?.length || 0,
+                        firstAnalysis: analyses?.[0]?.id
+                    });
+                    if (error) {
+                        console.error('Error loading past analyses:', error);
+                        vscode.window.showErrorMessage('Failed to load past analyses');
+                        break;
+                    }
+                    console.log('Extension: Sending pastAnalysesLoaded message with', analyses?.length, 'analyses');
+                    panel.webview.postMessage({
+                        type: 'pastAnalysesLoaded',
+                        payload: { analyses: analyses || [] }
+                    });
+                }
+                catch (error) {
+                    console.error('Error loading past analyses:', error);
+                    vscode.window.showErrorMessage(`Failed to load past analyses: ${error.message}`);
+                }
                 break;
             }
             case "generatePrompt": {
@@ -1144,7 +1353,32 @@ IMPORTANT: Please respond in valid JSON format with the following structure:
 If you cannot provide JSON, provide the response in the numbered format as before, and I will parse it.`;
                 // Call the Supabase Edge Function to get AI response
                 try {
-                    vscode.window.showInformationMessage("Generating AI analysis...");
+                    // Check if RAG is enabled and add workspace context
+                    const ragEnabled = await ragService.isEnabled(projectId);
+                    let ragContext = '';
+                    let ragStats = null;
+                    if (ragEnabled) {
+                        vscode.window.showInformationMessage("Generating AI analysis with workspace context...");
+                        // Search for relevant code context
+                        const query = `${projectToPrompt.description} ${projectToPrompt.goals} ${projectToPrompt.requirements}`;
+                        const contextResults = await ragService.searchContext(projectId, query, {
+                            matchThreshold: 0.7,
+                            matchCount: 8
+                        });
+                        if (contextResults.length > 0) {
+                            ragContext = ragService.formatContextForPrompt(contextResults);
+                            ragStats = await ragService.getStats(projectId);
+                            ragStats.filesUsed = contextResults.length;
+                        }
+                    }
+                    else {
+                        vscode.window.showInformationMessage("Generating AI analysis...");
+                    }
+                    // Enhance prompt with RAG context if available
+                    let enhancedPromptContent = promptContent;
+                    if (ragContext) {
+                        enhancedPromptContent = promptContent.replace('=== AI ANALYSIS REQUEST ===', `${ragContext}\n=== AI ANALYSIS REQUEST ===`);
+                    }
                     const edgeFunctionUrl = (0, supabaseConfig_1.getEdgeFunctionUrl)();
                     const anonKey = (0, supabaseConfig_1.getSupabaseAnonKey)();
                     // Send in the format the edge function expects: { project, users }
@@ -1156,7 +1390,9 @@ If you cannot provide JSON, provide the response in the numbered format as befor
                         },
                         body: JSON.stringify({
                             project: projectToPrompt,
-                            users: teamMembersForPrompt
+                            users: teamMembersForPrompt,
+                            // Pass enhanced prompt if RAG context was added
+                            customPrompt: ragContext ? enhancedPromptContent : undefined
                         }),
                     });
                     if (!response.ok) {
@@ -1192,10 +1428,13 @@ If you cannot provide JSON, provide the response in the numbered format as befor
                             prompt: promptContent,
                             response: aiResponse,
                             parsed: parsedData,
-                            projectName: projectToPrompt.name
+                            projectName: projectToPrompt.name,
+                            ragUsed: ragContext !== '',
+                            ragStats: ragStats
                         },
                     });
-                    vscode.window.showInformationMessage(`✅ AI analysis complete for project: ${projectToPrompt.name}`);
+                    const ragInfo = ragContext ? ` (using ${ragStats?.filesUsed} indexed files)` : '';
+                    vscode.window.showInformationMessage(`✅ AI analysis complete for project: ${projectToPrompt.name}${ragInfo}`);
                 }
                 catch (error) {
                     vscode.window.showErrorMessage(`Failed to generate AI response: ${error.message}`);
@@ -1613,7 +1852,10 @@ If you cannot provide JSON, provide the response in the numbered format as befor
     });
 }
 function deactivate() {
-    // Clean up resources if needed
+    // Clean up RAG service resources
+    if (ragService) {
+        ragService.dispose();
+    }
 }
 async function getLoginHtml(webview, context) {
     const nonce = getNonce();
