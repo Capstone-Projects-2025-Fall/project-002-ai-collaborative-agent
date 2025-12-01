@@ -41,6 +41,7 @@
         .header p {
             font-size: 1.1rem;
             opacity: 0.9;
+            margin-top: 16px;
         }
 
         .tabs {
@@ -168,7 +169,7 @@
         .info-icon:focus-visible::before {
             opacity: 1;
             transform: translate(-50%, 0);
->>>>>>> origin/main
+
         }
 
         @keyframes slideIn {
@@ -756,6 +757,132 @@
             background: rgba(255, 255, 255, 0.3);
             transform: translateY(-1px);
         }
+
+        .profile-dropdown-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        .profile-button {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            font-size: 0.9rem;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 600;
+        }
+
+        .profile-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .profile-button .profile-icon {
+            font-size: 1.2rem;
+        }
+
+        .profile-dropdown {
+            display: none;
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 0;
+            min-width: 320px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            animation: dropdownSlide 0.2s ease-out;
+        }
+
+        .profile-dropdown.show {
+            display: block;
+        }
+
+        @keyframes dropdownSlide {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .profile-dropdown-header {
+            padding: 20px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .profile-dropdown-header h3 {
+            margin: 0 0 8px 0;
+            color: #1e293b;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .profile-dropdown-content {
+            padding: 15px 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .profile-dropdown-item {
+            margin-bottom: 12px;
+        }
+
+        .profile-dropdown-item label {
+            display: block;
+            font-weight: 600;
+            color: #475569;
+            font-size: 0.85rem;
+            margin-bottom: 4px;
+        }
+
+        .profile-dropdown-item p {
+            color: #64748b;
+            margin: 0;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .profile-dropdown-footer {
+            padding: 15px 20px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .profile-dropdown-footer .btn {
+            width: 100%;
+            justify-content: center;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .edit-profile-link {
+            display: block;
+            text-align: center;
+            padding: 10px;
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .edit-profile-link:hover {
+            background: #f8fafc;
+            color: #764ba2;
+        }   
     </style>
 </head>
 
@@ -763,35 +890,54 @@
     <div class="container">
         <div class="header">
             <div class="header-top">
+                <div class="profile-dropdown-container">
+                    <button id="profileBtn" class="profile-button">
+                        <span class="profile-icon">👤</span>
+                        <span id="profileBtnName">Profile</span>
+                    </button>
+                    <div id="profileDropdown" class="profile-dropdown">
+                        <div class="profile-dropdown-header">
+                            <h3><span>👤</span> <span id="dropdownUserName">User</span></h3>
+                        </div>
+                        <div class="profile-dropdown-content">
+                            <div class="profile-dropdown-item">
+                                <label>Skills</label>
+                                <p id="dropdownSkills">Not specified</p>
+                            </div>
+                            <div class="profile-dropdown-item">
+                                <label>Programming Languages</label>
+                                <p id="dropdownLanguages">Not specified</p>
+                            </div>
+                            <div class="profile-dropdown-item">
+                                <label>Willing to Work On</label>
+                                <p id="dropdownWilling">Not specified</p>
+                            </div>
+                        </div>
+                        <a class="edit-profile-link" id="editProfileLink">✏️ Edit Profile</a>
+                        <div class="profile-dropdown-footer">
+                            <button id="signOutBtn" class="btn btn-secondary">
+                                <span>🚪</span>
+                                <span>Sign Out</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+
                 <h1>🚀 AI Collab Agent</h1>
-                <button id="signOutBtn" class="btn btn-secondary signout-btn">Sign Out</button>
+                <div style="width: 140px;"></div> <!-- Spacer -->
             </div>
             <p>Team Collaboration & AI-Powered Project Management</p>
 
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <h3 id="userCount">0</h3>
-                    <p>Team Members</p>
-                </div>
-                <div class="stat-card">
-                    <h3 id="projectCount">0</h3>
-                    <p>Projects</p>
-                </div>
-                <div class="stat-card">
-                    <h3 id="promptCount">0</h3>
-                    <p>AI Prompts</p>
-                </div>
-            </div>
         </div>
 
         <div class="tabs">
-            <button class="tab-button active" data-tab="users">👤 My Profile</button>
             <button class="tab-button" data-tab="projects">📋 Projects</button>
             <button class="tab-button" data-tab="join">🔗 Join Project</button>
-            <button class="tab-button" data-tab="prompts">🤖 AI Prompts</button>
+            <button class="tab-button" data-tab="prompts">🤖 Workspace</button>
         </div>
 
-        <div id="users" class="tab-content active">
+        <div id="users" class="tab-content">
             <div class="section-title">My Profile</div>
 
             <form class="form-grid" id="profile-form">
@@ -943,7 +1089,7 @@
             </div>
         </div>
 
-        <div id="projects" class="tab-content">
+        <div id="projects" class="tab-content active">
             <div class="section-title">Create Project</div>
 
             <form class="form-grid">
@@ -1260,6 +1406,7 @@
                 document.getElementById('jiraEmail').value = this.currentUser.jiraEmail || '';
                 document.getElementById('jiraApiToken').value = this.currentUser.jiraApiToken || '';
                 document.getElementById('jiraProjectPrompt').value = this.currentUser.jiraProjectPrompt || '';
+                updateProfileDropdown();
             }
 
             loadSkillsFromString(skillsString) {
@@ -1543,9 +1690,14 @@
             }
 
             updateStats() {
-                document.getElementById('userCount').textContent = this.users.length.toString();
-                document.getElementById('projectCount').textContent = this.projects.length.toString();
-                document.getElementById('promptCount').textContent = this.promptCount.toString();
+                const userCountEl = document.getElementById('userCount');
+                if (userCountEl) userCountEl.textContent = this.users.length.toString();
+
+                const projectCountEl = document.getElementById('projectCount');
+                if (projectCountEl) projectCountEl.textContent = this.projects.length.toString();
+
+                const promptCountEl = document.getElementById('promptCount');
+                if (promptCountEl) promptCountEl.textContent = this.promptCount.toString();
             }
 
             updateCurrentUserDisplay() {
@@ -1893,6 +2045,8 @@
             }
 
             return html;
+
+
         }
 
         // Listen to messages from VS Code extension
@@ -2168,6 +2322,8 @@
             }
         }
 
+
+
         // Add form validation animations
         document.addEventListener('input', (e) => {
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
@@ -2181,6 +2337,29 @@
                     e.target.style.borderColor = '#e5e7eb';
                     e.target.style.boxShadow = 'none';
                 }
+            }
+        });
+
+        function toggleProfileDropdown() {
+            const dropdown = document.getElementById('profileDropdown');
+            dropdown.classList.toggle('show');
+        }
+
+        function updateProfileDropdown() {
+            if (!app.currentUser) return;
+
+            document.getElementById('profileBtnName').textContent = app.currentUser.name || 'Profile';
+            document.getElementById('dropdownUserName').textContent = app.currentUser.name || 'User';
+            document.getElementById('dropdownSkills').textContent = app.currentUser.skills || 'Not specified';
+            document.getElementById('dropdownLanguages').textContent = app.currentUser.programmingLanguages || 'Not specified';
+            document.getElementById('dropdownWilling').textContent = app.currentUser.willingToWorkOn || 'Not specified';
+        }
+
+        document.addEventListener('click', (e) => {
+            const container = document.querySelector('.profile-dropdown-container');
+            const dropdown = document.getElementById('profileDropdown');
+            if (container && !container.contains(e.target) && dropdown) {
+                dropdown.classList.remove('show');
             }
         });
 
@@ -2213,6 +2392,16 @@
                 if (!isHidden) {
                     document.getElementById('jiraBaseUrl')?.focus();
                 }
+            });
+
+            document.getElementById('profileBtn')?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                toggleProfileDropdown();
+            });
+
+            document.getElementById('editProfileLink')?.addEventListener('click', () => {
+                document.getElementById('profileDropdown')?.classList.remove('show');
+                showTab('users');
             });
 
             document.body.addEventListener('click', (event) => {
@@ -2321,7 +2510,7 @@
 
             // Initial UI setup and tab selection
             app.updateUI();
-            showTab('users', document.querySelector('.tab-button[data-tab="users"]'));
+            showTab('projects', document.querySelector('.tab-button[data-tab="projects"]'));
 
             console.log('🚀 AI Collab Agent - Team Platform initialized!');
         });
