@@ -1390,7 +1390,6 @@
         <div class="tabs">
             <button class="tab-button active" data-tab="users">👤 My Profile</button>
             <button class="tab-button" data-tab="projects">📋 Projects</button>
-            <button class="tab-button" data-tab="join">🔗 Join Project</button>
             <button class="tab-button" data-tab="prompts">🤖 AI Prompts</button>
             <button class="tab-button" data-tab="jira">🗂️ Jira Tasks</button>
         </div>
@@ -1548,48 +1547,76 @@
         </div>
 
         <div id="projects" class="tab-content">
-            <div class="section-title">Create Project</div>
+            <div class="projects-layout">
+                <!-- Left Column -->
+                <div>
+                    <div class="section-title">Create Project</div>
 
-            <form class="form-grid">
-                <div class="form-group">
-                    <label for="projectName">Project Name *</label>
-                    <input type="text" id="projectName" required placeholder="Enter project name">
-                </div>
+                    <form class="form-grid">
 
-                <div class="form-group">
-                    <label for="projectDescription">Description *</label>
-                    <textarea id="projectDescription" required placeholder="Describe the project..."></textarea>
-                </div>
+                        <div class="form-group">
+                            <label for="projectName">Project Name *</label>
+                            <input type="text" id="projectName" required placeholder="Enter project name">
+                        </div>
 
-                <div class="form-group">
-                    <label for="projectGoals">Goals</label>
-                    <textarea id="projectGoals" placeholder="List main objectives..."></textarea>
-                </div>
+                        <div class="form-group">
+                            <label for="projectDescription">Description *</label>
+                            <textarea id="projectDescription" required placeholder="Describe the project..."></textarea>
+                        </div>
 
-                <div class="form-group">
-                    <label for="projectRequirements">Requirements</label>
-                    <textarea id="projectRequirements"
-                        placeholder="Technical requirements and constraints..."></textarea>
-                </div>
+                        <div class="form-group">
+                            <label for="projectGoals">Goals</label>
+                            <textarea id="projectGoals" placeholder="List main objectives..."></textarea>
+                        </div>
 
-                <!-- <div class="form-group">
-                    <label>Select Team Members *</label>
-                    <div id="userSelection" class="multi-select">
-                        <p style="text-align: center; color: #64748b; padding: 10px;">Add team members first</p>
+                        <div class="form-group">
+                            <label for="projectRequirements">Requirements</label>
+                            <textarea id="projectRequirements"
+                                placeholder="Technical requirements and constraints..."></textarea>
+                        </div>
+                    </form>
+
+                    <div class="button-group">
+                        <button id="create-project-btn" class="btn btn-primary">Create Project</button>
+                        <button id="clear-project-form-btn" class="btn btn-secondary">Clear Form</button>
                     </div>
-                </div> -->
-            </form>
 
-            <div class="button-group">
-                <button id="create-project-btn" class="btn btn-primary">Create Project</button>
-                <button id="clear-project-form-btn" class="btn btn-secondary">Clear Form</button>
+                    <div id="projectStatus" class="status-message" style="display: none;"></div>
+
+                </div>
+
+                <!-- Right Column -->
+                <div>
+                    <div class="section-title">Join Project</div>
+
+                    <div class="form-group">
+                        <label for="inviteCode">Invite Code</label>
+                        <input type="text" id="inviteCode" placeholder="Enter 6-character invite code" maxlength="6"
+                            style="text-transform: uppercase;">
+                    </div>
+
+                    <div class="button-group">
+                        <button id="join-project-btn" class="btn btn-primary">Join Project</button>
+                    </div>
+
+                    <div id="joinStatus" class="status-message" style="display: none;"></div>
+
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin: 25px 0 15px;">
+                        <div class="section-title" style="margin-bottom: 0;">Projects</div>
+                        <button id="refresh-projects-btn" class="btn btn-secondary"
+                            style="padding: 8px 16px; font-size: 0.85rem;" title="Refresh projects from database">🔄
+                            Refresh</button>
+                    </div>
+
+                    <div id="projectList" class="project-list">
+                        <p style="text-align: center; color: #64748b; padding: 15px;">No projects yet</p>
+                    </div>
+                    <div id="projectRefreshStatus" class="status-message" style="display: none;"></div>
+                </div>
             </div>
 
-            <div id="projectStatus" class="status-message" style="display: none;"></div>
-
-            <br><br>
-
-            <div class="section-title">Jira Task Generator</div>
+            <div class="section-title" style="margin-top: 30px;">Jira Task Generator</div>
             <p style="color: #475569; margin-bottom: 12px;">Connect to Jira Cloud to auto-generate a backlog for the selected project.</p>
             <div class="button-group" style="justify-content: flex-start; margin-bottom: 0;">
                 <button type="button" id="toggle-jira-credentials-btn" class="btn btn-primary" aria-expanded="false">Generate Jira Tasks</button>
@@ -1638,30 +1665,6 @@
                 </div>
                 <div id="jiraStatus" class="status-message" style="display: none;"></div>
             </div>
-            
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <div class="section-title" style="margin-bottom: 0;">Projects</div>
-                <button id="refresh-projects-btn" class="btn btn-secondary" style="padding: 8px 16px; font-size: 0.85rem;" title="Refresh projects from database">🔄 Refresh</button>
-            </div>
-            <div id="projectList" class="project-list">
-                <p style="text-align: center; color: #64748b; padding: 15px;">No projects yet</p>
-            </div>
-        </div>
-
-        <div id="join" class="tab-content">
-            <div class="section-title">Join Project</div>
-
-            <div class="form-group">
-                <label for="inviteCode">Invite Code</label>
-                <input type="text" id="inviteCode" placeholder="Enter 6-character invite code" maxlength="6"
-                    style="text-transform: uppercase;">
-            </div>
-
-            <div class="button-group">
-                <button id="join-project-btn" class="btn btn-primary">Join Project</button>
-            </div>
-
-            <div id="joinStatus" class="status-message" style="display: none;"></div>
         </div>
 
         <!-- Edit Project Modal -->
@@ -1923,17 +1926,17 @@
                 this.promptCount = 0;
                 this.aiAnalysisByProject = {};
                 this.latestAiProjectId = null;
-                this.jiraTasks = [];
-                this.jiraStatuses = [];
-                this.jiraSelectedTask = null;
-                this.jiraLoading = false;
-                this.jiraTransitions = {};
-                this.jiraFilters = { status: '', search: '' };
-                this.jiraActiveRequestId = 0;
-                this.isCreatingJiraTask = false;
-                this.jiraUnlocked = window.localStorage.getItem('jiraUnlocked') === 'true';
-                this.jiraAssignableEmails = this.loadAssignableEmailsFromStorage();
-                this.jiraEditingEmailId = null;
+                this.jiraTasks = []; // Tasks pulled from Jira search endpoint
+                this.jiraStatuses = []; // Status options fetched per project for filtering
+                this.jiraSelectedTask = null; // Currently highlighted task in detail pane
+                this.jiraLoading = false; // Prevents duplicate loads while waiting on Jira
+                this.jiraTransitions = {}; // Cached transitions per issue id for status dropdown
+                this.jiraFilters = { status: '', search: '' }; // Local filters applied to Jira list
+                this.jiraActiveRequestId = 0; // Tracks in-flight Jira load to discard stale responses
+                this.isCreatingJiraTask = false; // Toggle for new-task form vs editing existing
+                this.jiraUnlocked = window.localStorage.getItem('jiraUnlocked') === 'true'; // Remembers if Jira tab has been shown already
+                this.jiraAssignableEmails = this.loadAssignableEmailsFromStorage(); // Local roster for assign dropdowns
+                this.jiraEditingEmailId = null; // ID of assignable email currently being edited
 
                 // Request data from VS Code extension
                 vscode.postMessage({ type: 'loadData' });
@@ -2011,15 +2014,26 @@
 
                 document.getElementById('userWilling').value = this.currentUser.willingToWorkOn;
                 this.populateJiraCredentialsForm();
+                updateProfileDropdown();
             }
 
             populateJiraCredentialsForm() {
                 if (!this.currentUser) return;
-                document.getElementById('jiraBaseUrl').value = this.currentUser.jiraBaseUrl || '';
-                document.getElementById('jiraProjectKey').value = this.currentUser.jiraProjectKey || '';
-                document.getElementById('jiraEmail').value = this.currentUser.jiraEmail || '';
-                document.getElementById('jiraApiToken').value = this.currentUser.jiraApiToken || '';
-                document.getElementById('jiraProjectPrompt').value = this.currentUser.jiraProjectPrompt || '';
+
+                const jiraBaseUrlInput = document.getElementById('jiraBaseUrl');
+                if (jiraBaseUrlInput) jiraBaseUrlInput.value = this.currentUser.jiraBaseUrl || '';
+
+                const jiraProjectKeyInput = document.getElementById('jiraProjectKey');
+                if (jiraProjectKeyInput) jiraProjectKeyInput.value = this.currentUser.jiraProjectKey || '';
+
+                const jiraEmailInput = document.getElementById('jiraEmail');
+                if (jiraEmailInput) jiraEmailInput.value = this.currentUser.jiraEmail || '';
+
+                const jiraApiTokenInput = document.getElementById('jiraApiToken');
+                if (jiraApiTokenInput) jiraApiTokenInput.value = this.currentUser.jiraApiToken || '';
+
+                const jiraProjectPromptInput = document.getElementById('jiraProjectPrompt');
+                if (jiraProjectPromptInput) jiraProjectPromptInput.value = this.currentUser.jiraProjectPrompt || '';
             }
 
             loadSkillsFromString(skillsString) {
@@ -2123,6 +2137,7 @@
             }
 
             collectJiraCredentials(useFallback = false) {
+                // Pull Jira credentials + backlog prompt from the form, optionally defaulting to currentUser values
                 const fallback = useFallback && this.currentUser ? {
                     jiraBaseUrl: this.currentUser.jiraBaseUrl || '',
                     jiraProjectKey: this.currentUser.jiraProjectKey || '',
@@ -2304,6 +2319,7 @@
             }
 
             createJiraTasksFromProfile() {
+                // Validate Jira form inputs then send AI backlog → Jira creation request to extension
                 const profileData = this.collectProfileFormData();
                 const jiraData = this.collectJiraCredentials();
                 const name = profileData.name || this.currentUser?.name || '';
@@ -2386,7 +2402,7 @@
                     baseUrl: this.currentUser.jiraBaseUrl,
                     email: this.currentUser.jiraEmail,
                     token: this.currentUser.jiraApiToken,
-                    projectKey: this.currentUser.jiraProjectKey,
+                    projectKey: this.currentUser.jiraProjectKey, // Core fields the extension expects for Jira REST calls
                     ...extra
                 };
             }
@@ -2810,8 +2826,8 @@
                     const jiraTabBtn = document.querySelector('.tab-button[data-tab="jira"]');
                     showTab('jira', jiraTabBtn);
                 }
-                const requestId = ++this.jiraActiveRequestId;
-                this.jiraLoading = true;
+                const requestId = ++this.jiraActiveRequestId; // Increment counter so stale responses can be ignored
+                this.jiraLoading = true; // Show loading state while waiting on Jira
                 this.renderJiraTaskList();
                 vscode.postMessage({
                     type: 'loadJiraTasks',
@@ -2828,7 +2844,7 @@
                     return;
                 }
                 vscode.postMessage({
-                    type: 'jiraGetTransitions',
+                    type: 'jiraGetTransitions', // Ask extension for allowed status moves for this issue
                     payload: this.getJiraPayload({ issueId })
                 });
             }
@@ -2842,8 +2858,8 @@
             }
 
             startCreatingJiraTask() {
-                this.isCreatingJiraTask = true;
-                this.jiraSelectedTask = null;
+                this.isCreatingJiraTask = true; // Switch detail pane into creation mode
+                this.jiraSelectedTask = null; // Clear selection so form defaults are blank
                 this.renderJiraTaskDetail();
             }
 
@@ -2862,7 +2878,7 @@
                         || this.extractFirstSentence(descriptionSource)
                         || 'New Jira Task';
                     const summary = generatedSummary.trim();
-                    const description = this.formatJiraSummary(summary, descriptionSource);
+                    const description = this.formatJiraSummary(summary, descriptionSource); // Ensure summary is echoed in description when Jira renders
                     const selectedAssignee = assigneeInput ? assigneeInput.value : '';
                     const currentAssigneeEmail = this.jiraSelectedTask?.assignee?.email || '';
                     // Only send an assignee update when the user explicitly changes the selection.
@@ -2872,7 +2888,7 @@
                     const assigneeEmail = assigneeChanged
                         ? (selectedAssignee || null)
                         : undefined;
-                    const transitionId = statusInput ? statusInput.value || null : null;
+                    const transitionId = statusInput ? statusInput.value || null : null; // Track requested status change
 
                     if (!summary) {
                         this.showJiraStatus('Summary is required.', 'error');

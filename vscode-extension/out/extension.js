@@ -52,7 +52,7 @@ let authService;
 let databaseService;
 let extensionContext;
 let peerSuggestionService;
-const JIRA_PROFILE_KEY_PREFIX = "jiraProfile:";
+const JIRA_PROFILE_KEY_PREFIX = "jiraProfile:"; // Prefix for per-user Jira cache in VS Code global state
 function getCachedJiraProfile(userId) {
     if (!extensionContext) {
         return undefined;
@@ -75,7 +75,7 @@ async function setCachedJiraProfile(userId, profile) {
 const GLOBAL_STATE_KEY = "reopenAiCollabAgent";
 // When new workspace is open, liveshare begins
 const GLOBAL_LIVESHARE_KEY = "reopenLiveShareSession";
-const jiraAccountIdCache = new Map();
+const jiraAccountIdCache = new Map(); // Memoizes Jira account ids for email lookups to reduce API calls
 // LLM API Key Management
 const LLM_API_KEY_SECRET = "llm_api_key";
 const ACTIVE_PROJECT_KEY = "activeProjectId";
@@ -163,7 +163,7 @@ async function loadInitialData() {
             return { users: [], projects: [], promptCount: 0 };
         }
         // Apply Jira profile caching if available
-        const cachedJiraProfile = getCachedJiraProfile(user.id);
+        const cachedJiraProfile = getCachedJiraProfile(user.id); // Pull Jira creds from VS Code global state so user doesn't retype every session
         if (profile && cachedJiraProfile) {
             profile = {
                 ...profile,
@@ -197,13 +197,13 @@ async function loadInitialData() {
         const sanitizedProfiles = allProfiles.map((profileItem) => {
             const isCurrentProfile = profileItem.id === profileId ||
                 (!!profileItem.user_id && profileItem.user_id === user.id);
-            const cached = isCurrentProfile ? cachedJiraProfile : undefined;
+            const cached = isCurrentProfile ? cachedJiraProfile : undefined; // Only current user gets cached Jira secrets merged
             return {
                 ...profileItem,
                 jira_base_url: cached?.baseUrl ?? profileItem.jira_base_url ?? null,
                 jira_project_key: cached?.projectKey ?? profileItem.jira_project_key ?? null,
                 jira_email: cached?.email ?? profileItem.jira_email ?? null,
-                jira_api_token: null,
+                jira_api_token: null, // Never expose stored Jira tokens in teammate payloads
                 jira_project_prompt: cached?.projectPrompt ?? profileItem.jira_project_prompt ?? null,
             };
         });
@@ -255,7 +255,7 @@ async function activate(context) {
     // Store context globally first
     extensionContext = context;
     const createJiraCmd = vscode.commands.registerCommand("ai.createJiraTasks", async (options) => {
-        return await (0, createJiraTasks_1.createJiraTasksCmd)(context, options);
+        return await (0, createJiraTasks_1.createJiraTasksCmd)(context, options); // Entry point to trigger AI backlog → Jira issue creation
     });
     context.subscriptions.push(createJiraCmd);
     // Register LLM API key configuration command
@@ -915,8 +915,9 @@ async function openMainPanel(context, authService) {
         switch (msg.type) {
             case "createJiraTasks": {
                 try {
-                    const payload = msg?.payload;
-                    const result = await vscode.commands.executeCommand("ai.createJiraTasks", payload);
+                    const payload = msg?.payload; // Webview sends Jira creds + AI backlog prompt
+                    const result = await vscode.commands.executeCommand("ai.createJiraTasks", payload // Reuse command registration so both UI + other commands share logic
+                    );
                     const createdCount = Array.isArray(result) ? result.length : 0;
                     panel.webview.postMessage({
                         type: "jiraCreated",
@@ -939,8 +940,8 @@ async function openMainPanel(context, authService) {
             }
             case "loadJiraTasks": {
                 try {
-                    validateJiraPayload(msg.payload);
-                    const requestId = msg.payload?.requestId;
+                    validateJiraPayload(msg.payload); // Ensure baseUrl/projectKey/token/email exist
+                    const requestId = msg.payload?.requestId; // Track request to ignore stale responses in webview
                     const auth = {
                         baseUrl: msg.payload.baseUrl,
                         email: msg.payload.email,
@@ -984,7 +985,7 @@ async function openMainPanel(context, authService) {
                         description: msg.payload.description,
                     });
                     if (msg.payload.assigneeEmail) {
-                        const accountId = await resolveAssigneeAccountId(auth, msg.payload.assigneeEmail);
+                        const accountId = await resolveAssigneeAccountId(auth, msg.payload.assigneeEmail); // Translate email → Jira account id
                         if (accountId) {
                             await (0, jira_1.assignIssue)(auth, created.id ?? created.key, accountId);
                         }
@@ -1018,11 +1019,11 @@ async function openMainPanel(context, authService) {
                         description: msg.payload.description,
                     });
                     if (msg.payload.assigneeEmail !== undefined) {
-                        const accountId = await resolveAssigneeAccountId(auth, msg.payload.assigneeEmail);
+                        const accountId = await resolveAssigneeAccountId(auth, msg.payload.assigneeEmail); // Keep assignee in sync with dropdown
                         await (0, jira_1.assignIssue)(auth, msg.payload.issueId, accountId);
                     }
                     if (msg.payload.transitionId) {
-                        await (0, jira_1.transitionIssue)(auth, msg.payload.issueId, msg.payload.transitionId);
+                        await (0, jira_1.transitionIssue)(auth, msg.payload.issueId, msg.payload.transitionId); // Move status using Jira transitions API
                     }
                     panel.webview.postMessage({
                         type: "jiraOperationResult",
@@ -1073,7 +1074,7 @@ async function openMainPanel(context, authService) {
                         email: msg.payload.email,
                         token: msg.payload.token,
                     };
-                    const transitions = await (0, jira_1.getIssueTransitions)(auth, msg.payload.issueId);
+                    const transitions = await (0, jira_1.getIssueTransitions)(auth, msg.payload.issueId); // Fetch available status moves for dropdown
                     panel.webview.postMessage({
                         type: "jiraTransitionsLoaded",
                         payload: { issueId: msg.payload.issueId, transitions },
@@ -1797,19 +1798,19 @@ function validateJiraPayload(payload) {
         !payload.email ||
         !payload.token ||
         !payload.projectKey) {
-        throw new Error("Missing Jira credentials or project key.");
+        throw new Error("Missing Jira credentials or project key."); // Protects all Jira REST calls from incomplete inputs
     }
 }
 async function resolveAssigneeAccountId(auth, email) {
     if (!email) {
         return null;
     }
-    const cacheKey = `${trimBase(auth.baseUrl)}|${email.toLowerCase()}`;
+    const cacheKey = `${trimBase(auth.baseUrl)}|${email.toLowerCase()}`; // Cache per-site + email so we don't spam Jira user search
     if (jiraAccountIdCache.has(cacheKey)) {
-        return jiraAccountIdCache.get(cacheKey) || null;
+        return jiraAccountIdCache.get(cacheKey) || null; // Return cached result (including null) to avoid duplicate lookups
     }
-    const accountId = await (0, jira_1.findUserAccountId)(auth, email);
-    jiraAccountIdCache.set(cacheKey, accountId);
+    const accountId = await (0, jira_1.findUserAccountId)(auth, email); // Ask Jira for account id that matches the email
+    jiraAccountIdCache.set(cacheKey, accountId); // Store resolved id for later updates/assignments
     return accountId;
 }
 function trimBase(url) {
