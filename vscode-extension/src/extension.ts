@@ -296,8 +296,6 @@ async function saveInitialData(data: any): Promise<void> {
 export async function activate(context: vscode.ExtensionContext) {
   activateCodeReviewer(context);
 
-  checkLiveShareInstalled()
-
   // Store context globally first
   extensionContext = context;
 
@@ -317,7 +315,7 @@ export async function activate(context: vscode.ExtensionContext) {
       const prompt = currentKey
         ? "Enter your LLM API key (leave empty to clear):"
         : "Enter your LLM API key:";
-
+      
       const apiKey = await vscode.window.showInputBox({
         prompt,
         password: true,
@@ -339,7 +337,6 @@ export async function activate(context: vscode.ExtensionContext) {
     }
   );
   context.subscriptions.push(setLLMKeyCmd);
-
 
   // Initialize authentication service
   try {
@@ -2104,28 +2101,21 @@ async function getHtml(
 
 	const htmlPath = path.join(context.extensionPath, "media", "webview.html");
 
-  const logoUri = webview.asWebviewUri(
-    vscode.Uri.joinPath(context.extensionUri, "media", "logo.png")
-  );
-
 	let htmlContent = await fs.readFile(htmlPath, "utf-8");
 
 	htmlContent = htmlContent
+		.replace(
+			/<head>/,
+			`<head>
+        <meta http-equiv="Content-Security-Policy" content="
+            default-src 'none';
+            style-src ${webview.cspSource} 'unsafe-inline';
+            img-src ${webview.cspSource} https:;
+            script-src 'nonce-${nonce}';
+        ">`
+		)
+		.replace(/<script>/, `<script nonce="${nonce}">`);
 
-      .replace(/\{\{logoUri\}\}/g, logoUri.toString())
-      // Inject CSP
-      .replace(
-          /<head>/,
-          `<head>
-      <meta http-equiv="Content-Security-Policy" content="
-          default-src 'none';
-          style-src ${webview.cspSource} 'unsafe-inline';
-          img-src ${webview.cspSource} https:;
-          script-src 'nonce-${nonce}';
-      ">`
-      )
-      .replace(/<script>/, `<script nonce="${nonce}">`);
-      
 	return htmlContent;
 }
 
@@ -2140,18 +2130,4 @@ function getNonce() {
 }
 function mockAllocate(payload: { [key: string]: any }): any {
 	throw new Error("Function not implemented.");
-}
-
-function checkLiveShareInstalled() {
-  const liveshareExtension = vscode.extensions.getExtension('ms-vsliveshare.vsliveshare');
-  if (!liveshareExtension) {
-    vscode.window.showWarningMessage(
-      'Live Share is not installed. Please install it for collaboration features.',
-      'Install Live Share'
-    ).then(selection => {
-      if (selection === 'Install Live Share') {
-        vscode.env.openExternal(vscode.Uri.parse('vscode:extension/ms-vsliveshare.vsliveshare'));
-      }
-    });
-  }
 }
