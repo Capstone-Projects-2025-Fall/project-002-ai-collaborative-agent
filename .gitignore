@@ -10,6 +10,7 @@
 .env
 
 node_modules/
+vscode-extension/node_modules
 dist/
 build/
 out/
@@ -18,3 +19,9 @@ out/
 # Testing
 coverage/
 .nyc_output/
+
+# VS Code extension build artifacts
+vscode-extension/out/
+vscode-extension/dist/
+vscode-extension/coverage/
+*.vsix
