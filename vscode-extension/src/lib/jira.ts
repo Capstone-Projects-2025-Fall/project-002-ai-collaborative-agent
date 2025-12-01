@@ -187,3 +187,237 @@ function trimSlash(url: string) { //Removes any trailing slashes ("/") from a UR
  //Prevents double slashes when joining with Jira API endpoint
   return url.replace(/\/+$/, "");
 }
+
+// --- Additional helpers for Jira management ---
+type JiraAuth = {
+  baseUrl: string;
+  email: string;
+  token: string;
+};
+
+type JiraRequestInit = {
+  method?: string;
+  body?: any;
+};
+
+async function jiraRequest<T>(
+  auth: JiraAuth,
+  path: string,
+  init: JiraRequestInit = {}
+): Promise<T> {
+  const authHeader = Buffer.from(`${auth.email}:${auth.token}`).toString("base64");
+  const response = await fetch(`${trimSlash(auth.baseUrl)}${path}`, {
+    method: init.method,
+    body: init.body,
+    headers: {
+      "Authorization": `Basic ${authHeader}`,
+      "Accept": "application/json",
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    const errText = await response.text().catch(() => "");
+    const error: any = new Error(`Jira ${response.status}: ${errText}`);
+    error.status = response.status;
+    error.body = errText;
+    throw error;
+  }
+
+  if (response.status === 204) {
+    return {} as T;
+  }
+  return (await response.json()) as T;
+}
+
+function mapIssues(data: any) {
+  return (
+    data?.issues?.map((issue: any) => ({
+      id: issue.id,
+      key: issue.key,
+      summary: issue.fields?.summary ?? "",
+      description: issue.fields?.description ?? null,
+      status: {
+        id: issue.fields?.status?.id,
+        name: issue.fields?.status?.name,
+      },
+      assignee: issue.fields?.assignee
+        ? {
+            accountId: issue.fields.assignee.accountId,
+            displayName: issue.fields.assignee.displayName || issue.fields.assignee.name || "",
+            email: issue.fields.assignee.emailAddress || "",
+          }
+        : null,
+      updated: issue.fields?.updated,
+      priority: issue.fields?.priority?.name ?? null,
+    })) ?? []
+  );
+}
+
+async function executeSearch(
+  auth: JiraAuth,
+  path: string,
+  payload: any
+) {
+  const data = await jiraRequest<any>(auth, path, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  console.log("[Jira] search response (issues)", data?.issues?.length ?? 0);
+  const mapped = mapIssues(data);
+  console.log(`[Jira] ${path} returned ${mapped.length} issues`);
+  return mapped;
+}
+
+export async function searchIssues(
+  auth: JiraAuth,
+  projectKey: string,
+  opts?: { status?: string; search?: string }
+) {
+  const jqlParts = [`project = "${projectKey}"`];
+  if (opts?.status) {
+    jqlParts.push(`status = "${opts.status}"`);
+  }
+  if (opts?.search) {
+    const term = opts.search.replace(/"/g, '\\"');
+    jqlParts.push(`text ~ "${term}"`);
+  }
+  const jqlQuery = jqlParts.join(" AND ");
+
+  const baseFields = {
+    maxResults: 50,
+    fields: ["summary", "status", "assignee", "description", "updated", "priority"],
+    expand: ["renderedFields"],
+  };
+
+  try {
+    console.log("[Jira] Searching issues via /search/jql", jqlQuery);
+    return await executeSearch(auth, "/rest/api/3/search/jql", {
+      ...baseFields,
+      expand: Array.isArray(baseFields.expand) ? baseFields.expand.join(",") : baseFields.expand,
+      jql: jqlQuery,
+    });
+  } catch (err: any) {
+    if (err?.status === 400 || (err?.message || "").includes("Invalid request payload")) {
+      console.warn("[Jira] search/jql failed, falling back to legacy search endpoint:", err?.message);
+      return await executeSearch(auth, "/rest/api/3/search", {
+        startAt: 0,
+        ...baseFields,
+        expand: baseFields.expand,
+        jql: jqlQuery,
+      });
+    }
+    throw err;
+  }
+}
+
+export async function createIssue(auth: JiraAuth, input: { projectKey: string; summary: string; description?: string }) {
+  const payload = {
+    fields: {
+      project: { key: input.projectKey },
+      summary: input.summary,
+      issuetype: { name: "Task" },
+      description: toSimpleAdf(input.description ?? input.summary),
+    },
+  };
+  return jiraRequest<any>(auth, "/rest/api/3/issue", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateIssue(
+  auth: JiraAuth,
+  issueIdOrKey: string,
+  fields: { summary?: string; description?: string }
+) {
+  const payload: any = { fields: {} };
+  if (fields.summary !== undefined) {
+    payload.fields.summary = fields.summary;
+  }
+  if (fields.description !== undefined) {
+    payload.fields.description = toSimpleAdf(fields.description);
+  }
+  return jiraRequest<any>(auth, `/rest/api/3/issue/${issueIdOrKey}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteIssue(auth: JiraAuth, issueIdOrKey: string) {
+  return jiraRequest(auth, `/rest/api/3/issue/${issueIdOrKey}`, {
+    method: "DELETE",
+  });
+}
+
+export async function assignIssue(
+  auth: JiraAuth,
+  issueIdOrKey: string,
+  accountId: string | null
+) {
+  return jiraRequest(auth, `/rest/api/3/issue/${issueIdOrKey}/assignee`, {
+    method: "PUT",
+    body: JSON.stringify({ accountId }),
+  });
+}
+
+export async function getProjectStatuses(auth: JiraAuth, projectKey: string) {
+  const data = await jiraRequest<any>(auth, `/rest/api/3/project/${projectKey}/statuses`);
+  const statuses: string[] = [];
+  for (const workflow of data ?? []) {
+    for (const status of workflow.statuses ?? []) {
+      if (status?.name && !statuses.includes(status.name)) {
+        statuses.push(status.name);
+      }
+    }
+  }
+  return statuses;
+}
+
+export async function getIssueTransitions(auth: JiraAuth, issueIdOrKey: string) {
+  const data = await jiraRequest<any>(auth, `/rest/api/3/issue/${issueIdOrKey}/transitions`);
+  return data?.transitions ?? [];
+}
+
+export async function transitionIssue(
+  auth: JiraAuth,
+  issueIdOrKey: string,
+  transitionId: string
+) {
+  return jiraRequest(auth, `/rest/api/3/issue/${issueIdOrKey}/transitions`, {
+    method: "POST",
+    body: JSON.stringify({ transition: { id: transitionId } }),
+  });
+}
+
+export async function findUserAccountId(auth: JiraAuth, query: string) {
+  if (!query) {
+    return null;
+  }
+  const encoded = encodeURIComponent(query);
+  const users = await jiraRequest<any[]>(auth, `/rest/api/3/user/search?query=${encoded}`);
+  if (Array.isArray(users) && users.length > 0) {
+    return users[0].accountId;
+  }
+  return null;
+}
+
+function toSimpleAdf(text: string) {
+  return {
+    type: "doc",
+    version: 1,
+    content: [
+      {
+        type: "paragraph",
+        content: text
+          ? [
+              {
+                type: "text",
+                text,
+              },
+            ]
+          : [],
+      },
+    ],
+  };
+}

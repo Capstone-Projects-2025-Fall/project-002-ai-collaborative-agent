@@ -90,6 +90,33 @@ No configuration is required for local development. Supabase settings are embedd
 5. Type "AI Collab Agent: Open" and press Enter
    - If prompted to log in, follow the on-screen flow. No environment variables are required.
 
+### Jira Tasks Feature
+
+#### Additional prerequisites
+- Atlassian/Jira Cloud site URL (e.g., `https://your-team.atlassian.net`) and an existing project key (e.g., `TEAM`).
+- Jira account email that has access to the project.
+- Jira API token (create at https://id.atlassian.com/manage/api-tokens).
+- Extension dependencies installed in `vscode-extension` (handled by `npm install`), which include `@supabase/supabase-js`, `axios`, `node-fetch`, `vsls`, and `dotenv`.
+
+#### Setup & usage
+1. Install dependencies if you haven’t already:
+   ```bash
+   npm install
+   cd vscode-extension
+   npm install
+   cd ..
+   ```
+2. Launch the extension (`F5`) and open the AI Collab panel.
+3. Go to the Jira tab and enter:
+   - Jira Base URL
+   - Jira Project Key
+   - Jira Email
+   - Jira API Token
+   - (Optional) Jira Project Prompt for backlog generation
+4. Click **Create Jira Tasks** (or run the `AI: Create Jira Tasks` command) to generate a backlog from your prompt.
+5. Use **Refresh tasks** to pull the Jira board, create/update/delete tasks, or add assignable emails to map teammates to Jira accounts.
+6. Use **Jump to tasks** to scroll to the board view; filter/search tasks as needed.
+
 #### Join a Project via Invite Code
 
 If you want to join an existing project from the UI using an invite code:
@@ -104,6 +131,7 @@ If you want to join an existing project from the UI using an invite code:
 - **Team Management**: Add team members with their skills and programming languages
 - **Project Creation**: Create projects with goals, requirements, and assign team members
 - **AI Task Delegation**: Generate AI-powered task assignments based on team composition
+- **Jira Integration**: Connect your Jira workspace, generate backlog items from prompts, and manage issues (create/update/delete, assign, transition) directly in the extension
 - **Live Share Integration**: Start collaborative coding sessions
 - **Code Analysis**: Automated code review and suggestions
 

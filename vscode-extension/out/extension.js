@@ -44,6 +44,7 @@ const authService_1 = require("./authService");
 const databaseService_1 = require("./databaseService");
 const supabaseConfig_1 = require("./supabaseConfig");
 const createJiraTasks_1 = require("./commands/createJiraTasks");
+const jira_1 = require("./lib/jira");
 const peerSuggestionService_1 = require("./peerSuggestionService");
 // No .env loading needed; using hardcoded config in supabaseConfig
 // Global variables for OAuth callback handling
@@ -74,6 +75,7 @@ async function setCachedJiraProfile(userId, profile) {
 const GLOBAL_STATE_KEY = "reopenAiCollabAgent";
 // When new workspace is open, liveshare begins
 const GLOBAL_LIVESHARE_KEY = "reopenLiveShareSession";
+const jiraAccountIdCache = new Map();
 // LLM API Key Management
 const LLM_API_KEY_SECRET = "llm_api_key";
 const ACTIVE_PROJECT_KEY = "activeProjectId";
@@ -193,7 +195,9 @@ async function loadInitialData() {
         const allPrompts = await Promise.all(projects.map(project => databaseService.getAIPromptsForProject(project.id)));
         const promptCount = allPrompts.flat().length;
         const sanitizedProfiles = allProfiles.map((profileItem) => {
-            const cached = profileItem.id === user.id ? cachedJiraProfile : undefined;
+            const isCurrentProfile = profileItem.id === profileId ||
+                (!!profileItem.user_id && profileItem.user_id === user.id);
+            const cached = isCurrentProfile ? cachedJiraProfile : undefined;
             return {
                 ...profileItem,
                 jira_base_url: cached?.baseUrl ?? profileItem.jira_base_url ?? null,
@@ -933,6 +937,156 @@ async function openMainPanel(context, authService) {
                 }
                 break;
             }
+            case "loadJiraTasks": {
+                try {
+                    validateJiraPayload(msg.payload);
+                    const requestId = msg.payload?.requestId;
+                    const auth = {
+                        baseUrl: msg.payload.baseUrl,
+                        email: msg.payload.email,
+                        token: msg.payload.token,
+                    };
+                    const tasks = await (0, jira_1.searchIssues)(auth, msg.payload.projectKey, {
+                        status: msg.payload.status,
+                        search: msg.payload.search,
+                    });
+                    const statuses = await (0, jira_1.getProjectStatuses)(auth, msg.payload.projectKey);
+                    panel.webview.postMessage({
+                        type: "jiraTasksLoaded",
+                        payload: { tasks, statuses, requestId },
+                    });
+                }
+                catch (error) {
+                    panel.webview.postMessage({
+                        type: "jiraTasksError",
+                        payload: {
+                            message: error?.message || "Failed to load Jira tasks.",
+                            requestId: msg.payload?.requestId,
+                        },
+                    });
+                }
+                break;
+            }
+            case "jiraCreateTask": {
+                try {
+                    validateJiraPayload(msg.payload);
+                    if (!msg.payload.summary) {
+                        throw new Error("Task summary is required.");
+                    }
+                    const auth = {
+                        baseUrl: msg.payload.baseUrl,
+                        email: msg.payload.email,
+                        token: msg.payload.token,
+                    };
+                    const created = await (0, jira_1.createIssue)(auth, {
+                        projectKey: msg.payload.projectKey,
+                        summary: msg.payload.summary,
+                        description: msg.payload.description,
+                    });
+                    if (msg.payload.assigneeEmail) {
+                        const accountId = await resolveAssigneeAccountId(auth, msg.payload.assigneeEmail);
+                        if (accountId) {
+                            await (0, jira_1.assignIssue)(auth, created.id ?? created.key, accountId);
+                        }
+                    }
+                    panel.webview.postMessage({
+                        type: "jiraOperationResult",
+                        payload: { message: "Jira task created successfully." },
+                    });
+                }
+                catch (error) {
+                    panel.webview.postMessage({
+                        type: "jiraOperationError",
+                        payload: { message: error?.message || "Failed to create Jira task." },
+                    });
+                }
+                break;
+            }
+            case "jiraUpdateTask": {
+                try {
+                    validateJiraPayload(msg.payload);
+                    if (!msg.payload.issueId) {
+                        throw new Error("Missing issue identifier.");
+                    }
+                    const auth = {
+                        baseUrl: msg.payload.baseUrl,
+                        email: msg.payload.email,
+                        token: msg.payload.token,
+                    };
+                    await (0, jira_1.updateIssue)(auth, msg.payload.issueId, {
+                        summary: msg.payload.summary,
+                        description: msg.payload.description,
+                    });
+                    if (msg.payload.assigneeEmail !== undefined) {
+                        const accountId = await resolveAssigneeAccountId(auth, msg.payload.assigneeEmail);
+                        await (0, jira_1.assignIssue)(auth, msg.payload.issueId, accountId);
+                    }
+                    if (msg.payload.transitionId) {
+                        await (0, jira_1.transitionIssue)(auth, msg.payload.issueId, msg.payload.transitionId);
+                    }
+                    panel.webview.postMessage({
+                        type: "jiraOperationResult",
+                        payload: { message: "Jira task updated." },
+                    });
+                }
+                catch (error) {
+                    panel.webview.postMessage({
+                        type: "jiraOperationError",
+                        payload: { message: error?.message || "Failed to update Jira task." },
+                    });
+                }
+                break;
+            }
+            case "jiraDeleteTask": {
+                try {
+                    validateJiraPayload(msg.payload);
+                    if (!msg.payload.issueId) {
+                        throw new Error("Missing issue identifier.");
+                    }
+                    const auth = {
+                        baseUrl: msg.payload.baseUrl,
+                        email: msg.payload.email,
+                        token: msg.payload.token,
+                    };
+                    await (0, jira_1.deleteIssue)(auth, msg.payload.issueId);
+                    panel.webview.postMessage({
+                        type: "jiraOperationResult",
+                        payload: { message: "Jira task deleted." },
+                    });
+                }
+                catch (error) {
+                    panel.webview.postMessage({
+                        type: "jiraOperationError",
+                        payload: { message: error?.message || "Failed to delete Jira task." },
+                    });
+                }
+                break;
+            }
+            case "jiraGetTransitions": {
+                try {
+                    validateJiraPayload(msg.payload);
+                    if (!msg.payload.issueId) {
+                        throw new Error("Missing issue identifier.");
+                    }
+                    const auth = {
+                        baseUrl: msg.payload.baseUrl,
+                        email: msg.payload.email,
+                        token: msg.payload.token,
+                    };
+                    const transitions = await (0, jira_1.getIssueTransitions)(auth, msg.payload.issueId);
+                    panel.webview.postMessage({
+                        type: "jiraTransitionsLoaded",
+                        payload: { issueId: msg.payload.issueId, transitions },
+                    });
+                }
+                catch (error) {
+                    panel.webview.postMessage({
+                        type: "jiraOperationError",
+                        payload: { message: error?.message || "Failed to load transitions." },
+                    });
+                }
+                break;
+            }
             case "openFile": {
                 try {
                     // Open a folder selection dialog
@@ -1191,7 +1345,8 @@ If you cannot provide JSON, provide the response in the numbered format as befor
                             prompt: promptContent,
                             response: aiResponse,
                             parsed: parsedData,
-                            projectName: projectToPrompt.name
+                            projectName: projectToPrompt.name,
+                            projectId: projectToPrompt.id
                         },
                     });
                     vscode.window.showInformationMessage(`✅ AI analysis complete for project: ${projectToPrompt.name}`);
@@ -1635,6 +1790,30 @@ function ensureWorkspaceOpen() {
         return false;
     }
     return true;
+}
+function validateJiraPayload(payload) {
+    if (!payload ||
+        !payload.baseUrl ||
+        !payload.email ||
+        !payload.token ||
+        !payload.projectKey) {
+        throw new Error("Missing Jira credentials or project key.");
+    }
+}
+async function resolveAssigneeAccountId(auth, email) {
+    if (!email) {
+        return null;
+    }
+    const cacheKey = `${trimBase(auth.baseUrl)}|${email.toLowerCase()}`;
+    if (jiraAccountIdCache.has(cacheKey)) {
+        return jiraAccountIdCache.get(cacheKey) || null;
+    }
+    const accountId = await (0, jira_1.findUserAccountId)(auth, email);
+    jiraAccountIdCache.set(cacheKey, accountId);
+    return accountId;
+}
+function trimBase(url) {
+    return url.replace(/\/+$/, "");
 }
 async function getHtml(webview, context) {
     const nonce = getNonce();
