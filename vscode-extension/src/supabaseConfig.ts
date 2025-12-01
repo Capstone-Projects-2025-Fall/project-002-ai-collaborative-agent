@@ -7,6 +7,7 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 const SUPABASE_URL = 'https://ptthofpfrmhhmvmbzgxx.supabase.co/';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB0dGhvZnBmcm1oaG12bWJ6Z3h4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxMjIzMTUsImV4cCI6MjA3MzY5ODMxNX0.vmIQd2JlfigERJTG5tkFGpoRgqBOj0FudEvGDzNd5Ko';
 const EDGE_FUNCTION_URL = 'https://ptthofpfrmhhmvmbzgxx.supabase.co/functions/v1/super-function';
+const PEER_SUGGESTION_EDGE_FUNCTION_URL = 'https://ptthofpfrmhhmvmbzgxx.supabase.co/functions/v1/suggest-peer';
 
 // Validate configuration
 if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !EDGE_FUNCTION_URL) {
@@ -46,6 +47,13 @@ export function getSupabaseUrl(): string {
     throw new Error('SUPABASE_URL is not configured.');
   }
   return SUPABASE_URL;
+}
+
+export function getPeerSuggestionEdgeFunctionUrl(): string {
+  if (!PEER_SUGGESTION_EDGE_FUNCTION_URL) {
+    throw new Error('PEER_SUGGESTION_EDGE_FUNCTION_URL is not configured.');
+  }
+  return PEER_SUGGESTION_EDGE_FUNCTION_URL;
 }
 
 // Database Types

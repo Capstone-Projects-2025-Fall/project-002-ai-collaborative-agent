@@ -1688,6 +1688,12 @@
 
             // Webview now only requests prompt generation from extension
             generateAIPrompt(projectId) {
+                // Set active project first
+                vscode.postMessage({
+                    type: 'setActiveProject',
+                    payload: { projectId: projectId }
+                });
+                
                 // Send projectId to the extension
                 vscode.postMessage({
                     type: 'generatePrompt',
@@ -1803,6 +1809,11 @@
 
             updateUserSelection() {
                 const userSelection = document.getElementById('userSelection');
+                if (!userSelection) {
+                    // Element doesn't exist (might be commented out), skip updating
+                    return;
+                }
+                
                 if (this.users.length === 0) {
                     userSelection.innerHTML = '<p style="text-align: center; color: #64748b; padding: 10px;">Add team members first</p>';
                     return;
@@ -1818,8 +1829,24 @@
 
             updateProjectSelection() {
                 const projectSelect = document.getElementById('promptProject');
+                if (!projectSelect) {
+                    // Element doesn't exist, skip updating
+                    return;
+                }
+                
                 projectSelect.innerHTML = '<option value="">Choose a project...</option>' +
                     this.projects.map(project => `<option value="${project.id}">${project.name}</option>`).join('');
+                
+                // Add change listener to send setActiveProject message
+                projectSelect.onchange = (e) => {
+                    const selectedProjectId = e.target.value;
+                    if (selectedProjectId) {
+                        vscode.postMessage({
+                            type: 'setActiveProject',
+                            payload: { projectId: selectedProjectId }
+                        });
+                    }
+                };
             }
 
             removeUser(userId) {
