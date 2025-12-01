@@ -52,9 +52,9 @@ let lastEditTime = new Map();
 const SUPABASE_EDGE_FUNCTION_URL = "https://ptthofpfrmhhmvmbzgxx.supabase.co/functions/v1/ai-analyze";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB0dGhvZnBmcm1oaG12bWJ6Z3h4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxMjIzMTUsImV4cCI6MjA3MzY5ODMxNX0.vmIQd2JlfigERJTG5tkFGpoRgqBOj0FudEvGDzNd5Ko";
 // Thresholds for intervention
-const SIGNIFICANT_CHANGE_THRESHOLD = 3; // Number of significant changes before analyzing
-const TIME_BASED_CHECK_INTERVAL = 10; // Minutes between time-based checks
-const LINES_CHANGED_THRESHOLD = 20; // Consider it significant if 20+ lines changed
+const SIGNIFICANT_CHANGE_THRESHOLD = 10; // Number of significant changes before analyzing
+const TIME_BASED_CHECK_INTERVAL = 20; // Minutes between time-based checks
+const LINES_CHANGED_THRESHOLD = 30; // Consider it significant if 20+ lines changed
 function activateCodeReviewer(context, addNotification) {
     try {
         console.log('AI Code Assistant extension is now active!');

@@ -50,6 +50,7 @@ const peerSuggestionService_1 = require("./peerSuggestionService");
 let authService;
 let databaseService;
 let extensionContext;
+let peerSuggestionService;
 // Global notification system
 let notificationsProvider;
 let notifications = [];
@@ -207,7 +208,6 @@ function addNotification(message, type = 'info', projectId, projectName) {
         vscode.window.showWarningMessage(message);
     }
 }
-let peerSuggestionService;
 const JIRA_PROFILE_KEY_PREFIX = "jiraProfile:";
 function getCachedJiraProfile(userId) {
     if (!extensionContext) {
