@@ -219,6 +219,7 @@ async function saveInitialData(data: any): Promise<void> {
 class SidebarProvider implements vscode.WebviewViewProvider {
   private _view?: vscode.WebviewView;
   private _activeProjectId: string | null = null;
+  private _liveshareParticipants: Set<string> = new Set();
 
   constructor(private readonly _extensionUri: vscode.Uri) {}
 
@@ -248,6 +249,14 @@ class SidebarProvider implements vscode.WebviewViewProvider {
         case "loadData":
           const data = await loadInitialData();
           this.sendMessage({ type: "dataLoaded", payload: data });
+          break;
+
+        case "getLiveShareParticipants":
+          await this.sendLiveShareParticipants();
+          break;
+
+        case "getAIAnalysis":
+          await this.sendAIAnalysis(message.payload.projectId);
           break;
 
         case "getActiveProject":
@@ -377,6 +386,7 @@ class SidebarProvider implements vscode.WebviewViewProvider {
     });
 
     this._monitorLiveShare();
+    this._monitorLiveShareParticipants();
     await this.loadActiveProject();
   }
 
@@ -392,6 +402,88 @@ class SidebarProvider implements vscode.WebviewViewProvider {
     });
   }
 
+  private async sendLiveShareParticipants() {
+    try {
+      const liveShare = await vsls.getApi();
+      if (liveShare && liveShare.session) {
+        const peers = liveShare.peers || [];
+        const participantEmails = peers
+          .map(peer => peer.user?.emailAddress)
+          .filter(Boolean);
+
+        // Match emails to user IDs
+        const data = await loadInitialData();
+        const participantIds = data.users
+          .filter((user: any) => participantEmails.includes(user.email))
+          .map((user: any) => user.id);
+
+        this.sendMessage({
+          type: 'liveshareParticipants',
+          payload: { participants: participantIds }
+        });
+      } else {
+        this.sendMessage({
+          type: 'liveshareParticipants',
+          payload: { participants: [] }
+        });
+      }
+    } catch (err) {
+      console.error('Error getting LiveShare participants:', err);
+    }
+  }
+
+  private _monitorLiveShareParticipants() {
+    // Poll for participants every 3 seconds
+    setInterval(async () => {
+      if (this._activeProjectId) {
+        await this.sendLiveShareParticipants();
+      }
+    }, 3000);
+  }
+
+  private async sendAIAnalysis(projectId: string) {
+    try {
+      // Get the latest AI prompt for this project
+      const supabase = getSupabaseClient();
+      const { data: prompts, error } = await supabase
+        .from('ai_prompts')
+        .select('ai_response')
+        .eq('project_id', projectId)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (error || !prompts || prompts.length === 0) {
+        this.sendMessage({
+          type: 'aiAnalysisData',
+          payload: null
+        });
+        return;
+      }
+
+      const aiResponse = prompts[0].ai_response;
+      
+      // Parse the AI response (reuse your parseAIResponse function)
+      const data = await loadInitialData();
+      const project = data.projects.find((p: any) => String(p.id) === String(projectId));
+      const teamMembers = data.users.filter((user: any) => 
+        project?.selectedMemberIds?.includes(user.id)
+      );
+
+      const parsedData = parseAIResponse(aiResponse, teamMembers);
+
+      this.sendMessage({
+        type: 'aiAnalysisData',
+        payload: parsedData
+      });
+    } catch (err) {
+      console.error('Error loading AI analysis:', err);
+      this.sendMessage({
+        type: 'aiAnalysisData',
+        payload: null
+      });
+    }
+  }
+
   private async setActiveProject(projectId: string) {
     this._activeProjectId = projectId;
     await extensionContext.globalState.update('activeProjectId', projectId);
@@ -403,7 +495,7 @@ class SidebarProvider implements vscode.WebviewViewProvider {
     if (project) {
       // Send updated data first
       this.sendMessage({ type: "dataLoaded", payload: data });
-        
+
       // Then send active project
       this.sendMessage({ 
         type: "activeProjectChanged", 
@@ -1238,6 +1330,16 @@ async function openMainPanel(
     console.log('Extension: Received message from webview:', { type: msg.type, payload: msg.payload });
     
     switch (msg.type) {
+      case "syncProjectToSidebar": {
+        const { projectId } = msg.payload;
+        // Update sidebar
+        const sidebarProvider = (global as any).sidebarProvider;
+        if (sidebarProvider) {
+          await (sidebarProvider as any).setActiveProject(projectId);
+        }
+        break;
+      }
+      
       case "createJiraTasks": {
         try {
           const payload: Partial<JiraTaskOptions> | undefined = msg?.payload;

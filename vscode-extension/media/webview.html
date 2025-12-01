@@ -1645,6 +1645,17 @@
                 const projectSelect = document.getElementById('promptProject');
                 projectSelect.innerHTML = '<option value="">Choose a project...</option>' +
                     this.projects.map(project => `<option value="${project.id}">${project.name}</option>`).join('');
+                
+                document.getElementById('promptProject')?.addEventListener('change', (e) => {
+                    const projectId = e.target.value;
+                    if (projectId) {
+                        // Notify extension to update sidebar
+                        vscode.postMessage({ 
+                            type: 'syncProjectToSidebar', 
+                            payload: { projectId } 
+                        });
+                    }
+                });
             }
 
             removeUser(userId) {
@@ -2149,6 +2160,16 @@
         function startProject() {
             try {
                 const projectId = document.getElementById('promptProject').value;
+                // document.getElementById('promptProject')?.addEventListener('change', (e) => {
+                //     const projectId = e.target.value;
+                //     if (projectId) {
+                //         // Notify extension to update sidebar
+                //         vscode.postMessage({ 
+                //             type: 'syncProjectToSidebar', 
+                //             payload: { projectId } 
+                //         });
+                //     }
+                // });
                 const project = app.projects.find(p => p.id == projectId);
 
                 if (!projectId) {

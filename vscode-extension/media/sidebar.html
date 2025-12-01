@@ -158,30 +158,148 @@
             cursor: not-allowed;
         }
 
+        /* Team Members List */
         .team-members-list {
             margin-top: 12px;
         }
 
         .team-member-item {
+            background: var(--vscode-input-background);
+            border-radius: 6px;
+            margin-bottom: 6px;
+            overflow: hidden;
+            transition: background 0.2s ease;
+        }
+
+        .member-header {
             display: flex;
             align-items: center;
-            gap: 8px;
-            padding: 6px 8px;
-            background: var(--vscode-input-background);
-            border-radius: 4px;
-            margin-bottom: 4px;
-            font-size: 12px;
+            gap: 10px;
+            padding: 10px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .member-header:hover {
+            background: var(--vscode-list-hoverBackground);
         }
 
         .member-status-dot {
-            width: 6px;
-            height: 6px;
+            width: 10px;
+            height: 10px;
             border-radius: 50%;
-            background: var(--vscode-descriptionForeground);
+            background: #6b7280;
+            flex-shrink: 0;
+            transition: background 0.3s ease;
         }
 
-        .member-status-dot.online {
-            background: var(--vscode-testing-iconPassed);
+        .member-status-dot.active {
+            background: #10b981;
+            box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+        }
+
+        .member-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .member-name {
+            font-weight: 600;
+            font-size: 12px;
+            margin-bottom: 2px;
+        }
+
+        .member-last-active {
+            font-size: 10px;
+            color: var(--vscode-descriptionForeground);
+        }
+
+        .expand-icon {
+            font-size: 10px;
+            color: var(--vscode-descriptionForeground);
+            transition: transform 0.2s ease;
+        }
+
+        .expand-icon.expanded {
+            transform: rotate(180deg);
+        }
+
+        /* Member Details Dropdown */
+        .member-details {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+            background: var(--vscode-editor-background);
+        }
+
+        .member-details.expanded {
+            max-height: 400px;
+            border-top: 1px solid var(--vscode-panel-border);
+        }
+
+        .member-details-content {
+            padding: 12px;
+        }
+
+        .detail-section {
+            margin-bottom: 12px;
+        }
+
+        .detail-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .detail-label {
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--vscode-descriptionForeground);
+            margin-bottom: 6px;
+            letter-spacing: 0.5px;
+        }
+
+        .detail-content {
+            font-size: 11px;
+            line-height: 1.5;
+            color: var(--vscode-foreground);
+        }
+
+        .task-item {
+            padding: 6px 8px;
+            background: var(--vscode-input-background);
+            border-left: 3px solid #667eea;
+            border-radius: 4px;
+            margin-bottom: 4px;
+            font-size: 11px;
+        }
+
+        .history-placeholder {
+            padding: 8px;
+            text-align: center;
+            background: var(--vscode-input-background);
+            border-radius: 4px;
+            font-size: 11px;
+            color: var(--vscode-descriptionForeground);
+            font-style: italic;
+        }
+
+        .close-details-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: none;
+            border: none;
+            color: var(--vscode-descriptionForeground);
+            cursor: pointer;
+            font-size: 16px;
+            padding: 4px;
+            line-height: 1;
+            border-radius: 4px;
+            transition: background 0.2s ease;
+        }
+
+        .close-details-btn:hover {
+            background: var(--vscode-list-hoverBackground);
         }
 
         /* No Project Mode */
@@ -251,12 +369,6 @@
         .full-width-btn {
             width: 100%;
             margin-bottom: 8px;
-        }
-
-        .divider {
-            height: 1px;
-            background: var(--vscode-panel-border);
-            margin: 12px 0;
         }
 
         /* Project List */
@@ -357,7 +469,7 @@
     </style>
 </head>
 <body>
-    <!-- Profile Section (Always visible) -->
+    <!-- Profile Section -->
     <div class="profile-section">
         <div class="profile-avatar" id="profileAvatar" title="View Profile">?</div>
     </div>
@@ -402,8 +514,8 @@
                         id="liveshareInput" 
                         placeholder="Paste LiveShare link..."
                     />
-                    <button id="joinBtn">Join</button>
                 </div>
+                <button id="joinBtn" class="full-width-btn">Join</button>
                 <button id="startSessionBtn" class="secondary full-width-btn">
                     Start New Session
                 </button>
@@ -442,29 +554,35 @@
         const vscode = acquireVsCodeApi();
 
         // State
-        // State
         let projects = [];
         let users = [];
         let currentUser = null;
-        let activeProject = null;  // Always start with no active project
+        let activeProject = null;
+        let aiAnalysisData = null;
+        let activeMembers = new Set();
         let isListExpanded = false;
         let liveshareStatus = 'disconnected';
         let liveshareLink = null;
+        let expandedMemberId = null;
 
         // Initialize
         vscode.postMessage({ type: 'sidebarReady' });
         vscode.postMessage({ type: 'loadData' });
-        // Remove this line: vscode.postMessage({ type: 'getActiveProject' });
-
-        // Ensure we start in no-project mode
         switchToNoProjectMode();
+
+        // Request LiveShare participants periodically
+        setInterval(() => {
+            if (activeProject) {
+                vscode.postMessage({ type: 'getLiveShareParticipants' });
+            }
+        }, 3000); // Poll every 3 seconds
 
         // Profile Avatar Click
         document.getElementById('profileAvatar').addEventListener('click', () => {
             vscode.postMessage({ type: 'openProfile' });
         });
 
-        // LiveShare Join Button (No Project Mode)
+        // LiveShare Join
         document.getElementById('liveshareInput').addEventListener('paste', (e) => {
             setTimeout(() => {
                 const link = e.target.value.trim();
@@ -489,12 +607,12 @@
             document.getElementById('liveshareInput').value = '';
         }
 
-        // Start LiveShare Session
+        // Start LiveShare
         document.getElementById('startSessionBtn').addEventListener('click', () => {
             vscode.postMessage({ type: 'startLiveShare' });
         });
 
-        // Copy LiveShare Link (Active Project Mode)
+        // Copy LiveShare Link
         document.getElementById('copyLinkBtn').addEventListener('click', () => {
             if (liveshareLink) {
                 vscode.postMessage({ 
@@ -504,7 +622,7 @@
             }
         });
 
-        // Switch Project Button
+        // Switch Project
         document.getElementById('switchProjectBtn').addEventListener('click', () => {
             vscode.postMessage({ type: 'clearActiveProject' });
             switchToNoProjectMode();
@@ -542,7 +660,7 @@
             }
         });
 
-        // Listen for messages from extension
+        // Listen for messages
         window.addEventListener('message', event => {
             const message = event.data;
             
@@ -555,6 +673,13 @@
                     break;
                 case 'liveshareStatus':
                     updateLiveShareStatus(message.payload);
+                    break;
+                case 'liveshareParticipants':
+                    updateActiveMembers(message.payload.participants);
+                    break;
+                case 'aiAnalysisData':
+                    aiAnalysisData = message.payload;
+                    renderTeamMembers();
                     break;
             }
         });
@@ -574,12 +699,6 @@
                 renderProjectList();
             }
 
-            // Check if there's an active project
-            // if (data.activeProject) {
-            //     setActiveProject(data.activeProject);
-            // }
-
-            // Always start in no-project mode until user explicitly selects one
             if (!activeProject) {
                 switchToNoProjectMode();
             }
@@ -606,14 +725,15 @@
             activeProject = project;
             switchToActiveProjectMode();
 
-            // Update project name
             document.getElementById('currentProjectName').textContent = project.name || 'Unknown Project';
 
-            // Update team members
-            const teamMembers = users.filter(user => 
-                project.selectedMemberIds && project.selectedMemberIds.includes(user.id)
-            );
-            renderTeamMembers(teamMembers);
+            // Request AI analysis for task data
+            vscode.postMessage({ 
+                type: 'getAIAnalysis', 
+                payload: { projectId: project.id } 
+            });
+
+            renderTeamMembers();
         }
 
         function switchToActiveProjectMode() {
@@ -625,29 +745,139 @@
             document.getElementById('activeProjectMode').classList.add('hidden');
             document.getElementById('noProjectMode').classList.remove('hidden');
             activeProject = null;
+            expandedMemberId = null;
         }
 
-        function renderTeamMembers(members) {
+        function updateActiveMembers(participants) {
+            activeMembers = new Set(participants || []);
+            renderTeamMembers();
+        }
+
+        function renderTeamMembers() {
             const container = document.getElementById('teamMembersList');
             
-            if (members.length === 0) {
+            if (!activeProject) {
+                container.innerHTML = '<div class="no-projects">No active project</div>';
+                return;
+            }
+
+            const teamMembers = users.filter(user => 
+                activeProject.selectedMemberIds && activeProject.selectedMemberIds.includes(user.id)
+            );
+
+            if (teamMembers.length === 0) {
                 container.innerHTML = '<div class="no-projects">No team members</div>';
                 return;
             }
 
-            container.innerHTML = members.map(member => `
-                <div class="team-member-item">
-                    <span class="member-status-dot"></span>
-                    <span>${member.name}</span>
-                </div>
-            `).join('');
+            container.innerHTML = teamMembers.map(member => {
+                const isActive = activeMembers.has(member.id);
+                const isExpanded = expandedMemberId === member.id;
+                const memberTasks = getMemberTasks(member.name);
+                const lastActive = isActive ? 'Active now' : 'Last active: 2 hours ago';
+
+                return `
+                    <div class="team-member-item">
+                        <div class="member-header" data-member-id="${member.id}">
+                            <span class="member-status-dot ${isActive ? 'active' : ''}"></span>
+                            <div class="member-info">
+                                <div class="member-name">${member.name}</div>
+                                <div class="member-last-active">${lastActive}</div>
+                            </div>
+                            <span class="expand-icon ${isExpanded ? 'expanded' : ''}">▼</span>
+                        </div>
+                        <div class="member-details ${isExpanded ? 'expanded' : ''}" id="details-${member.id}">
+                            <div class="member-details-content" style="position: relative;">
+                                <button class="close-details-btn" data-member-id="${member.id}">×</button>
+                                
+                                <div class="detail-section">
+                                    <div class="detail-label">🎯 Current Tasks</div>
+                                    ${memberTasks.current.length > 0 
+                                        ? memberTasks.current.map(task => `<div class="task-item">${task}</div>`).join('')
+                                        : '<div class="detail-content">No current tasks assigned</div>'
+                                    }
+                                </div>
+
+                                <div class="detail-section">
+                                    <div class="detail-label">📚 Work History</div>
+                                    <div class="history-placeholder">See history (Coming soon)</div>
+                                </div>
+
+                                <div class="detail-section">
+                                    <div class="detail-label">🚀 Project Goals</div>
+                                    <div class="detail-content">${memberTasks.goal || 'No goals assigned yet'}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // Add click handlers
+            document.querySelectorAll('.member-header').forEach(header => {
+                header.addEventListener('click', (e) => {
+                    const memberId = header.dataset.memberId;
+                    toggleMemberDetails(memberId);
+                });
+            });
+
+            document.querySelectorAll('.close-details-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const memberId = btn.dataset.memberId;
+                    closeMemberDetails(memberId);
+                });
+            });
         }
+
+        function getMemberTasks(memberName) {
+            if (!aiAnalysisData || !aiAnalysisData.roleAssignments) {
+                return { current: [], goal: '' };
+            }
+
+            const assignment = aiAnalysisData.roleAssignments.find(
+                a => a.memberName === memberName
+            );
+
+            if (!assignment) {
+                return { current: [], goal: '' };
+            }
+
+            return {
+                current: assignment.tasks?.immediate || [],
+                goal: assignment.role || 'Team Member'
+            };
+        }
+
+        function toggleMemberDetails(memberId) {
+            if (expandedMemberId === memberId) {
+                closeMemberDetails(memberId);
+            } else {
+                // Close any open details
+                if (expandedMemberId) {
+                    closeMemberDetails(expandedMemberId);
+                }
+                expandedMemberId = memberId;
+                renderTeamMembers();
+            }
+        }
+
+        function closeMemberDetails(memberId) {
+            expandedMemberId = null;
+            renderTeamMembers();
+        }
+
+        // Close details when clicking outside
+        document.addEventListener('click', (e) => {
+            if (expandedMemberId && !e.target.closest('.team-member-item')) {
+                closeMemberDetails(expandedMemberId);
+            }
+        });
 
         function updateLiveShareStatus(status) {
             liveshareStatus = status.state;
             liveshareLink = status.link || null;
 
-            // Update Active Project Mode status
             const indicator = document.getElementById('projectStatusIndicator');
             const text = document.getElementById('projectStatusText');
             const copyBtn = document.getElementById('copyLinkBtn');
@@ -687,17 +917,13 @@
                 `;
             }).join('');
 
-            // Add click handlers
             document.querySelectorAll('.project-item').forEach(item => {
                 item.addEventListener('click', () => {
                     const projectId = item.dataset.projectId;
-                    const project = projects.find(p => String(p.id) === String(projectId));
-                    if (project) {
-                        vscode.postMessage({ 
-                            type: 'setActiveProject', 
-                            payload: { projectId } 
-                        });
-                    }
+                    vscode.postMessage({ 
+                        type: 'setActiveProject', 
+                        payload: { projectId } 
+                    });
                 });
             });
         }
