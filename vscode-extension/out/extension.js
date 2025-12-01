@@ -1513,10 +1513,31 @@ If you cannot provide JSON, provide the response in the numbered format as befor
             case "viewTimelinePoint": {
                 try {
                     const { pointId } = msg.payload;
-                    vscode.window.showInformationMessage(`Timeline point ${pointId} - Diff view coming soon!`);
+                    console.log(`👁️ Viewing timeline point: ${pointId}`);
+                    // Get the timeline point with code snapshots
+                    const point = timelineManager.getTimelinePoint(pointId);
+                    if (!point) {
+                        panel.webview.postMessage({
+                            type: "timelinePointError",
+                            payload: { message: "Timeline point not found" }
+                        });
+                        break;
+                    }
+                    // Send the full point data including code snapshots
+                    panel.webview.postMessage({
+                        type: "timelinePointLoaded",
+                        payload: { point }
+                    });
+                    console.log(`✅ Sent timeline point with ${point.codeAfter.length} chars of code`);
                 }
                 catch (error) {
-                    vscode.window.showErrorMessage(`Failed to view timeline point: ${error instanceof Error ? error.message : "Unknown error"}`);
+                    console.error('❌ Error viewing timeline point:', error);
+                    panel.webview.postMessage({
+                        type: "timelinePointError",
+                        payload: {
+                            message: error instanceof Error ? error.message : "Failed to load timeline point"
+                        }
+                    });
                 }
                 break;
             }

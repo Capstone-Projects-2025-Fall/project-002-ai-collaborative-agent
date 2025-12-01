@@ -1,10 +1,11 @@
 /**
- * TimelineManager.ts - Handles real-time timeline point creation
+ * TimelineManager.ts - ENHANCED with Code Snapshot Storage
  * 
  * Features:
  * - File creation detection
- * - Time-based activity tracking (1 point per hour if active)
- * - Lines changed threshold (20+ lines = significant change)
+ * - Time-based activity tracking
+ * - Lines changed threshold
+ * - CODE SNAPSHOT STORAGE - saves actual code for diff viewing
  */
 
 import * as vscode from 'vscode';
@@ -20,6 +21,10 @@ export interface TimelinePoint {
   linesRemoved: number;
   changeType: 'major' | 'minor';
   trigger: 'file_created' | 'significant_change' | 'hourly_checkpoint' | 'manual';
+  
+  // NEW: Code snapshots for diff viewing
+  codeBefore: string;  // Code before the change
+  codeAfter: string;   // Code after the change
 }
 
 export class TimelineManager {
@@ -32,7 +37,11 @@ export class TimelineManager {
     lastCheckpointTime: number;
     linesChanged: number;
     changesSinceLastPoint: number;
+    lastKnownContent: string;  // NEW: Track last content for snapshots
   }> = new Map();
+  
+  // NEW: Cache current file contents
+  private fileContentCache: Map<string, string> = new Map();
   
   // Disposables for cleanup
   private disposables: vscode.Disposable[] = [];
@@ -48,7 +57,7 @@ export class TimelineManager {
   }
   
   private initialize() {
-    console.log('🎬 TimelineManager: Initializing...');
+    console.log('🎬 TimelineManager: Initializing with snapshot support...');
     
     // Watch for file creation
     const fileCreateWatcher = vscode.workspace.onDidCreateFiles((event) => {
@@ -56,48 +65,82 @@ export class TimelineManager {
     });
     this.disposables.push(fileCreateWatcher);
     
-    // Watch for file changes (for time-based and threshold detection)
+    // Watch for file changes
     const fileChangeWatcher = vscode.workspace.onDidChangeTextDocument((event) => {
       this.handleFileChange(event);
     });
     this.disposables.push(fileChangeWatcher);
     
-    // Watch for file saves (good trigger point for creating timeline entries)
+    // Watch for file saves
     const fileSaveWatcher = vscode.workspace.onDidSaveTextDocument((document) => {
       this.handleFileSave(document);
     });
     this.disposables.push(fileSaveWatcher);
     
-    console.log('✅ TimelineManager: Initialized successfully');
+    console.log('✅ TimelineManager: Initialized with snapshot storage');
+  }
+  
+  /**
+   * Get current content of a file
+   */
+  private async getFileContent(filePath: string): Promise<string> {
+    try {
+      const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+      if (!workspaceFolder) {
+        return '';
+      }
+      
+      const fullPath = path.join(workspaceFolder.uri.fsPath, filePath);
+      const document = await vscode.workspace.openTextDocument(fullPath);
+      return document.getText();
+    } catch (error) {
+      console.error(`Failed to read file content: ${filePath}`, error);
+      return '';
+    }
   }
   
   /**
    * FEATURE 1: File Creation Detection
    */
-  private handleFileCreation(event: vscode.FileCreateEvent) {
-    event.files.forEach((fileUri) => {
+  private async handleFileCreation(event: vscode.FileCreateEvent) {
+    for (const fileUri of event.files) {
       const filePath = this.getRelativePath(fileUri.fsPath);
       
       // Only track code files
       if (!this.isCodeFile(filePath)) {
-        return;
+        continue;
       }
       
       console.log(`📁 TimelineManager: New file created - ${filePath}`);
       
+      // Get initial content
+      const initialContent = await this.getFileContent(filePath);
+      
       this.createTimelinePoint(filePath, {
         description: 'File created',
         details: `New file added to project`,
-        linesAdded: 0,
+        linesAdded: initialContent.split('\n').length,
         linesRemoved: 0,
         changeType: 'major',
-        trigger: 'file_created'
+        trigger: 'file_created',
+        codeBefore: '', // No content before
+        codeAfter: initialContent
       });
-    });
+      
+      // Initialize activity tracking
+      const activity = {
+        lastEditTime: Date.now(),
+        lastCheckpointTime: Date.now(),
+        linesChanged: 0,
+        changesSinceLastPoint: 0,
+        lastKnownContent: initialContent
+      };
+      this.fileActivity.set(filePath, activity);
+    }
   }
   
   /**
-   * FEATURE 2: Track file changes for time-based and threshold detection
+   * FEATURE 2: Track file changes
    */
   private handleFileChange(event: vscode.TextDocumentChangeEvent) {
     const filePath = this.getRelativePath(event.document.uri.fsPath);
@@ -114,7 +157,8 @@ export class TimelineManager {
         lastEditTime: Date.now(),
         lastCheckpointTime: Date.now(),
         linesChanged: 0,
-        changesSinceLastPoint: 0
+        changesSinceLastPoint: 0,
+        lastKnownContent: event.document.getText()
       };
       this.fileActivity.set(filePath, activity);
     }
@@ -136,7 +180,7 @@ export class TimelineManager {
   /**
    * FEATURE 3: On save, check for significant changes or time-based checkpoint
    */
-  private handleFileSave(document: vscode.TextDocument) {
+  private async handleFileSave(document: vscode.TextDocument) {
     const filePath = this.getRelativePath(document.uri.fsPath);
     
     // Only track code files
@@ -146,31 +190,38 @@ export class TimelineManager {
     
     const activity = this.fileActivity.get(filePath);
     if (!activity) {
-      return; // No activity tracked yet
+      return;
     }
     
     const now = Date.now();
     const timeSinceLastCheckpoint = now - activity.lastCheckpointTime;
     const changesSinceLastPoint = activity.changesSinceLastPoint;
     
-    // FEATURE 2B: Lines Changed Threshold (20+ lines = significant change)
+    // Get current content
+    const currentContent = document.getText();
+    const previousContent = activity.lastKnownContent || '';
+    
+    // FEATURE 2B: Lines Changed Threshold
     if (changesSinceLastPoint >= this.SIGNIFICANT_CHANGE_THRESHOLD) {
       console.log(`📊 TimelineManager: Significant change detected in ${filePath} (${changesSinceLastPoint} lines)`);
       
       this.createTimelinePoint(filePath, {
         description: 'Significant changes',
         details: `Major code modifications detected`,
-        linesAdded: changesSinceLastPoint, // Approximation
+        linesAdded: changesSinceLastPoint,
         linesRemoved: 0,
         changeType: 'major',
-        trigger: 'significant_change'
+        trigger: 'significant_change',
+        codeBefore: previousContent,
+        codeAfter: currentContent
       });
       
-      // Reset counter
+      // Reset counter and update last known content
       activity.changesSinceLastPoint = 0;
       activity.lastCheckpointTime = now;
+      activity.lastKnownContent = currentContent;
     }
-    // FEATURE 3: Time-based checkpoint (1 hour of activity)
+    // FEATURE 3: Time-based checkpoint
     else if (timeSinceLastCheckpoint >= this.CHECKPOINT_INTERVAL && changesSinceLastPoint > 0) {
       console.log(`⏰ TimelineManager: Hourly checkpoint for ${filePath}`);
       
@@ -180,17 +231,23 @@ export class TimelineManager {
         linesAdded: changesSinceLastPoint,
         linesRemoved: 0,
         changeType: 'minor',
-        trigger: 'hourly_checkpoint'
+        trigger: 'hourly_checkpoint',
+        codeBefore: previousContent,
+        codeAfter: currentContent
       });
       
-      // Reset counter
+      // Reset counter and update last known content
       activity.changesSinceLastPoint = 0;
       activity.lastCheckpointTime = now;
+      activity.lastKnownContent = currentContent;
+    } else {
+      // Even if we didn't create a point, update the last known content
+      activity.lastKnownContent = currentContent;
     }
   }
   
   /**
-   * Create a timeline point
+   * Create a timeline point with code snapshots
    */
   private createTimelinePoint(filePath: string, options: {
     description: string;
@@ -199,6 +256,8 @@ export class TimelineManager {
     linesRemoved: number;
     changeType: 'major' | 'minor';
     trigger: TimelinePoint['trigger'];
+    codeBefore: string;
+    codeAfter: string;
   }) {
     // Get existing timeline for this file
     let timeline = this.timelineData.get(filePath);
@@ -207,7 +266,7 @@ export class TimelineManager {
       this.timelineData.set(filePath, timeline);
     }
     
-    // Create the point
+    // Create the point with snapshots
     const point: TimelinePoint = {
       id: `point-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       filePath,
@@ -217,7 +276,9 @@ export class TimelineManager {
       linesAdded: options.linesAdded,
       linesRemoved: options.linesRemoved,
       changeType: options.changeType,
-      trigger: options.trigger
+      trigger: options.trigger,
+      codeBefore: options.codeBefore,
+      codeAfter: options.codeAfter
     };
     
     // Add to timeline (newest first)
@@ -228,7 +289,7 @@ export class TimelineManager {
       timeline.pop();
     }
     
-    console.log(`✨ TimelineManager: Created ${options.trigger} point for ${filePath}`);
+    console.log(`✨ TimelineManager: Created ${options.trigger} point with snapshot for ${filePath}`);
   }
   
   /**
@@ -236,6 +297,19 @@ export class TimelineManager {
    */
   public getTimeline(filePath: string): TimelinePoint[] {
     return this.timelineData.get(filePath) || [];
+  }
+  
+  /**
+   * Get a specific timeline point by ID (for viewing snapshots)
+   */
+  public getTimelinePoint(pointId: string): TimelinePoint | null {
+    for (const [filePath, timeline] of this.timelineData.entries()) {
+      const point = timeline.find(p => p.id === pointId);
+      if (point) {
+        return point;
+      }
+    }
+    return null;
   }
   
   /**
@@ -277,6 +351,7 @@ export class TimelineManager {
     this.disposables.forEach(d => d.dispose());
     this.timelineData.clear();
     this.fileActivity.clear();
+    this.fileContentCache.clear();
     console.log('🛑 TimelineManager: Disposed');
   }
 }
