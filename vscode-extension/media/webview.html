@@ -41,6 +41,7 @@
         .header p {
             font-size: 1.1rem;
             opacity: 0.9;
+            margin-top: 16px;
         }
 
         .tabs {
@@ -168,7 +169,7 @@
         .info-icon:focus-visible::before {
             opacity: 1;
             transform: translate(-50%, 0);
->>>>>>> origin/main
+
         }
 
         @keyframes slideIn {
@@ -247,6 +248,79 @@
             resize: vertical;
             min-height: 100px;
             font-family: inherit;
+        }
+
+        .radio-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 12px;
+            margin-bottom: 15px;
+            padding: 15px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 2px solid #e5e7eb;
+        }
+
+        .radio-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .radio-option input[type="checkbox"],
+        .radio-option input[type="radio"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: #667eea;
+            margin: 0;
+            flex-shrink: 0;
+        }
+
+        .radio-option label {
+            font-weight: 500;
+            color: #475569;
+            cursor: pointer;
+            margin: 0;
+            font-size: 0.9rem;
+            user-select: none;
+        }
+
+        .radio-option:hover label {
+            color: #667eea;
+        }
+
+        .radio-option input[type="checkbox"]:checked + label,
+        .radio-option input[type="radio"]:checked + label {
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .other-input-group {
+            margin-top: 10px;
+        }
+
+        .other-input-group label {
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: #374151;
+            font-size: 0.9rem;
+        }
+
+        .other-input-group input {
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            background: white;
+            width: 100%;
+        }
+
+        .other-input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
 
         .button-group {
@@ -843,6 +917,10 @@
             transform: translateX(-50%);
             margin: 0;
             text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
         }
 
         .signout-btn {
@@ -861,6 +939,7 @@
             transform: translateY(-1px);
         }
 
+<<<<<<< HEAD
         /* CODE DIFF VIEWER STYLES */
 .diff-viewer-modal {
     display: none;
@@ -1042,6 +1121,183 @@
         max-height: 90vh;
     }
 }
+=======
+        .profile-dropdown-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        .profile-button {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            font-size: 0.9rem;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 600;
+        }
+
+        .profile-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .profile-button .profile-icon {
+            font-size: 1.2rem;
+        }
+
+        .profile-dropdown {
+            display: none;
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 0;
+            min-width: 320px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            animation: dropdownSlide 0.2s ease-out;
+        }
+
+        .profile-dropdown.show {
+            display: block;
+        }
+
+        @keyframes dropdownSlide {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .profile-dropdown-header {
+            padding: 20px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .profile-dropdown-header h3 {
+            margin: 0 0 8px 0;
+            color: #1e293b;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .profile-dropdown-content {
+            padding: 15px 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .profile-dropdown-item {
+            margin-bottom: 12px;
+        }
+
+        .profile-dropdown-item label {
+            display: block;
+            font-weight: 600;
+            color: #475569;
+            font-size: 0.85rem;
+            margin-bottom: 4px;
+        }
+
+        .profile-dropdown-item p {
+            color: #64748b;
+            margin: 0;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .profile-dropdown-footer {
+            padding: 15px 20px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .profile-dropdown-footer .btn {
+            width: 100%;
+            justify-content: center;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .edit-profile-link {
+            display: block;
+            text-align: center;
+            padding: 10px;
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .edit-profile-link:hover {
+            background: #f8fafc;
+            color: #764ba2;
+        }
+        
+        .app-logo {
+            height: 120px;
+            width: auto;
+            margin-right: 0;
+            padding: 0;
+            vertical-align: middle;
+        }
+
+        .projects-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+            gap: 24px;
+            align-items: flex-start;
+        }
+
+        @media (max-width: 1000px) {
+            .projects-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        #projects .project-list {
+            max-height: 55vh;
+            overflow-y: auto;
+            margin-bottom: 0;
+        
+            /* Firefox */
+            scrollbar-width: thin;                                         
+            scrollbar-color: rgba(148, 163, 184, 0.4) transparent;   
+        }
+
+            /* Chrome / Edge / VS Code webview (WebKit-based) */
+            #projects .project-list::-webkit-scrollbar {
+                width: 4px;   
+            }
+
+            #projects .project-list::-webkit-scrollbar-track {
+                background: transparent;  
+            }
+
+            #projects .project-list::-webkit-scrollbar-thumb {
+                background: rgba(148, 163, 184, 0.35);  
+                border-radius: 999px;                   
+            }
+
+            #projects .project-list::-webkit-scrollbar-thumb:hover {
+                background: rgba(148, 163, 184, 0.6);   
+            }
+
+>>>>>>> origin/main
     </style>
 </head>
 
@@ -1049,36 +1305,59 @@
     <div class="container">
         <div class="header">
             <div class="header-top">
-                <h1>🚀 AI Collab Agent</h1>
-                <button id="signOutBtn" class="btn btn-secondary signout-btn">Sign Out</button>
+                <div class="profile-dropdown-container">
+                    <button id="profileBtn" class="profile-button">
+                        <span class="profile-icon">👤</span>
+                        <span id="profileBtnName">Profile</span>
+                    </button>
+                    <div id="profileDropdown" class="profile-dropdown">
+                        <div class="profile-dropdown-header">
+                            <h3><span>👤</span> <span id="dropdownUserName">User</span></h3>
+                        </div>
+                        <div class="profile-dropdown-content">
+                            <div class="profile-dropdown-item">
+                                <label>Skills</label>
+                                <p id="dropdownSkills">Not specified</p>
+                            </div>
+                            <div class="profile-dropdown-item">
+                                <label>Programming Languages</label>
+                                <p id="dropdownLanguages">Not specified</p>
+                            </div>
+                            <div class="profile-dropdown-item">
+                                <label>Willing to Work On</label>
+                                <p id="dropdownWilling">Not specified</p>
+                            </div>
+                        </div>
+                        <a class="edit-profile-link" id="editProfileLink">✏️ Edit Profile</a>
+                        <div class="profile-dropdown-footer">
+                            <button id="signOutBtn" class="btn btn-secondary">
+                                <span>🚪</span>
+                                <span>Sign Out</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+
+                <h1><img src="{{logoUri}}" alt="AI Collab Agent logo" class="app-logo">Pallas AI</h1>
+                <div style="width: 140px;"></div> <!-- Spacer -->
             </div>
             <p>Team Collaboration & AI-Powered Project Management</p>
 
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <h3 id="userCount">0</h3>
-                    <p>Team Members</p>
-                </div>
-                <div class="stat-card">
-                    <h3 id="projectCount">0</h3>
-                    <p>Projects</p>
-                </div>
-                <div class="stat-card">
-                    <h3 id="promptCount">0</h3>
-                    <p>AI Prompts</p>
-                </div>
-            </div>
         </div>
 
         <div class="tabs">
-            <button class="tab-button active" data-tab="users">👤 My Profile</button>
             <button class="tab-button" data-tab="projects">📋 Projects</button>
+<<<<<<< HEAD
             <button class="tab-button" data-tab="join">🔗 Join Project</button>
             <button class="tab-button" data-tab="prompts">🤖 AI Prompts</button>
             <button class="tab-button" data-tab="timeline">📅 Timeline</button>
+=======
+            <button class="tab-button" data-tab="prompts">🤖 Workspace</button>
+>>>>>>> origin/main
         </div>
 
-        <div id="users" class="tab-content active">
+        <div id="users" class="tab-content">
             <div class="section-title">My Profile</div>
 
             <form class="form-grid" id="profile-form">
@@ -1089,13 +1368,126 @@
 
                 <div class="form-group">
                     <label for="userSkills">Skills</label>
-                    <textarea id="userSkills"
-                        placeholder="e.g., Leadership, Design, Analysis, Problem Solving"></textarea>
+                    <div class="radio-group">
+                        <div class="radio-option">
+                            <input type="checkbox" id="skill-ml" name="skills" value="Machine Learning">
+                            <label for="skill-ml">Machine Learning</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="skill-db" name="skills" value="Databases">
+                            <label for="skill-db">Databases</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="skill-cloud" name="skills" value="Cloud Computing">
+                            <label for="skill-cloud">Cloud Computing</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="skill-frontend" name="skills" value="Frontend Development">
+                            <label for="skill-frontend">Frontend Development</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="skill-backend" name="skills" value="Backend Development">
+                            <label for="skill-backend">Backend Development</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="skill-devops" name="skills" value="DevOps">
+                            <label for="skill-devops">DevOps</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="skill-security" name="skills" value="Security">
+                            <label for="skill-security">Security</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="skill-mobile" name="skills" value="Mobile Development">
+                            <label for="skill-mobile">Mobile Development</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="skill-testing" name="skills" value="Testing">
+                            <label for="skill-testing">Testing</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="skill-uiux" name="skills" value="UI/UX Design">
+                            <label for="skill-uiux">UI/UX Design</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="skill-data" name="skills" value="Data Science">
+                            <label for="skill-data">Data Science</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="skill-architecture" name="skills" value="Software Architecture">
+                            <label for="skill-architecture">Software Architecture</label>
+                        </div>
+                    </div>
+                    <div class="other-input-group">
+                        <label for="userSkillsOther">Other Skills (comma-separated)</label>
+                        <input type="text" id="userSkillsOther" placeholder="e.g., Leadership, Design, Analysis">
+                    </div>
                 </div>
 
                 <div class="form-group">
                     <label for="userLanguages">Programming Languages</label>
-                    <input type="text" id="userLanguages" placeholder="e.g., Python, JavaScript, TypeScript, Java">
+                    <div class="radio-group">
+                        <div class="radio-option">
+                            <input type="checkbox" id="lang-python" name="languages" value="Python">
+                            <label for="lang-python">Python</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="lang-java" name="languages" value="Java">
+                            <label for="lang-java">Java</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="lang-javascript" name="languages" value="JavaScript">
+                            <label for="lang-javascript">JavaScript</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="lang-typescript" name="languages" value="TypeScript">
+                            <label for="lang-typescript">TypeScript</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="lang-cpp" name="languages" value="C++">
+                            <label for="lang-cpp">C++</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="lang-csharp" name="languages" value="C#">
+                            <label for="lang-csharp">C#</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="lang-go" name="languages" value="Go">
+                            <label for="lang-go">Go</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="lang-rust" name="languages" value="Rust">
+                            <label for="lang-rust">Rust</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="lang-php" name="languages" value="PHP">
+                            <label for="lang-php">PHP</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="lang-ruby" name="languages" value="Ruby">
+                            <label for="lang-ruby">Ruby</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="lang-swift" name="languages" value="Swift">
+                            <label for="lang-swift">Swift</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="lang-kotlin" name="languages" value="Kotlin">
+                            <label for="lang-kotlin">Kotlin</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="lang-sql" name="languages" value="SQL">
+                            <label for="lang-sql">SQL</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="lang-html" name="languages" value="HTML/CSS">
+                            <label for="lang-html">HTML/CSS</label>
+                        </div>
+                    </div>
+                    <div class="other-input-group">
+                        <label for="userLanguagesOther">Other Languages (comma-separated)</label>
+                        <input type="text" id="userLanguagesOther" placeholder="e.g., R, Scala, Dart">
+                    </div>
                 </div>
 
                 <div class="form-group">
@@ -1111,125 +1503,81 @@
 
             <div id="userStatus" class="status-message" style="display: none;"></div>
 
-            <div class="section-title">Profile Information</div>
-            <div id="currentUserDisplay" class="user-list">
-                <p style="text-align: center; color: #64748b; padding: 15px;">Loading profile...</p>
-            </div>
         </div>
 
-        <div id="projects" class="tab-content">
-            <div class="section-title">Create Project</div>
+        <div id="projects" class="tab-content active">
+            <div class="projects-layout">
+                <!-- Left Column -->
+                <div>
+                    <div class="section-title">Create Project</div>
 
-            <form class="form-grid">
-                <div class="form-group">
-                    <label for="projectName">Project Name *</label>
-                    <input type="text" id="projectName" required placeholder="Enter project name">
-                </div>
+                    <form class="form-grid">
+                    
+                        <div class="form-group">
+                            <label for="projectName">Project Name *</label>
+                            <input type="text" id="projectName" required placeholder="Enter project name">
+                        </div>
 
-                <div class="form-group">
-                    <label for="projectDescription">Description *</label>
-                    <textarea id="projectDescription" required placeholder="Describe the project..."></textarea>
-                </div>
+                        <div class="form-group">
+                            <label for="projectDescription">Description *</label>
+                            <textarea id="projectDescription" required placeholder="Describe the project..."></textarea>
+                        </div>
+                    
+                        <div class="form-group">
+                            <label for="projectGoals">Goals</label>
+                            <textarea id="projectGoals" placeholder="List main objectives..."></textarea>
+                        </div>
 
-                <div class="form-group">
-                    <label for="projectGoals">Goals</label>
-                    <textarea id="projectGoals" placeholder="List main objectives..."></textarea>
-                </div>
+                        <div class="form-group">
+                            <label for="projectRequirements">Requirements</label>
+                            <textarea id="projectRequirements"
+                            placeholder="Technical requirements and constraints..."></textarea>
+                        </div>
 
-                <div class="form-group">
-                    <label for="projectRequirements">Requirements</label>
-                    <textarea id="projectRequirements"
-                        placeholder="Technical requirements and constraints..."></textarea>
-                </div>
+                        <div class="form-group">
+                            <label>Select Team Members *</label>
+                            <div id="userSelection" class="multi-select">
+                                <p style="text-align: center; color: #64748b; padding: 10px;">Add team members first</p>
+                            </div>
+                        </div>
+                    </form>
 
-                <div class="form-group">
-                    <label>Select Team Members *</label>
-                    <div id="userSelection" class="multi-select">
-                        <p style="text-align: center; color: #64748b; padding: 10px;">Add team members first</p>
+                    <div class="button-group">
+                        <button id="create-project-btn" class="btn btn-primary">Create Project</button>
+                        <button id="clear-project-form-btn" class="btn btn-secondary">Clear Form</button>
                     </div>
+
+                    <div id="projectStatus" class="status-message" style="display: none;"></div>
+
                 </div>
-            </form>
 
-            <div class="button-group">
-                <button id="create-project-btn" class="btn btn-primary">Create Project</button>
-                <button id="clear-project-form-btn" class="btn btn-secondary">Clear Form</button>
-            </div>
+                <!-- Right Column -->
+                <div>
+                    <div class="section-title">Join Project</div>
 
-            <div id="projectStatus" class="status-message" style="display: none;"></div>
-
-            <div class="section-title">Jira Task Generator</div>
-            <p style="color: #475569; margin-bottom: 12px;">Connect to Jira Cloud to auto-generate a backlog for the selected project.</p>
-            <div class="button-group" style="justify-content: flex-start; margin-bottom: 0;">
-                <button type="button" id="toggle-jira-credentials-btn" class="btn btn-primary" aria-expanded="false">Generate Jira Tasks</button>
-            </div>
-            <div id="jiraCredentialsCard" class="profile-card hidden">
-                <div class="profile-card-title">Jira Credentials</div>
-                <div class="form-grid">
                     <div class="form-group">
-                        <label for="jiraBaseUrl">
-                            Jira Cloud base URL (e.g. https://your-team.atlassian.net)
-                            <span class="info-icon" tabindex="0" role="button" aria-label="How to find your Jira Cloud base URL" data-tooltip="1. Sign in to Jira Cloud in your browser.&#10;2. Copy the site URL up to atlassian.net (e.g., https://team.atlassian.net).&#10;3. Remove everything after the domain before pasting here.">?</span>
-                        </label>
-                        <input type="text" id="jiraBaseUrl" placeholder="https://your-team.atlassian.net">
+                        <label for="inviteCode">Invite Code</label>
+                        <input type="text" id="inviteCode" placeholder="Enter 6-character invite code" maxlength="6"
+                            style="text-transform: uppercase;">
                     </div>
-                    <div class="form-group">
-                        <label for="jiraProjectKey">
-                            Jira Project Key (e.g. STAR, TUFF, ENG)
-                            <span class="info-icon" tabindex="0" role="button" aria-label="How to find your Jira Project Key" data-tooltip="1. In Jira, open Project settings &gt; Details.&#10;2. Find the Project key (2-10 uppercase letters shown under the project name).&#10;3. Paste that exact key here—do not use the project name.">?</span>
-                        </label>
-                        <input type="text" id="jiraProjectKey" placeholder="TEAM">
+
+                    <div class="button-group">
+                        <button id="join-project-btn" class="btn btn-primary">Join Project</button>
                     </div>
-                    <div class="form-group">
-                        <label for="jiraEmail">
-                            Jira account email (the one tied to the API token)
-                            <span class="info-icon" tabindex="0" role="button" aria-label="Which email to use for Jira" data-tooltip="1. Use the Atlassian account email tied to your API token.&#10;2. Confirm it from https://id.atlassian.com/manage-profile.&#10;3. This email must have access to the Jira site you entered.">?</span>
-                        </label>
-                        <input type="email" id="jiraEmail" placeholder="you@company.com">
+
+                    <div id="joinStatus" class="status-message" style="display: none;"></div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin: 25px 0 15px;">
+                        <div class="section-title" style="margin-bottom: 0;">Projects</div>
+                        <button id="refresh-projects-btn" class="btn btn-secondary" style="padding: 8px 16px; font-size: 0.85rem;" title="Refresh projects from database">🔄 Refresh</button>
                     </div>
-                    <div class="form-group">
-                        <label for="jiraApiToken">
-                            Jira API Token
-                            <span class="info-icon" tabindex="0" role="button" aria-label="How to generate a Jira API token" data-tooltip="1. Go to https://id.atlassian.com/manage-profile/security/api-tokens (while logged in).&#10;2. Click Create API token, give it a label, then Create.&#10;3. Copy the token once and paste it here—store it securely because it cannot be shown again.">?</span>
-                        </label>
-                        <input type="password" id="jiraApiToken" placeholder="••••••••">
+
+                    <div id="projectList" class="project-list">
+                        <p style="text-align: center; color: #64748b; padding: 15px;">No projects yet</p>
                     </div>
-                    <div class="form-group" style="grid-column: 1 / -1;">
-                        <label for="jiraProjectPrompt">
-                            Project prompt (Describe your project to generate a Jira backlog)
-                            <span class="info-icon" tabindex="0" role="button" aria-label="What to include in the Jira project prompt" data-tooltip="Describe what Jira should build for you.&#10;Include the product vision, target users, tech stack, constraints, and any priority backlog items or milestones.">?</span>
-                        </label>
-                        <textarea id="jiraProjectPrompt" placeholder="e.g., Build a fitness app that tracks workouts and suggests plans…" rows="4"></textarea>
-                    </div>
+                    <div id="projectRefreshStatus" class="status-message" style="display: none;"></div>
                 </div>
-                <div class="button-group" style="justify-content: flex-end;">
-                    <button type="button" id="jira-profile-create-btn" class="btn btn-primary">Create Jira Tasks</button>
-                </div>
-                <div id="jiraStatus" class="status-message" style="display: none;"></div>
             </div>
-            
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <div class="section-title" style="margin-bottom: 0;">Projects</div>
-                <button id="refresh-projects-btn" class="btn btn-secondary" style="padding: 8px 16px; font-size: 0.85rem;" title="Refresh projects from database">🔄 Refresh</button>
-            </div>
-            <div id="projectList" class="project-list">
-                <p style="text-align: center; color: #64748b; padding: 15px;">No projects yet</p>
-            </div>
-        </div>
-
-        <div id="join" class="tab-content">
-            <div class="section-title">Join Project</div>
-
-            <div class="form-group">
-                <label for="inviteCode">Invite Code</label>
-                <input type="text" id="inviteCode" placeholder="Enter 6-character invite code" maxlength="6"
-                    style="text-transform: uppercase;">
-            </div>
-
-            <div class="button-group">
-                <button id="join-project-btn" class="btn btn-primary">Join Project</button>
-            </div>
-
-            <div id="joinStatus" class="status-message" style="display: none;"></div>
         </div>
 
         <!-- Edit Project Modal -->
@@ -1282,7 +1630,7 @@
             <div class="section-title">AI Prompt Generator</div>
 
             <div class="form-group">
-                <label for="promptProject">Select Project</label>
+                <label for="promptProject">Current Project</label>
                 <select id="promptProject">
                     <option value="">Choose a project...</option>
                 </select>
@@ -1595,19 +1943,129 @@
                 if (!this.currentUser) return;
 
                 document.getElementById('userName').value = this.currentUser.name;
-                document.getElementById('userSkills').value = this.currentUser.skills;
-                document.getElementById('userLanguages').value = this.currentUser.programmingLanguages;
+                
+                // Load skills - parse and set radio buttons + other
+                this.loadSkillsFromString(this.currentUser.skills || '');
+                
+                // Load programming languages - parse and set radio buttons + other
+                this.loadLanguagesFromString(this.currentUser.programmingLanguages || '');
+                
                 document.getElementById('userWilling').value = this.currentUser.willingToWorkOn;
-                document.getElementById('jiraBaseUrl').value = this.currentUser.jiraBaseUrl || '';
-                document.getElementById('jiraProjectKey').value = this.currentUser.jiraProjectKey || '';
-                document.getElementById('jiraEmail').value = this.currentUser.jiraEmail || '';
-                document.getElementById('jiraApiToken').value = this.currentUser.jiraApiToken || '';
-                document.getElementById('jiraProjectPrompt').value = this.currentUser.jiraProjectPrompt || '';
+
+                const jiraBaseUrlInput = document.getElementById('jiraBaseUrl');
+                if (jiraBaseUrlInput) jiraBaseUrlInput.value = this.currentUser.jiraBaseUrl || '';
+
+                const jiraProjectKeyInput = document.getElementById('jiraProjectKey');
+                if (jiraProjectKeyInput) jiraProjectKeyInput.value = this.currentUser.jiraProjectKey || '';
+
+                const jiraEmailInput = document.getElementById('jiraEmail');
+                if (jiraEmailInput) jiraEmailInput.value = this.currentUser.jiraEmail || '';
+
+                const jiraApiTokenInput = document.getElementById('jiraApiToken');
+                if (jiraApiTokenInput) jiraApiTokenInput.value = this.currentUser.jiraApiToken || '';
+
+                const jiraProjectPromptInput = document.getElementById('jiraProjectPrompt');
+                if (jiraProjectPromptInput) jiraProjectPromptInput.value = this.currentUser.jiraProjectPrompt || '';
+
+                updateProfileDropdown();
+            }
+
+            loadSkillsFromString(skillsString) {
+                if (!skillsString) {
+                    // Clear all selections
+                    document.querySelectorAll('input[name="skills"]').forEach(radio => radio.checked = false);
+                    document.getElementById('userSkillsOther').value = '';
+                    return;
+                }
+
+                const skillsList = skillsString.split(',').map(s => s.trim()).filter(s => s);
+                const predefinedSkills = [
+                    'Machine Learning', 'Databases', 'Cloud Computing', 'Frontend Development',
+                    'Backend Development', 'DevOps', 'Security', 'Mobile Development',
+                    'Testing', 'UI/UX Design', 'Data Science', 'Software Architecture'
+                ];
+
+                const otherSkills = [];
+
+                // First, uncheck all checkboxes
+                document.querySelectorAll('input[name="skills"]').forEach(cb => cb.checked = false);
+
+                skillsList.forEach(skill => {
+                    if (predefinedSkills.includes(skill)) {
+                        // Check the corresponding checkbox
+                        const checkbox = document.querySelector(`input[name="skills"][value="${skill}"]`);
+                        if (checkbox) {
+                            checkbox.checked = true;
+                        }
+                    } else {
+                        otherSkills.push(skill);
+                    }
+                });
+
+                // Set other skills
+                document.getElementById('userSkillsOther').value = otherSkills.join(', ');
+            }
+
+            loadLanguagesFromString(languagesString) {
+                if (!languagesString) {
+                    // Clear all selections
+                    document.querySelectorAll('input[name="languages"]').forEach(radio => radio.checked = false);
+                    document.getElementById('userLanguagesOther').value = '';
+                    return;
+                }
+
+                const languagesList = languagesString.split(',').map(l => l.trim()).filter(l => l);
+                const predefinedLanguages = [
+                    'Python', 'Java', 'JavaScript', 'TypeScript', 'C++', 'C#',
+                    'Go', 'Rust', 'PHP', 'Ruby', 'Swift', 'Kotlin', 'SQL', 'HTML/CSS'
+                ];
+
+                const otherLanguages = [];
+
+                // First, uncheck all checkboxes
+                document.querySelectorAll('input[name="languages"]').forEach(cb => cb.checked = false);
+
+                languagesList.forEach(language => {
+                    if (predefinedLanguages.includes(language)) {
+                        // Check the corresponding checkbox
+                        const checkbox = document.querySelector(`input[name="languages"][value="${language}"]`);
+                        if (checkbox) {
+                            checkbox.checked = true;
+                        }
+                    } else {
+                        otherLanguages.push(language);
+                    }
+                });
+
+                // Set other languages
+                document.getElementById('userLanguagesOther').value = otherLanguages.join(', ');
             }
 
             collectProfileFormData() {
-                const skills = (document.getElementById('userSkills')?.value || '').trim();
-                const programmingLanguages = (document.getElementById('userLanguages')?.value || '').trim();
+                // Collect selected skills from checkboxes
+                const selectedSkills = Array.from(document.querySelectorAll('input[name="skills"]:checked'))
+                    .map(checkbox => checkbox.value);
+                const otherSkills = (document.getElementById('userSkillsOther')?.value || '').trim();
+                const allSkills = [...selectedSkills];
+                if (otherSkills) {
+                    // Split comma-separated other skills and add them
+                    const otherSkillsList = otherSkills.split(',').map(s => s.trim()).filter(s => s);
+                    allSkills.push(...otherSkillsList);
+                }
+                const skills = allSkills.join(', ');
+
+                // Collect selected languages from checkboxes
+                const selectedLanguages = Array.from(document.querySelectorAll('input[name="languages"]:checked'))
+                    .map(checkbox => checkbox.value);
+                const otherLanguages = (document.getElementById('userLanguagesOther')?.value || '').trim();
+                const allLanguages = [...selectedLanguages];
+                if (otherLanguages) {
+                    // Split comma-separated other languages and add them
+                    const otherLanguagesList = otherLanguages.split(',').map(l => l.trim()).filter(l => l);
+                    allLanguages.push(...otherLanguagesList);
+                }
+                const programmingLanguages = allLanguages.join(', ');
+
                 const willingToWorkOn = (document.getElementById('userWilling')?.value || '').trim();
                 const jiraBaseUrl = (document.getElementById('jiraBaseUrl')?.value || '').trim();
                 const jiraProjectKey = (document.getElementById('jiraProjectKey')?.value || '').trim();
@@ -1771,6 +2229,12 @@
 
             // Webview now only requests prompt generation from extension
             generateAIPrompt(projectId) {
+                // Set active project first
+                vscode.postMessage({
+                    type: 'setActiveProject',
+                    payload: { projectId: projectId }
+                });
+                
                 // Send projectId to the extension
                 vscode.postMessage({
                     type: 'generatePrompt',
@@ -1793,13 +2257,20 @@
             }
 
             updateStats() {
-                document.getElementById('userCount').textContent = this.users.length.toString();
-                document.getElementById('projectCount').textContent = this.projects.length.toString();
-                document.getElementById('promptCount').textContent = this.promptCount.toString();
+                const userCountEl = document.getElementById('userCount');
+                if (userCountEl) userCountEl.textContent = this.users.length.toString();
+
+                const projectCountEl = document.getElementById('projectCount');
+                if (projectCountEl) projectCountEl.textContent = this.projects.length.toString();
+
+                const promptCountEl = document.getElementById('promptCount');
+                if (promptCountEl) promptCountEl.textContent = this.promptCount.toString();
             }
 
             updateCurrentUserDisplay() {
                 const userDisplay = document.getElementById('currentUserDisplay');
+                if (!userDisplay) return; // section removed, nothing to update
+
                 if (!this.currentUser) {
                     userDisplay.innerHTML = '<p style="text-align: center; color: #64748b; padding: 15px;">Please log in to view your profile</p>';
                     return;
@@ -1879,6 +2350,11 @@
 
             updateUserSelection() {
                 const userSelection = document.getElementById('userSelection');
+                if (!userSelection) {
+                    // Element doesn't exist (might be commented out), skip updating
+                    return;
+                }
+                
                 if (this.users.length === 0) {
                     userSelection.innerHTML = '<p style="text-align: center; color: #64748b; padding: 10px;">Add team members first</p>';
                     return;
@@ -1894,8 +2370,24 @@
 
             updateProjectSelection() {
                 const projectSelect = document.getElementById('promptProject');
+                if (!projectSelect) {
+                    // Element doesn't exist, skip updating
+                    return;
+                }
+                
                 projectSelect.innerHTML = '<option value="">Choose a project...</option>' +
                     this.projects.map(project => `<option value="${project.id}">${project.name}</option>`).join('');
+                
+                // Add change listener to send setActiveProject message
+                projectSelect.onchange = (e) => {
+                    const selectedProjectId = e.target.value;
+                    if (selectedProjectId) {
+                        vscode.postMessage({
+                            type: 'setActiveProject',
+                            payload: { projectId: selectedProjectId }
+                        });
+                    }
+                };
             }
 
             removeUser(userId) {
@@ -2394,6 +2886,8 @@
             }
 
             return html;
+
+
         }
 
         // Listen to messages from VS Code extension
@@ -2525,9 +3019,12 @@
 
         function showStatus(elementId, message, type = 'success') {
             const statusElement = document.getElementById(elementId);
-            statusElement.textContent = message;
-            statusElement.className = 'status-message status-' + type;
-            statusElement.style.display = 'block';
+
+            if (statusElement) {
+                statusElement.textContent = message;
+                statusElement.className = 'status-message status-' + type;
+                statusElement.style.display = 'block';
+            }
 
             setTimeout(() => {
                 statusElement.style.display = 'none';
@@ -2543,8 +3040,29 @@
         function addUser() {
             try {
                 const name = document.getElementById('userName').value.trim();
-                const skills = document.getElementById('userSkills').value.trim();
-                const languages = document.getElementById('userLanguages').value.trim();
+                
+                // Collect skills from checkboxes
+                const selectedSkills = Array.from(document.querySelectorAll('input[name="skills"]:checked'))
+                    .map(checkbox => checkbox.value);
+                const otherSkills = (document.getElementById('userSkillsOther')?.value || '').trim();
+                const allSkills = [...selectedSkills];
+                if (otherSkills) {
+                    const otherSkillsList = otherSkills.split(',').map(s => s.trim()).filter(s => s);
+                    allSkills.push(...otherSkillsList);
+                }
+                const skills = allSkills.join(', ');
+
+                // Collect languages from checkboxes
+                const selectedLanguages = Array.from(document.querySelectorAll('input[name="languages"]:checked'))
+                    .map(checkbox => checkbox.value);
+                const otherLanguages = (document.getElementById('userLanguagesOther')?.value || '').trim();
+                const allLanguages = [...selectedLanguages];
+                if (otherLanguages) {
+                    const otherLanguagesList = otherLanguages.split(',').map(l => l.trim()).filter(l => l);
+                    allLanguages.push(...otherLanguagesList);
+                }
+                const languages = allLanguages.join(', ');
+
                 const willing = document.getElementById('userWilling').value.trim();
 
                 const user = app.addUser(name, skills, languages, willing);
@@ -2557,8 +3075,12 @@
 
         function clearUserForm() {
             document.getElementById('userName').value = '';
-            document.getElementById('userSkills').value = '';
-            document.getElementById('userLanguages').value = '';
+            // Clear all skill checkboxes
+            document.querySelectorAll('input[name="skills"]').forEach(cb => cb.checked = false);
+            document.getElementById('userSkillsOther').value = '';
+            // Clear all language checkboxes
+            document.querySelectorAll('input[name="languages"]').forEach(cb => cb.checked = false);
+            document.getElementById('userLanguagesOther').value = '';
             document.getElementById('userWilling').value = '';
         }
 
@@ -2693,6 +3215,8 @@
             }
         }
 
+
+
         // Add form validation animations
         document.addEventListener('input', (e) => {
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
@@ -2706,6 +3230,29 @@
                     e.target.style.borderColor = '#e5e7eb';
                     e.target.style.boxShadow = 'none';
                 }
+            }
+        });
+
+        function toggleProfileDropdown() {
+            const dropdown = document.getElementById('profileDropdown');
+            dropdown.classList.toggle('show');
+        }
+
+        function updateProfileDropdown() {
+            if (!app.currentUser) return;
+
+            document.getElementById('profileBtnName').textContent = app.currentUser.name || 'Profile';
+            document.getElementById('dropdownUserName').textContent = app.currentUser.name || 'User';
+            document.getElementById('dropdownSkills').textContent = app.currentUser.skills || 'Not specified';
+            document.getElementById('dropdownLanguages').textContent = app.currentUser.programmingLanguages || 'Not specified';
+            document.getElementById('dropdownWilling').textContent = app.currentUser.willingToWorkOn || 'Not specified';
+        }
+
+        document.addEventListener('click', (e) => {
+            const container = document.querySelector('.profile-dropdown-container');
+            const dropdown = document.getElementById('profileDropdown');
+            if (container && !container.contains(e.target) && dropdown) {
+                dropdown.classList.remove('show');
             }
         });
 
@@ -2723,21 +3270,18 @@
                 vscode.postMessage({ type: 'signOut' });
             });
             document.getElementById('refresh-projects-btn')?.addEventListener('click', () => {
-                showStatus('projectStatus', '🔄 Refreshing projects...', 'info');
+                showStatus('projectRefreshStatus', '🔄 Refreshing projects...', 'info');
                 vscode.postMessage({ type: 'loadData' });
             });
 
-            document.getElementById('jira-profile-create-btn')?.addEventListener('click', () => app.createJiraTasksFromProfile());
-            const jiraToggleBtn = document.getElementById('toggle-jira-credentials-btn');
-            const jiraCredentialsCard = document.getElementById('jiraCredentialsCard');
-            jiraToggleBtn?.addEventListener('click', () => {
-                if (!jiraCredentialsCard) return;
-                const isHidden = jiraCredentialsCard.classList.toggle('hidden');
-                jiraToggleBtn.textContent = isHidden ? 'Generate Jira Tasks' : 'Hide Jira Credentials';
-                jiraToggleBtn.setAttribute('aria-expanded', String(!isHidden));
-                if (!isHidden) {
-                    document.getElementById('jiraBaseUrl')?.focus();
-                }
+            document.getElementById('profileBtn')?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                toggleProfileDropdown();
+            });
+
+            document.getElementById('editProfileLink')?.addEventListener('click', () => {
+                document.getElementById('profileDropdown')?.classList.remove('show');
+                showTab('users');
             });
 
             document.body.addEventListener('click', (event) => {
@@ -2883,11 +3427,15 @@
 
             // Initial UI setup and tab selection
             app.updateUI();
-            showTab('users', document.querySelector('.tab-button[data-tab="users"]'));
+            showTab('projects', document.querySelector('.tab-button[data-tab="projects"]'));
 
+<<<<<<< HEAD
             // Load workspace files on startup
             vscode.postMessage({ type: 'getWorkspaceFiles' });
             console.log('🚀 AI Collab Agent - Team Platform initialized!');
+=======
+            console.log('Pallas AI - Team Platform initialized!');
+>>>>>>> origin/main
         });
     </script>
 </body>
