@@ -3939,6 +3939,34 @@
             }
         }
 
+        // Profile dropdown helpers
+        function updateProfileDropdown() {
+            const dropdownName = document.getElementById('dropdownUserName');
+            const dropdownSkills = document.getElementById('dropdownSkills');
+            const dropdownLanguages = document.getElementById('dropdownLanguages');
+            const dropdownWilling = document.getElementById('dropdownWilling');
+            const profileBtnName = document.getElementById('profileBtnName');
+
+            const profile = app?.currentUser;
+
+            const name = profile?.name || 'User';
+            if (dropdownName) dropdownName.textContent = name;
+            if (profileBtnName) profileBtnName.textContent = name;
+            if (dropdownSkills) dropdownSkills.textContent = profile?.skills || 'Not specified';
+            if (dropdownLanguages) dropdownLanguages.textContent = profile?.programmingLanguages || 'Not specified';
+            if (dropdownWilling) dropdownWilling.textContent = profile?.willingToWorkOn || 'Not specified';
+        }
+
+        function toggleProfileDropdown() {
+            const dropdown = document.getElementById('profileDropdown');
+            dropdown?.classList.toggle('show');
+        }
+
+        function closeProfileDropdown() {
+            const dropdown = document.getElementById('profileDropdown');
+            dropdown?.classList.remove('show');
+        }
+
         // Add form validation animations
         document.addEventListener('input', (e) => {
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
@@ -3967,6 +3995,19 @@
             document.getElementById('start-project')?.addEventListener('click', startProject);
             document.getElementById('promptProject')?.addEventListener('change', () => {
                 app.renderJiraTaskDetail();
+            });
+            document.getElementById('profileBtn')?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                toggleProfileDropdown();
+            });
+            document.getElementById('editProfileLink')?.addEventListener('click', () => {
+                closeProfileDropdown();
+                showTab('users');
+            });
+            document.addEventListener('click', (event) => {
+                if (!event.target.closest('.profile-dropdown-container')) {
+                    closeProfileDropdown();
+                }
             });
             document.getElementById('signOutBtn')?.addEventListener('click', () => {
                 vscode.postMessage({ type: 'signOut' });
