@@ -4,7 +4,6 @@ import { AuthUser } from './authService';
 // Database types matching your actual schema
 export interface Profile {
   id: string; // UUID from auth.users
-  user_id?: string | null;
   name: string;
   skills: string;
   programming_languages: string;
@@ -108,7 +107,6 @@ export class DatabaseService {
     
     const insertPayload: Partial<Profile> = {
       id: userId,
-      user_id: userId,
       name,
       skills,
       programming_languages,
@@ -132,7 +130,6 @@ export class DatabaseService {
         console.warn('Profiles table missing Jira credential columns; inserting base profile fields only.');
         const fallbackPayload = {
           id: userId,
-          user_id: userId,
           name,
           skills,
           programming_languages,
@@ -174,20 +171,11 @@ export class DatabaseService {
 
     // Profile exists, update it
     const updatePayload = { ...updates };
-    const profileRowId = existingProfile.id;
-    const profileUserId = existingProfile.user_id || userId;
 
-    let updateQuery = this.supabase
+    const { data, error } = await this.supabase
       .from('profiles')
-      .update(updatePayload);
-
-    if (profileRowId) {
-      updateQuery = updateQuery.eq('id', profileRowId);
-    } else {
-      updateQuery = updateQuery.eq('user_id', profileUserId);
-    }
-
-    const { data, error } = await updateQuery
+      .update(updatePayload)
+      .eq('id', userId)
       .select()
       .single();
 
@@ -201,17 +189,10 @@ export class DatabaseService {
           programming_languages: updates.programming_languages,
           willing_to_work_on: updates.willing_to_work_on
         };
-        let fallbackQuery = this.supabase
+        const { data: fallbackData, error: fallbackError } = await this.supabase
           .from('profiles')
-          .update(fallbackUpdates);
-
-        if (profileRowId) {
-          fallbackQuery = fallbackQuery.eq('id', profileRowId);
-        } else {
-          fallbackQuery = fallbackQuery.eq('user_id', profileUserId);
-        }
-
-        const { data: fallbackData, error: fallbackError } = await fallbackQuery
+          .update(fallbackUpdates)
+          .eq('id', userId)
           .select()
           .single();
 
