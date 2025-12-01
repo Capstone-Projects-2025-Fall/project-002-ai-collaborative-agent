@@ -252,6 +252,7 @@ async function saveInitialData(data) {
 }
 async function activate(context) {
     (0, ai_analyze_1.activateCodeReviewer)(context);
+    checkLiveShareInstalled();
     // Store context globally first
     extensionContext = context;
     const createJiraCmd = vscode.commands.registerCommand("ai.createJiraTasks", async (options) => {
@@ -1818,15 +1819,18 @@ function trimBase(url) {
 async function getHtml(webview, context) {
     const nonce = getNonce();
     const htmlPath = path.join(context.extensionPath, "media", "webview.html");
+    const logoUri = webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, "media", "logo.png"));
     let htmlContent = await fs.readFile(htmlPath, "utf-8");
     htmlContent = htmlContent
+        .replace(/\{\{logoUri\}\}/g, logoUri.toString())
+        // Inject CSP
         .replace(/<head>/, `<head>
-        <meta http-equiv="Content-Security-Policy" content="
-            default-src 'none';
-            style-src ${webview.cspSource} 'unsafe-inline';
-            img-src ${webview.cspSource} https:;
-            script-src 'nonce-${nonce}';
-        ">`)
+      <meta http-equiv="Content-Security-Policy" content="
+          default-src 'none';
+          style-src ${webview.cspSource} 'unsafe-inline';
+          img-src ${webview.cspSource} https:;
+          script-src 'nonce-${nonce}';
+      ">`)
         .replace(/<script>/, `<script nonce="${nonce}">`);
     return htmlContent;
 }
@@ -1840,5 +1844,15 @@ function getNonce() {
 }
 function mockAllocate(payload) {
     throw new Error("Function not implemented.");
+}
+function checkLiveShareInstalled() {
+    const liveshareExtension = vscode.extensions.getExtension('ms-vsliveshare.vsliveshare');
+    if (!liveshareExtension) {
+        vscode.window.showWarningMessage('Live Share is not installed. Please install it for collaboration features.', 'Install Live Share').then(selection => {
+            if (selection === 'Install Live Share') {
+                vscode.env.openExternal(vscode.Uri.parse('vscode:extension/ms-vsliveshare.vsliveshare'));
+            }
+        });
+    }
 }
 //# sourceMappingURL=extension.js.map
