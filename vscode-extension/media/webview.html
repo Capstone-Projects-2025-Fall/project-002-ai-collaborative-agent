@@ -905,9 +905,38 @@
 
         @media (max-width: 1000px) {
             .projects-layout {
-                grid-template-columns:
+                grid-template-columns: 1fr;
             }
         }
+
+        #projects .project-list {
+            max-height: 55vh;
+            overflow-y: auto;
+            margin-bottom: 0;
+        
+            /* Firefox */
+            scrollbar-width: thin;                                         
+            scrollbar-color: rgba(148, 163, 184, 0.4) transparent;   
+        }
+
+            /* Chrome / Edge / VS Code webview (WebKit-based) */
+            #projects .project-list::-webkit-scrollbar {
+                width: 4px;   
+            }
+
+            #projects .project-list::-webkit-scrollbar-track {
+                background: transparent;  
+            }
+
+            #projects .project-list::-webkit-scrollbar-thumb {
+                background: rgba(148, 163, 184, 0.35);  
+                border-radius: 999px;                   
+            }
+
+            #projects .project-list::-webkit-scrollbar-thumb:hover {
+                background: rgba(148, 163, 184, 0.6);   
+            }
+
     </style>
 </head>
 
@@ -1107,10 +1136,6 @@
 
             <div id="userStatus" class="status-message" style="display: none;"></div>
 
-            <div class="section-title">Profile Information</div>
-            <div id="currentUserDisplay" class="user-list">
-                <p style="text-align: center; color: #64748b; padding: 15px;">Loading profile...</p>
-            </div>
         </div>
 
         <div id="projects" class="tab-content active">
@@ -1183,6 +1208,7 @@
                     <div id="projectList" class="project-list">
                         <p style="text-align: center; color: #64748b; padding: 15px;">No projects yet</p>
                     </div>
+                    <div id="projectRefreshStatus" class="status-message" style="display: none;"></div>
                 </div>
             </div>
         </div>
@@ -1696,6 +1722,8 @@
 
             updateCurrentUserDisplay() {
                 const userDisplay = document.getElementById('currentUserDisplay');
+                if (!userDisplay) return; // section removed, nothing to update
+
                 if (!this.currentUser) {
                     userDisplay.innerHTML = '<p style="text-align: center; color: #64748b; padding: 15px;">Please log in to view your profile</p>';
                     return;
@@ -2374,7 +2402,7 @@
                 vscode.postMessage({ type: 'signOut' });
             });
             document.getElementById('refresh-projects-btn')?.addEventListener('click', () => {
-                showStatus('projectStatus', '🔄 Refreshing projects...', 'info');
+                showStatus('projectRefreshStatus', '🔄 Refreshing projects...', 'info');
                 vscode.postMessage({ type: 'loadData' });
             });
 
