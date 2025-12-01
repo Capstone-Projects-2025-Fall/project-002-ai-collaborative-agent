@@ -13,3 +13,8 @@ node_modules/
 dist/
 build/
 out/
+./package-lock.json
+
+# Testing
+coverage/
+.nyc_output/
