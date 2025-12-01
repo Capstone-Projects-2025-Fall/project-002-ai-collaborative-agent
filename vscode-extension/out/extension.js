@@ -43,6 +43,7 @@ const ai_analyze_1 = require("./ai_analyze");
 const authService_1 = require("./authService");
 const databaseService_1 = require("./databaseService");
 const supabaseConfig_1 = require("./supabaseConfig");
+const createJiraTasks_1 = require("./commands/createJiraTasks");
 const peerSuggestionService_1 = require("./peerSuggestionService");
 // No .env loading needed; using hardcoded config in supabaseConfig
 // Global variables for OAuth callback handling
@@ -250,6 +251,35 @@ async function activate(context) {
     checkLiveShareInstalled();
     // Store context globally first
     extensionContext = context;
+    const createJiraCmd = vscode.commands.registerCommand("ai.createJiraTasks", async (options) => {
+        return await (0, createJiraTasks_1.createJiraTasksCmd)(context, options);
+    });
+    context.subscriptions.push(createJiraCmd);
+    // Register LLM API key configuration command
+    const setLLMKeyCmd = vscode.commands.registerCommand("aiCollab.setLLMApiKey", async () => {
+        const currentKey = await getLLMApiKey();
+        const prompt = currentKey
+            ? "Enter your LLM API key (leave empty to clear):"
+            : "Enter your LLM API key:";
+        const apiKey = await vscode.window.showInputBox({
+            prompt,
+            password: true,
+            placeHolder: "sk-...",
+            ignoreFocusOut: true,
+        });
+        if (apiKey === undefined) {
+            return; // User cancelled
+        }
+        if (apiKey === "") {
+            await setLLMApiKey("");
+            vscode.window.showInformationMessage("LLM API key cleared.");
+        }
+        else {
+            await setLLMApiKey(apiKey);
+            vscode.window.showInformationMessage("LLM API key saved successfully.");
+        }
+    });
+    context.subscriptions.push(setLLMKeyCmd);
     // Initialize authentication service
     try {
         authService = new authService_1.AuthService();
