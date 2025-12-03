@@ -22,9 +22,12 @@ export interface TimelinePoint {
   changeType: 'major' | 'minor';
   trigger: 'file_created' | 'significant_change' | 'hourly_checkpoint' | 'manual';
   
-  // NEW: Code snapshots for diff viewing
-  codeBefore: string;  // Code before the change
-  codeAfter: string;   // Code after the change
+  // Code snapshots for diff viewing
+  codeBefore: string;
+  codeAfter: string;
+  
+  // NEW: Tier 2 - Change Types
+  changeTypes: string[];  // ["Function added: login", "Import added: bcrypt"]
 }
 
 export class TimelineManager {
@@ -39,6 +42,227 @@ export class TimelineManager {
     changesSinceLastPoint: number;
     lastKnownContent: string;  // NEW: Track last content for snapshots
   }> = new Map();
+
+  /**
+   * TIER 2: Extract function names from code
+   * Supports: JavaScript, TypeScript, Python, Java, C++, C#, Go, Ruby, PHP, Swift
+   */
+  private extractFunctions(code: string): string[] {
+    const functions: string[] = [];
+    
+    // Multi-language function detection
+    const patterns = [
+      // Python: def function_name(args):
+      /def\s+(\w+)\s*\(/g,
+      
+      // JavaScript/TypeScript: function name() { }
+      /function\s+(\w+)\s*\(/g,
+      
+      // JavaScript/TypeScript: const name = () => { }
+      /(?:const|let|var)\s+(\w+)\s*=\s*(?:\([^)]*\)\s*=>|function)/g,
+      
+      // Java/C++/C#/Swift: type functionName(args) { }
+      /(?:public|private|protected|static|async)?\s*(?:void|int|string|bool|float|double|var|func|def)?\s+(\w+)\s*\(/g,
+      
+      // Ruby: def function_name
+      /def\s+(\w+)/g,
+      
+      // PHP: function function_name(args) { }
+      /function\s+(\w+)\s*\(/g,
+      
+      // Go: func functionName(args) returnType { }
+      /func\s+(\w+)\s*\(/g
+    ];
+    
+    for (const pattern of patterns) {
+      let match;
+      while ((match = pattern.exec(code)) !== null) {
+        const functionName = match[1];
+        if (functionName && !functions.includes(functionName)) {
+          functions.push(functionName);
+        }
+      }
+    }
+    
+    return functions;
+  }
+  
+  /**
+   * TIER 2: Extract class names from code
+   * Supports: JavaScript, TypeScript, Python, Java, C++, C#, Swift, Ruby, PHP
+   */
+  private extractClasses(code: string): string[] {
+    const classes: string[] = [];
+    
+    // Multi-language class detection
+    const patterns = [
+      // JavaScript/TypeScript/Python/Ruby/Swift: class ClassName
+      /class\s+(\w+)/g,
+      
+      // Java/C++/C#: public/private class ClassName
+      /(?:public|private|protected)?\s*class\s+(\w+)/g,
+      
+      // Swift: struct StructName
+      /struct\s+(\w+)/g,
+      
+      // PHP: class ClassName
+      /class\s+(\w+)/g
+    ];
+    
+    for (const pattern of patterns) {
+      let match;
+      while ((match = pattern.exec(code)) !== null) {
+        const className = match[1];
+        if (className && !classes.includes(className)) {
+          classes.push(className);
+        }
+      }
+    }
+    
+    return classes;
+  }
+  
+  /**
+   * TIER 2: Extract import package names from code
+   * Supports: JavaScript, TypeScript, Python, Java, Go, C++, C#, Ruby, PHP
+   */
+  private extractImports(code: string): string[] {
+    const imports: string[] = [];
+    
+    // Multi-language import detection
+    const patterns = [
+      // JavaScript/TypeScript: import ... from 'package'
+      /import\s+.*?from\s+['"]([^'"]+)['"]/g,
+      
+      // Python: import package / from package import ...
+      /(?:^|\n)import\s+(\w+)/gm,
+      /(?:^|\n)from\s+(\w+)\s+import/gm,
+      
+      // Java: import package.name;
+      /import\s+([\w.]+);/g,
+      
+      // Go: import "package"
+      /import\s+"([^"]+)"/g,
+      
+      // C++: #include <package>
+      /#include\s+[<"]([^>"]+)[>"]/g,
+      
+      // C#: using Package;
+      /using\s+([\w.]+);/g,
+      
+      // Ruby: require 'package'
+      /require\s+['"]([^'"]+)['"]/g,
+      
+      // PHP: use Package;
+      /use\s+([\w\\]+);/g
+    ];
+    
+    for (const pattern of patterns) {
+      let match;
+      while ((match = pattern.exec(code)) !== null) {
+        const importName = match[1];
+        if (importName && !imports.includes(importName)) {
+          imports.push(importName);
+        }
+      }
+    }
+    
+    return imports;
+  }
+  
+  /**
+   * TIER 2: Count comments in code
+   * Supports: JavaScript, TypeScript, Python, Java, C++, C#, Go, Ruby, PHP, Shell
+   */
+  private countComments(code: string): number {
+    let count = 0;
+    
+    // Multi-language comment detection
+    const patterns = [
+      // JavaScript/TypeScript/Java/C++/C#/Go/PHP: // single-line
+      /\/\/.*/g,
+      
+      // JavaScript/TypeScript/Java/C++/C#/Go: /* multi-line */
+      /\/\*[\s\S]*?\*\//g,
+      
+      // Python/Ruby/Shell: # single-line
+      /#.*/g,
+      
+      // Python: """ docstring """
+      /"""[\s\S]*?"""/g,
+      /'''[\s\S]*?'''/g
+    ];
+    
+    for (const pattern of patterns) {
+      const matches = code.match(pattern);
+      if (matches) {
+        count += matches.length;
+      }
+    }
+    
+    return count;
+  }
+  
+  /**
+   * TIER 2: Analyze what changed between two code versions
+   */
+  private analyzeChangeTypes(codeBefore: string, codeAfter: string): string[] {
+    const changeTypes: string[] = [];
+    
+    // 1. ANALYZE FUNCTIONS
+    const functionsBefore = this.extractFunctions(codeBefore);
+    const functionsAfter = this.extractFunctions(codeAfter);
+    
+    const addedFunctions = functionsAfter.filter(f => !functionsBefore.includes(f));
+    const removedFunctions = functionsBefore.filter(f => !functionsAfter.includes(f));
+    
+    if (addedFunctions.length > 0) {
+      changeTypes.push(`Function added: ${addedFunctions.join(', ')}`);
+    }
+    if (removedFunctions.length > 0) {
+      changeTypes.push(`Function removed: ${removedFunctions.join(', ')}`);
+    }
+    
+    // 2. ANALYZE CLASSES
+    const classesBefore = this.extractClasses(codeBefore);
+    const classesAfter = this.extractClasses(codeAfter);
+    
+    const addedClasses = classesAfter.filter(c => !classesBefore.includes(c));
+    const removedClasses = classesBefore.filter(c => !classesAfter.includes(c));
+    
+    if (addedClasses.length > 0) {
+      changeTypes.push(`Class added: ${addedClasses.join(', ')}`);
+    }
+    if (removedClasses.length > 0) {
+      changeTypes.push(`Class removed: ${removedClasses.join(', ')}`);
+    }
+    
+    // 3. ANALYZE IMPORTS
+    const importsBefore = this.extractImports(codeBefore);
+    const importsAfter = this.extractImports(codeAfter);
+    
+    const addedImports = importsAfter.filter(i => !importsBefore.includes(i));
+    const removedImports = importsBefore.filter(i => !importsAfter.includes(i));
+    
+    if (addedImports.length > 0) {
+      changeTypes.push(`Import added: ${addedImports.join(', ')}`);
+    }
+    if (removedImports.length > 0) {
+      changeTypes.push(`Import removed: ${removedImports.join(', ')}`);
+    }
+    
+    // 4. ANALYZE COMMENTS
+    const commentsBefore = this.countComments(codeBefore);
+    const commentsAfter = this.countComments(codeAfter);
+    
+    if (commentsAfter > commentsBefore) {
+      changeTypes.push(`Comments added (+${commentsAfter - commentsBefore})`);
+    } else if (commentsAfter < commentsBefore) {
+      changeTypes.push(`Comments removed (-${commentsBefore - commentsAfter})`);
+    }
+    
+    return changeTypes;
+  }
   
   // NEW: Cache current file contents
   private fileContentCache: Map<string, string> = new Map();
@@ -116,6 +340,7 @@ export class TimelineManager {
       // Get initial content
       const initialContent = await this.getFileContent(filePath);
       
+      // Always create timeline point for new files
       this.createTimelinePoint(filePath, {
         description: 'File created',
         details: `New file added to project`,
@@ -201,16 +426,26 @@ export class TimelineManager {
     const currentContent = document.getText();
     const previousContent = activity.lastKnownContent || '';
     
-    // FEATURE 2B: Lines Changed Threshold
-    if (changesSinceLastPoint >= this.SIGNIFICANT_CHANGE_THRESHOLD) {
-      console.log(`📊 TimelineManager: Significant change detected in ${filePath} (${changesSinceLastPoint} lines)`);
+    // NEW TIER 2: Check if there are structural changes (functions, classes, imports)
+    const changeTypes = this.analyzeChangeTypes(previousContent, currentContent);
+    const hasStructuralChanges = changeTypes.length > 0;
+    
+    // FEATURE 2B: Lines Changed Threshold OR Structural Changes Detected
+    if (changesSinceLastPoint >= this.SIGNIFICANT_CHANGE_THRESHOLD || hasStructuralChanges) {
+      const reason = hasStructuralChanges 
+        ? `Structural changes detected: ${changeTypes[0]}${changeTypes.length > 1 ? ` (+${changeTypes.length - 1} more)` : ''}`
+        : `${changesSinceLastPoint} lines changed`;
+      
+      console.log(`📊 TimelineManager: Significant change in ${filePath} - ${reason}`);
       
       this.createTimelinePoint(filePath, {
-        description: 'Significant changes',
-        details: `Major code modifications detected`,
+        description: hasStructuralChanges ? 'Code structure changed' : 'Significant changes',
+        details: hasStructuralChanges 
+          ? changeTypes.slice(0, 2).join(', ') 
+          : 'Major code modifications detected',
         linesAdded: changesSinceLastPoint,
         linesRemoved: 0,
-        changeType: 'major',
+        changeType: hasStructuralChanges ? 'major' : 'major',
         trigger: 'significant_change',
         codeBefore: previousContent,
         codeAfter: currentContent
@@ -266,7 +501,10 @@ export class TimelineManager {
       this.timelineData.set(filePath, timeline);
     }
     
-    // Create the point with snapshots
+    // NEW: Analyze what changed (Tier 2)
+    const changeTypes = this.analyzeChangeTypes(options.codeBefore, options.codeAfter);
+    
+    // Create the point with snapshots and change types
     const point: TimelinePoint = {
       id: `point-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       filePath,
@@ -278,7 +516,8 @@ export class TimelineManager {
       changeType: options.changeType,
       trigger: options.trigger,
       codeBefore: options.codeBefore,
-      codeAfter: options.codeAfter
+      codeAfter: options.codeAfter,
+      changeTypes: changeTypes  // NEW: Add detected change types
     };
     
     // Add to timeline (newest first)
@@ -289,7 +528,11 @@ export class TimelineManager {
       timeline.pop();
     }
     
-    console.log(`✨ TimelineManager: Created ${options.trigger} point with snapshot for ${filePath}`);
+    // Log what we detected
+    console.log(`✨ TimelineManager: Created ${options.trigger} point for ${filePath}`);
+    if (changeTypes.length > 0) {
+      console.log(`   Detected changes: ${changeTypes.join('; ')}`);
+    }
   }
   
   /**

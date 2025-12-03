@@ -795,6 +795,25 @@
             color: #dc2626;
         }
 
+        .timeline-change-types {
+            margin-top: 10px;
+            padding: 10px;
+            background: #fff;
+            border-radius: 6px;
+            border-left: 3px solid #667eea;
+        }
+
+        .change-type-item {
+            color: #475569;
+            font-size: 0.85rem;
+            margin: 4px 0;
+            line-height: 1.4;
+        }
+
+        .change-type-item:first-child {
+            margin-top: 0;
+        }
+
         .timeline-badge {
             display: inline-block;
             background: #667eea;
@@ -2073,6 +2092,15 @@
                                 ${isMajor ? '<span class="timeline-badge">MAJOR</span>' : ''}
                             </div>
                             <div class="timeline-details">${point.details}</div>
+                            
+                            ${point.changeTypes && point.changeTypes.length > 0 ? `
+                                <div class="timeline-change-types">
+                                    ${point.changeTypes.map(ct => `
+                                        <div class="change-type-item">• ${ct}</div>
+                                    `).join('')}
+                                </div>
+                            ` : ''}
+                            
                             <div class="timeline-stats">
                                 <span class="timeline-stat added">+${point.linesAdded} lines</span>
                                 <span class="timeline-stat removed">-${point.linesRemoved} lines</span>
