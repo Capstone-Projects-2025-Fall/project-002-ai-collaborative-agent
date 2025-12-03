@@ -41,6 +41,7 @@
         .header p {
             font-size: 1.1rem;
             opacity: 0.9;
+            margin-top: 16px;
         }
 
         .tabs {
@@ -84,7 +85,7 @@
             display: none;
             background: rgba(255, 255, 255, 0.95);
             border-radius: 15px;
-            padding: 22px 28px;
+            padding: 30px;
             box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
             backdrop-filter: blur(20px);
         }
@@ -1371,30 +1372,15 @@
             </div>
             <p>Team Collaboration & AI-Powered Project Management</p>
 
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <h3 id="userCount">0</h3>
-                    <p>Team Members</p>
-                </div>
-                <div class="stat-card">
-                    <h3 id="projectCount">0</h3>
-                    <p>Projects</p>
-                </div>
-                <div class="stat-card">
-                    <h3 id="promptCount">0</h3>
-                    <p>AI Prompts</p>
-                </div>
-            </div>
         </div>
 
         <div class="tabs">
-            <button class="tab-button active" data-tab="users">👤 My Profile</button>
             <button class="tab-button" data-tab="projects">📋 Projects</button>
-            <button class="tab-button" data-tab="prompts">🤖 AI Prompts</button>
+            <button class="tab-button" data-tab="prompts">🤖 Workspace</button>
             <button class="tab-button" data-tab="jira">🗂️ Jira Tasks</button>
         </div>
 
-        <div id="users" class="tab-content active">
+        <div id="users" class="tab-content">
             <div class="section-title">My Profile</div>
 
             <form class="form-grid" id="profile-form">
@@ -1540,10 +1526,6 @@
 
             <div id="userStatus" class="status-message" style="display: none;"></div>
 
-            <div class="section-title">Profile Information</div>
-            <div id="currentUserDisplay" class="user-list">
-                <p style="text-align: center; color: #64748b; padding: 15px;">Loading profile...</p>
-            </div>
         </div>
 
         <div id="projects" class="tab-content">
@@ -1616,55 +1598,6 @@
                 </div>
             </div>
 
-            <div class="section-title" style="margin-top: 30px;">Jira Task Generator</div>
-            <p style="color: #475569; margin-bottom: 12px;">Connect to Jira Cloud to auto-generate a backlog for the selected project.</p>
-            <div class="button-group" style="justify-content: flex-start; margin-bottom: 0;">
-                <button type="button" id="toggle-jira-credentials-btn" class="btn btn-primary" aria-expanded="false">Generate Jira Tasks</button>
-            </div>
-            <div id="jiraCredentialsCard" class="profile-card hidden">
-                <div class="profile-card-title">Jira Credentials</div>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label for="jiraBaseUrl">
-                            Jira Cloud base URL (e.g. https://your-team.atlassian.net)
-                            <span class="info-icon" tabindex="0" role="button" aria-label="How to find your Jira Cloud base URL" data-tooltip="1. Sign in to Jira Cloud in your browser.&#10;2. Copy the site URL up to atlassian.net (e.g., https://team.atlassian.net).&#10;3. Remove everything after the domain before pasting here.">?</span>
-                        </label>
-                        <input type="text" id="jiraBaseUrl" placeholder="https://your-team.atlassian.net">
-                    </div>
-                    <div class="form-group">
-                        <label for="jiraProjectKey">
-                            Jira Project Key (e.g. STAR, TUFF, ENG)
-                            <span class="info-icon" tabindex="0" role="button" aria-label="How to find your Jira Project Key" data-tooltip="1. In Jira, open Project settings &gt; Details.&#10;2. Find the Project key (2-10 uppercase letters shown under the project name).&#10;3. Paste that exact key here—do not use the project name.">?</span>
-                        </label>
-                        <input type="text" id="jiraProjectKey" placeholder="TEAM">
-                    </div>
-                    <div class="form-group">
-                        <label for="jiraEmail">
-                            Jira account email (the one tied to the API token)
-                            <span class="info-icon" tabindex="0" role="button" aria-label="Which email to use for Jira" data-tooltip="1. Use the Atlassian account email tied to your API token.&#10;2. Confirm it from https://id.atlassian.com/manage-profile.&#10;3. This email must have access to the Jira site you entered.">?</span>
-                        </label>
-                        <input type="email" id="jiraEmail" placeholder="you@company.com">
-                    </div>
-                    <div class="form-group">
-                        <label for="jiraApiToken">
-                            Jira API Token
-                            <span class="info-icon" tabindex="0" role="button" aria-label="How to generate a Jira API token" data-tooltip="1. Go to https://id.atlassian.com/manage-profile/security/api-tokens (while logged in).&#10;2. Click Create API token, give it a label, then Create.&#10;3. Copy the token once and paste it here—store it securely because it cannot be shown again.">?</span>
-                        </label>
-                        <input type="password" id="jiraApiToken" placeholder="••••••••">
-                    </div>
-                    <div class="form-group" style="grid-column: 1 / -1;">
-                        <label for="jiraProjectPrompt">
-                            Project prompt (Describe your project to generate a Jira backlog)
-                            <span class="info-icon" tabindex="0" role="button" aria-label="What to include in the Jira project prompt" data-tooltip="Describe what Jira should build for you.&#10;Include the product vision, target users, tech stack, constraints, and any priority backlog items or milestones.">?</span>
-                        </label>
-                        <textarea id="jiraProjectPrompt" placeholder="e.g., Build a fitness app that tracks workouts and suggests plans…" rows="4"></textarea>
-                    </div>
-                </div>
-                <div class="button-group" style="justify-content: flex-end;">
-                    <button type="button" id="jira-profile-create-btn" class="btn btn-primary">Create Jira Tasks</button>
-                </div>
-                <div id="jiraStatus" class="status-message" style="display: none;"></div>
-            </div>
         </div>
 
         <!-- Edit Project Modal -->
@@ -1834,28 +1767,19 @@
             <div class="jira-credentials-card jira-collapsible-card" id="jiraAssignableCard" style="margin-top: 16px;">
                 <div class="collapsible-header">
                     <div>
-                        <div class="profile-card-title">Assignable Jira Emails</div>
-                        <p style="margin: 4px 0 0; color: #475569;">Add teammate Jira emails for task assignments (no token required for others).</p>
+                        <div class="profile-card-title">Jira Users from linked Jira Board</div>
+                        <p style="margin: 4px 0 0; color: #475569;">Pulled directly from Jira. Use the buttons below to refresh the roster.</p>
                     </div>
                     <button type="button" id="toggleAssignableCardBtn" class="btn btn-secondary" aria-expanded="true">Hide</button>
                 </div>
                 <div id="jiraAssignableBody" class="collapsible-body">
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label for="jiraAssignableName">Display name (optional)</label>
-                            <input type="text" id="jiraAssignableName" placeholder="e.g., Hooter Tu">
-                        </div>
-                        <div class="form-group">
-                            <label for="jiraAssignableEmail">Jira email for assignments</label>
-                            <input type="email" id="jiraAssignableEmail" placeholder="teammate@company.com">
-                        </div>
-                    </div>
                     <div class="button-group" style="justify-content: flex-end;">
-                        <button type="button" id="jiraSaveAssignableBtn" class="btn btn-primary">Add Email</button>
+                        <button type="button" id="jiraRefreshAssignableBtn" class="btn btn-primary">Reload Assignable Users</button>
+                        <button type="button" id="jiraSaveAssignableBtn" class="btn btn-secondary">Refresh from Jira</button>
                         <button type="button" id="jiraClearAssignableBtn" class="btn btn-secondary">Clear</button>
                     </div>
                     <div id="jiraAssignableList" class="project-list" style="margin-top: 12px; min-height: 40px;">
-                        <p style="text-align: center; color: #64748b; padding: 10px;">No assignable Jira emails yet.</p>
+                        <p style="text-align: center; color: #64748b; padding: 10px;">Assignable users will appear here after you reload from Jira.</p>
                     </div>
                 </div>
             </div>
@@ -1935,8 +1859,7 @@
                 this.jiraActiveRequestId = 0; // Tracks in-flight Jira load to discard stale responses
                 this.isCreatingJiraTask = false; // Toggle for new-task form vs editing existing
                 this.jiraUnlocked = window.localStorage.getItem('jiraUnlocked') === 'true'; // Remembers if Jira tab has been shown already
-                this.jiraAssignableEmails = this.loadAssignableEmailsFromStorage(); // Local roster for assign dropdowns
-                this.jiraEditingEmailId = null; // ID of assignable email currently being edited
+                this.jiraAssignableEmails = []; // Roster fetched from Jira
 
                 // Request data from VS Code extension
                 vscode.postMessage({ type: 'loadData' });
@@ -2407,6 +2330,18 @@
                 };
             }
 
+            fetchAssignableFromJira() {
+                try {
+                    const payload = this.getJiraPayload();
+                    vscode.postMessage({
+                        type: 'jiraFetchAssignable',
+                        payload
+                    });
+                } catch (err) {
+                    this.showJiraStatus(err.message || 'Add Jira credentials to load assignees.', 'error');
+                }
+            }
+
             renderJiraBoard() {
                 const warning = document.getElementById('jiraCredentialsWarning');
                 const board = document.getElementById('jiraBoard');
@@ -2471,6 +2406,7 @@
                         const btn = document.querySelector('.tab-button[data-tab="jira"]');
                         showTab('jira', btn);
                         this.loadJiraTasks();
+                        this.fetchAssignableFromJira();
                     }
                     return;
                 }
@@ -2486,6 +2422,7 @@
                     btn.removeAttribute('title');
                 }
                 this.renderJiraBoard();
+                this.fetchAssignableFromJira();
                 if (autoShow) {
                     showTab('jira', btn);
                     this.loadJiraTasks();
@@ -2546,8 +2483,13 @@
                 const activeProjectName = this.getProjectNameById(this.getActiveProjectIdForJira());
                 const currentAssigneeLabel = this.getJiraAssigneeLabel(opts.assignee);
                 const currentAssigneeEmail = opts.assigneeEmail || opts.assignee?.email || '';
-                const currentAssigneeValue = currentAssigneeEmail;
+                const currentAssigneeAccountId = opts.assignee?.accountId || '';
+                const currentAssigneeValue = currentAssigneeEmail || currentAssigneeAccountId;
                 const currentStatusName = opts.status || (this.jiraSelectedTask?.status?.name) || 'Unknown';
+                const assigneeExists = assigneeOptions.some(option =>
+                    (currentAssigneeEmail && option.email === currentAssigneeEmail) ||
+                    (currentAssigneeAccountId && option.accountId === currentAssigneeAccountId)
+                );
 
                 // Ensure current Jira assignee (from server) appears in dropdown if it has an email
                 const enrichedAssigneeOptions = [...assigneeOptions];
@@ -2560,29 +2502,33 @@
                     });
                 }
 
-                const viewOnlyAssigneeOption = !currentAssigneeEmail && opts.assignee
-                    ? `<option value="" selected disabled>${currentAssigneeLabel} (view only)</option>`
+                const viewOnlyAssigneeOption = !assigneeExists && !currentAssigneeEmail && opts.assignee
+                    ? `<option value="${opts.assignee.accountId || ''}" data-email="${opts.assignee.email || ''}" data-account-id="${opts.assignee.accountId || ''}" selected>${currentAssigneeLabel} (view only)</option>`
                     : '';
 
                 const assigneeOptionsHtml = enrichedAssigneeOptions.length
                     ? enrichedAssigneeOptions.map(option => {
+                        const identifier = option.email || option.accountId || '';
+                        if (!identifier) {
+                            return '';
+                        }
                         const projectsLabel = option.projectNames && option.projectNames.length
                             ? ` — ${option.projectNames.join(', ')}`
                             : '';
-                        const label = `${option.name} (${option.email})${projectsLabel}${option.isProjectMember ? ' — Project teammate' : ''}`;
-                        const isSelected = currentAssigneeEmail && currentAssigneeEmail === option.email;
-                        return `<option value="${option.email}" ${isSelected ? 'selected' : ''}>${label}</option>`;
+                        const emailLabel = option.email ? `(${option.email})` : '';
+                        const label = `${option.name} ${emailLabel}${projectsLabel}${option.isProjectMember ? ' — Project teammate' : ''}`;
+                        const isSelected =
+                            (currentAssigneeEmail && option.email && currentAssigneeEmail === option.email) ||
+                            (!currentAssigneeEmail && currentAssigneeAccountId && option.accountId && currentAssigneeAccountId === option.accountId);
+                        return `<option value="${identifier}" data-email="${option.email || ''}" data-account-id="${option.accountId || ''}" ${isSelected ? 'selected' : ''}>${label}</option>`;
                     }).join('')
                     : '';
                 const assigneeHint = assigneeOptions.length
-                    ? `<p class="jira-summary-hint">Assignees include teammates${activeProjectName ? ` from ${activeProjectName}` : ''} and other projects with Jira emails.</p>`
-                    : `<p class="jira-summary-hint">Add teammate Jira emails in their profiles or project roster to assign them.</p>`;
+                    ? `<p class="jira-summary-hint">Assignees pulled from Jira${activeProjectName ? ` for ${activeProjectName}` : ''}.</p>`
+                    : `<p class="jira-summary-hint">Reload assignable users from Jira above to populate this list.</p>`;
                 const externalAssigneeNote = (!currentAssigneeValue && !currentAssigneeLabel)
                     ? ''
-                    : !assigneeOptions.some(option =>
-                        option.email === currentAssigneeValue ||
-                        option.email === opts.assignee?.accountId
-                    )
+                    : !assigneeExists
                         ? `<p class="jira-summary-hint">Current Jira assignee: ${currentAssigneeLabel || 'Unknown user'} (not in teammate list)</p>`
                         : '';
 
@@ -2697,6 +2643,10 @@
                     return 'Unassigned';
                 }
                 return assignee.displayName || assignee.email || 'Assignee';
+            }
+
+            looksLikeEmail(value) {
+                return /\S+@\S+\.\S+/.test(value || '');
             }
 
             formatJiraSummary(rawSummary, descriptionText = '') {
@@ -2868,6 +2818,7 @@
                     const summaryInput = document.getElementById('jiraDetailSummary');
                     const descriptionInput = document.getElementById('jiraDetailDescription');
                     const assigneeInput = document.getElementById('jiraDetailAssignee');
+                    const assigneeSelectedOption = assigneeInput?.selectedOptions?.[0];
                     const statusInput = document.getElementById('jiraDetailStatus');
 
                     const descriptionSource = descriptionInput
@@ -2880,14 +2831,31 @@
                     const summary = generatedSummary.trim();
                     const description = this.formatJiraSummary(summary, descriptionSource); // Ensure summary is echoed in description when Jira renders
                     const selectedAssignee = assigneeInput ? assigneeInput.value : '';
+                    const selectedAssigneeEmail = assigneeSelectedOption?.getAttribute('data-email') || (this.looksLikeEmail(selectedAssignee) ? selectedAssignee : '');
+                    const selectedAssigneeAccountId = assigneeSelectedOption?.getAttribute('data-account-id') || (!this.looksLikeEmail(selectedAssignee) && selectedAssignee ? selectedAssignee : '');
                     const currentAssigneeEmail = this.jiraSelectedTask?.assignee?.email || '';
+                    const currentAssigneeAccountId = this.jiraSelectedTask?.assignee?.accountId || '';
+                    let selectedAssigneeIdentifier = selectedAssigneeAccountId || selectedAssigneeEmail || '';
+                    const currentAssigneeIdentifier = currentAssigneeAccountId || currentAssigneeEmail || '';
+                    // Keep current assignee when the dropdown shows a view-only option with empty value
+                    if (!selectedAssigneeIdentifier && currentAssigneeIdentifier) {
+                        selectedAssigneeIdentifier = currentAssigneeIdentifier;
+                    }
                     // Only send an assignee update when the user explicitly changes the selection.
                     const assigneeChanged = this.isCreatingJiraTask
-                        ? !!selectedAssignee
-                        : selectedAssignee !== currentAssigneeEmail;
-                    const assigneeEmail = assigneeChanged
-                        ? (selectedAssignee || null)
-                        : undefined;
+                        ? !!selectedAssigneeIdentifier
+                        : (selectedAssigneeIdentifier !== currentAssigneeIdentifier);
+                    const assigneeEmail = assigneeChanged ? (selectedAssigneeEmail || null) : undefined;
+                    let assigneeAccountId;
+                    if (assigneeChanged) {
+                        if (selectedAssigneeAccountId) {
+                            assigneeAccountId = selectedAssigneeAccountId;
+                        } else if (selectedAssigneeEmail) {
+                            assigneeAccountId = undefined; // let the extension resolve email → accountId
+                        } else {
+                            assigneeAccountId = null; // explicit unassign
+                        }
+                    }
                     const transitionId = statusInput ? statusInput.value || null : null; // Track requested status change
 
                     if (!summary) {
@@ -2903,15 +2871,18 @@
                     }
 
                     if (this.isCreatingJiraTask) {
+                        console.log('[Webview:Jira] Creating task', { assigneeChanged, assigneeEmail, assigneeAccountId });
                         vscode.postMessage({
                             type: 'jiraCreateTask',
                             payload: this.getJiraPayload({
                                 summary,
                                 description,
-                                assigneeEmail
+                                assigneeEmail,
+                                assigneeAccountId
                             })
                         });
                     } else if (this.jiraSelectedTask) {
+                        console.log('[Webview:Jira] Updating task', { issueId: this.jiraSelectedTask.id, assigneeChanged, assigneeEmail, assigneeAccountId, transitionId });
                         vscode.postMessage({
                             type: 'jiraUpdateTask',
                             payload: this.getJiraPayload({
@@ -2919,6 +2890,7 @@
                                 summary,
                                 description,
                                 assigneeEmail,
+                                assigneeAccountId,
                                 transitionId
                             })
                         });
@@ -3024,84 +2996,15 @@
                 this.renderAssignableEmails();
             }
 
-            loadAssignableEmailsFromStorage() {
-                try {
-                    const raw = window.localStorage.getItem('jiraAssignableEmails');
-                    const parsed = raw ? JSON.parse(raw) : [];
-                    return Array.isArray(parsed) ? parsed : [];
-                } catch (err) {
-                    console.warn('Unable to load Jira assignable emails from storage', err);
-                    return [];
-                }
+            refreshAssignableFromJira() {
+                this.fetchAssignableFromJira();
             }
 
-            saveAssignableEmailsToStorage() {
-                try {
-                    window.localStorage.setItem('jiraAssignableEmails', JSON.stringify(this.jiraAssignableEmails || []));
-                } catch (err) {
-                    console.warn('Unable to save Jira assignable emails to storage', err);
-                }
-            }
-
-            clearAssignableEmailForm() {
-                const nameInput = document.getElementById('jiraAssignableName');
-                const emailInput = document.getElementById('jiraAssignableEmail');
-                if (nameInput) nameInput.value = '';
-                if (emailInput) emailInput.value = '';
-                this.jiraEditingEmailId = null;
-                const saveBtn = document.getElementById('jiraSaveAssignableBtn');
-                if (saveBtn) saveBtn.textContent = 'Add Email';
-            }
-
-            loadAssignableIntoForm(id) {
-                const entry = (this.jiraAssignableEmails || []).find(item => item.id === id);
-                if (!entry) return;
-                const nameInput = document.getElementById('jiraAssignableName');
-                const emailInput = document.getElementById('jiraAssignableEmail');
-                if (nameInput) nameInput.value = entry.name || '';
-                if (emailInput) emailInput.value = entry.email || '';
-                this.jiraEditingEmailId = id;
-                const saveBtn = document.getElementById('jiraSaveAssignableBtn');
-                if (saveBtn) saveBtn.textContent = 'Update Email';
-            }
-
-            saveAssignableEmail() {
-                const nameInput = document.getElementById('jiraAssignableName');
-                const emailInput = document.getElementById('jiraAssignableEmail');
-                const name = (nameInput?.value || '').trim();
-                const email = (emailInput?.value || '').trim();
-                if (!email) {
-                    this.showJiraStatus('Please provide a Jira email to assign tasks.', 'error');
-                    return;
-                }
-
-                if (this.jiraEditingEmailId) {
-                    this.jiraAssignableEmails = (this.jiraAssignableEmails || []).map(item =>
-                        item.id === this.jiraEditingEmailId ? { ...item, name, email } : item
-                    );
-                } else {
-                    this.jiraAssignableEmails = [
-                        ...(this.jiraAssignableEmails || []),
-                        { id: String(Date.now() + Math.random()), name, email }
-                    ];
-                }
-                this.saveAssignableEmailsToStorage();
+            clearAssignableList() {
+                this.jiraAssignableEmails = [];
                 this.renderAssignableEmails();
-                this.clearAssignableEmailForm();
-                this.showJiraStatus('Assignable email saved.', 'success');
-            }
-
-            deleteAssignableEmail(id) {
-                const before = (this.jiraAssignableEmails || []).length;
-                this.jiraAssignableEmails = (this.jiraAssignableEmails || []).filter(item => item.id !== id);
-                if (this.jiraEditingEmailId === id) {
-                    this.clearAssignableEmailForm();
-                }
-                if (before !== this.jiraAssignableEmails.length) {
-                    this.saveAssignableEmailsToStorage();
-                    this.renderAssignableEmails();
-                    this.showJiraStatus('Assignable email removed.', 'success');
-                }
+                this.refreshJiraAssigneeDropdown();
+                this.showJiraStatus('Cleared locally. Reload to pull assignable users from Jira again.', 'info');
             }
 
             renderAssignableEmails() {
@@ -3109,39 +3012,36 @@
                 if (!listEl) return;
                 const entries = this.jiraAssignableEmails || [];
                 if (!entries.length) {
-                    listEl.innerHTML = '<p style="text-align: center; color: #64748b; padding: 10px;">No assignable Jira emails yet.</p>';
+                    listEl.innerHTML = '<p style="text-align: center; color: #64748b; padding: 10px;">No assignable Jira users returned yet. Reload after adding Jira credentials.</p>';
                     return;
                 }
                 listEl.innerHTML = entries.map(entry => `
                     <div class="user-item" style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
                         <div>
-                            <div style="font-weight: 600;">${entry.name || 'Unnamed teammate'}</div>
-                            <div style="color: #475569;">${entry.email}</div>
-                        </div>
-                        <div class="button-group" style="margin: 0;">
-                            <button class="btn btn-secondary jira-assignable-edit" data-id="${entry.id}" style="padding: 6px 10px;">Edit</button>
-                            <button class="btn btn-danger jira-assignable-delete" data-id="${entry.id}" style="padding: 6px 10px;">Delete</button>
+                            <div style="font-weight: 600;">${entry.name || entry.displayName || 'Unnamed teammate'}</div>
+                            ${entry.email ? `<div style="color: #475569;">${entry.email}</div>` : ''}
                         </div>
                     </div>
                 `).join('');
             }
 
             updateStats() {
-                document.getElementById('userCount').textContent = this.users.length.toString();
-                document.getElementById('projectCount').textContent = this.projects.length.toString();
-                document.getElementById('promptCount').textContent = this.promptCount.toString();
+                const userCountEl = document.getElementById('userCount');
+                const projectCountEl = document.getElementById('projectCount');
+                const promptCountEl = document.getElementById('promptCount');
+                if (userCountEl) userCountEl.textContent = this.users.length.toString();
+                if (projectCountEl) projectCountEl.textContent = this.projects.length.toString();
+                if (promptCountEl) promptCountEl.textContent = this.promptCount.toString();
             }
 
             updateCurrentUserDisplay() {
                 const userDisplay = document.getElementById('currentUserDisplay');
+                if (!userDisplay) return; // Profile summary section removed to match demo3
+
                 if (!this.currentUser) {
                     userDisplay.innerHTML = '<p style="text-align: center; color: #64748b; padding: 15px;">Please log in to view your profile</p>';
                     return;
                 }
-
-                const jiraStatus = this.hasJiraCredentials()
-                    ? 'Ready in the Jira Tasks tab'
-                    : 'Set up Jira in the Jira Tasks tab';
 
                 userDisplay.innerHTML = `
                     <div class="user-item">
@@ -3149,7 +3049,7 @@
                         <p><strong>Skills:</strong> ${this.currentUser.skills || 'Not specified'}</p>
                         <p><strong>Languages:</strong> ${this.currentUser.programmingLanguages || 'Not specified'}</p>
                         <p><strong>Interests:</strong> ${this.currentUser.willingToWorkOn || 'Not specified'}</p>
-                        <p><strong>Jira Setup:</strong> ${jiraStatus}</p>
+                        <p><strong>Jira Setup:</strong> ${this.hasJiraCredentials() ? 'Ready in the Jira Tasks tab' : 'Set up Jira in the Jira Tasks tab'}</p>
                         <p><strong>Member Since:</strong> ${new Date(this.currentUser.createdAt).toLocaleString()}</p>
                     </div>
                 `;
@@ -3307,27 +3207,36 @@
                 const projectMembers = this.getProjectMembersForJira(activeProjectId);
                 const allProjectMembers = this.getAllProjectMembersForJira();
                 const activeMemberIds = new Set(projectMembers.map(member => String(member.id)));
-                const optionsByEmail = new Map();
+                const optionsByKey = new Map(); // key is email (lower) or accountId when email is missing
 
                 const addCandidate = (user, projectNames = [], markAsProjectMember = false) => {
                     const email = user?.jiraEmail || user?.email || '';
-                    if (!email) {
-                        return;
+                    const accountId = user?.accountId || user?.jiraAccountId || '';
+                    if (!email && !accountId) {
+                        return; // Need at least one identifier
                     }
-                    const key = email.toLowerCase();
-                    if (!optionsByEmail.has(key)) {
-                        optionsByEmail.set(key, {
+                    const key = email ? email.toLowerCase() : `acct:${accountId.toLowerCase()}`;
+                    if (!optionsByKey.has(key)) {
+                        optionsByKey.set(key, {
                             email,
-                            name: user?.name || email,
+                            accountId,
+                            name: user?.name || user?.displayName || email || accountId,
                             projectNames: new Set(projectNames),
                             isProjectMember: markAsProjectMember
                         });
                     } else {
-                        const entry = optionsByEmail.get(key);
+                        const entry = optionsByKey.get(key);
                         projectNames.forEach(p => entry.projectNames.add(p));
                         entry.isProjectMember = entry.isProjectMember || markAsProjectMember;
-                        if (entry.name === entry.email && user?.name) {
-                            entry.name = user.name;
+                        if (entry.name === (entry.email || entry.accountId) && (user?.name || user?.displayName)) {
+                            entry.name = user.name || user.displayName;
+                        }
+                        // Prefer email if it arrives later
+                        if (!entry.email && email) {
+                            entry.email = email;
+                        }
+                        if (!entry.accountId && accountId) {
+                            entry.accountId = accountId;
                         }
                     }
                 };
@@ -3342,24 +3251,91 @@
                         id: this.currentUser.id,
                         name: this.currentUser.name,
                         jiraEmail: this.currentUser.jiraEmail || '',
-                        email: this.currentUser.jiraEmail || ''
+                        email: this.currentUser.jiraEmail || '',
+                        accountId: this.currentUser.jiraAccountId || ''
                     }, [], activeMemberIds.has(String(this.currentUser.id)));
                 }
 
+                // Jira assignable users fetched from the project
                 (this.jiraAssignableEmails || []).forEach(entry => {
                     addCandidate(
-                        { name: entry.name || entry.email, jiraEmail: entry.email, email: entry.email },
+                        { name: entry.name || entry.displayName || entry.email || entry.accountId, jiraEmail: entry.email, email: entry.email, accountId: entry.accountId },
                         [],
-                        false
+                        true
                     );
                 });
 
-                return Array.from(optionsByEmail.values()).map(entry => ({
+                return Array.from(optionsByKey.values()).map(entry => ({
                     email: entry.email,
+                    accountId: entry.accountId,
                     name: entry.name,
                     projectNames: Array.from(entry.projectNames),
                     isProjectMember: entry.isProjectMember
                 }));
+            }
+
+            refreshJiraAssigneeDropdown() {
+                const assigneeSelect = document.getElementById('jiraDetailAssignee');
+                if (!assigneeSelect) return;
+
+                const currentAssignee = this.jiraSelectedTask?.assignee || null;
+                const selectedOption = assigneeSelect.selectedOptions?.[0];
+                const rawSelectedValue = assigneeSelect.value || '';
+                const currentAssigneeEmail =
+                    selectedOption?.getAttribute('data-email') ||
+                    (this.looksLikeEmail(rawSelectedValue) ? rawSelectedValue : '') ||
+                    currentAssignee?.email ||
+                    '';
+                const currentAssigneeAccountId =
+                    selectedOption?.getAttribute('data-account-id') ||
+                    (!this.looksLikeEmail(rawSelectedValue) && rawSelectedValue ? rawSelectedValue : '') ||
+                    currentAssignee?.accountId ||
+                    '';
+                const currentAssigneeLabel = this.getJiraAssigneeLabel(currentAssignee);
+                const assigneeOptions = this.getJiraAssigneeOptions();
+                const enrichedAssigneeOptions = [...assigneeOptions];
+                const assigneeExists = assigneeOptions.some(option =>
+                    (currentAssigneeEmail && option.email === currentAssigneeEmail) ||
+                    (currentAssigneeAccountId && option.accountId === currentAssigneeAccountId)
+                );
+
+                if ((currentAssigneeEmail || currentAssigneeAccountId) && !assigneeOptions.some(option =>
+                    (currentAssigneeEmail && option.email === currentAssigneeEmail) ||
+                    (currentAssigneeAccountId && option.accountId === currentAssigneeAccountId)
+                )) {
+                    enrichedAssigneeOptions.unshift({
+                        email: currentAssigneeEmail,
+                        accountId: currentAssigneeAccountId,
+                        name: currentAssigneeLabel || currentAssigneeEmail,
+                        projectNames: [],
+                        isProjectMember: false
+                    });
+                }
+
+                const options = [
+                    `<option value="" ${!currentAssigneeEmail && !currentAssigneeAccountId ? 'selected' : ''}>Unassigned</option>`,
+                ];
+
+                if (!assigneeExists && !currentAssigneeEmail && currentAssignee) {
+                    options.push(`<option value="${currentAssigneeAccountId || ''}" data-email="${currentAssigneeEmail}" data-account-id="${currentAssigneeAccountId || ''}" selected>${currentAssigneeLabel} (view only)</option>`);
+                }
+
+                options.push(
+                    ...enrichedAssigneeOptions.map(option => {
+                        const projectsLabel = option.projectNames && option.projectNames.length
+                            ? ` — ${option.projectNames.join(', ')}`
+                            : '';
+                        const identifier = option.email || option.accountId || '';
+                        const labelId = option.email ? `(${option.email})` : '';
+                        const label = `${option.name} ${labelId}${projectsLabel}${option.isProjectMember ? ' — Project teammate' : ''}`;
+                        const isSelected =
+                            (currentAssigneeEmail && option.email && currentAssigneeEmail === option.email) ||
+                            (!currentAssigneeEmail && currentAssigneeAccountId && option.accountId && currentAssigneeAccountId === option.accountId);
+                        return `<option value="${identifier}" data-email="${option.email || ''}" data-account-id="${option.accountId || ''}" ${isSelected ? 'selected' : ''}>${label}</option>`;
+                    })
+                );
+
+                assigneeSelect.innerHTML = options.join('');
             }
 
             removeUser(userId) {
@@ -3633,6 +3609,14 @@
                     break;
                 case 'jiraError':
                     showStatus('jiraStatus', `❌ ${message.payload?.message || 'Failed to create Jira tasks.'}`, 'error');
+                    break;
+                case 'jiraAssignableLoaded':
+                    app.jiraAssignableEmails = message.payload?.users || [];
+                    app.renderAssignableEmails();
+                    app.refreshJiraAssigneeDropdown(); // Update the assignee dropdown with freshly fetched Jira users
+                    break;
+                case 'jiraAssignableError':
+                    showStatus('jiraStatus', `❌ ${message.payload?.message || 'Failed to load assignable users.'}`, 'error');
                     break;
                 case 'promptGeneratedFromExtension': // NEW: Listen for generated prompt from extension
                     document.getElementById('promptOutput').textContent = message.payload.prompt;
@@ -3983,8 +3967,8 @@
             }
         });
 
-        // Centralized Event Handling & Initialization
-        document.addEventListener('DOMContentLoaded', () => { // Ensure DOM is loaded
+            // Centralized Event Handling & Initialization
+            document.addEventListener('DOMContentLoaded', () => { // Ensure DOM is loaded
             document.getElementById('update-profile-btn')?.addEventListener('click', () => app.updateProfile());
             document.getElementById('clear-profile-form-btn')?.addEventListener('click', () => app.resetProfileForm());
             document.getElementById('create-project-btn')?.addEventListener('click', createProject);
@@ -4045,9 +4029,6 @@
                 const collapsed = jiraAssignableCard.classList.toggle('collapsed');
                 toggleAssignableCardBtn.textContent = collapsed ? 'Show' : 'Hide';
                 toggleAssignableCardBtn.setAttribute('aria-expanded', String(!collapsed));
-                if (!collapsed) {
-                    document.getElementById('jiraAssignableName')?.focus();
-                }
             });
             document.getElementById('jiraRefreshBtn')?.addEventListener('click', () => app.loadJiraTasks());
             document.getElementById('jiraNewTaskBtn')?.addEventListener('click', () => {
@@ -4059,8 +4040,9 @@
                 }
                 app.startCreatingJiraTask();
             });
-            document.getElementById('jiraSaveAssignableBtn')?.addEventListener('click', () => app.saveAssignableEmail());
-            document.getElementById('jiraClearAssignableBtn')?.addEventListener('click', () => app.clearAssignableEmailForm());
+            document.getElementById('jiraSaveAssignableBtn')?.addEventListener('click', () => app.refreshAssignableFromJira());
+            document.getElementById('jiraClearAssignableBtn')?.addEventListener('click', () => app.clearAssignableList());
+            document.getElementById('jiraRefreshAssignableBtn')?.addEventListener('click', () => app.fetchAssignableFromJira());
             document.getElementById('jiraFilterStatus')?.addEventListener('change', (event) => {
                 app.jiraFilters.status = event.target.value;
                 app.loadJiraTasks();
@@ -4170,14 +4152,6 @@
                     app.renderJiraTaskDetail();
                 }
 
-                const editBtn = target.closest('.jira-assignable-edit');
-                if (editBtn?.dataset?.id) {
-                    app.loadAssignableIntoForm(editBtn.dataset.id);
-                }
-                const deleteAssignableBtn = target.closest('.jira-assignable-delete');
-                if (deleteAssignableBtn?.dataset?.id) {
-                    app.deleteAssignableEmail(deleteAssignableBtn.dataset.id);
-                }
             });
 
             // Edit modal handlers
@@ -4217,9 +4191,9 @@
 
             // Initial UI setup and tab selection
             app.updateUI();
-            showTab('users', document.querySelector('.tab-button[data-tab="users"]'));
+            showTab('projects', document.querySelector('.tab-button[data-tab="projects"]'));
 
-            console.log('🚀 AI Collab Agent - Team Platform initialized!');
+            console.log('Pallas AI - Team Platform initialized!');
         });
     </script>
 </body>

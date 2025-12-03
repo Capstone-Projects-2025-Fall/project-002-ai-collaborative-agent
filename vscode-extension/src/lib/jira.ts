@@ -312,7 +312,10 @@ export async function searchIssues(
   }
 }
 
-export async function createIssue(auth: JiraAuth, input: { projectKey: string; summary: string; description?: string }) {
+export async function createIssue(
+  auth: JiraAuth,
+  input: { projectKey: string; summary: string; description?: string; assigneeAccountId?: string | null }
+) {
   // Create a new Jira Task using the simple ADF formatter for description
   const payload = {
     fields: {
@@ -320,6 +323,9 @@ export async function createIssue(auth: JiraAuth, input: { projectKey: string; s
       summary: input.summary,
       issuetype: { name: "Task" },
       description: toSimpleAdf(input.description ?? input.summary),
+      ...(input.assigneeAccountId !== undefined
+        ? { assignee: input.assigneeAccountId ? { accountId: input.assigneeAccountId } : null }
+        : {}),
     },
   };
   return jiraRequest<any>(auth, "/rest/api/3/issue", {
@@ -331,7 +337,7 @@ export async function createIssue(auth: JiraAuth, input: { projectKey: string; s
 export async function updateIssue(
   auth: JiraAuth,
   issueIdOrKey: string,
-  fields: { summary?: string; description?: string }
+  fields: { summary?: string; description?: string; assigneeAccountId?: string | null }
 ) {
   // Update an existing Jira issue's summary/description (ADF formatted)
   const payload: any = { fields: {} };
@@ -340,6 +346,9 @@ export async function updateIssue(
   }
   if (fields.description !== undefined) {
     payload.fields.description = toSimpleAdf(fields.description);
+  }
+  if (fields.assigneeAccountId !== undefined) {
+    payload.fields.assignee = fields.assigneeAccountId ? { accountId: fields.assigneeAccountId } : null;
   }
   return jiraRequest<any>(auth, `/rest/api/3/issue/${issueIdOrKey}`, {
     method: "PUT",
@@ -409,6 +418,19 @@ export async function findUserAccountId(auth: JiraAuth, query: string) {
     return users[0].accountId;
   }
   return null;
+}
+
+export async function getAssignableUsers(auth: JiraAuth, projectKey: string) {
+  // Fetch Jira users who can be assigned issues in the given project
+  const users = await jiraRequest<any[]>(
+    auth,
+    `/rest/api/3/user/assignable/search?project=${encodeURIComponent(projectKey)}`
+  );
+  return (users || []).map((u: any) => ({
+    accountId: u.accountId,
+    email: u.emailAddress || "",
+    displayName: u.displayName || u.name || u.accountId,
+  }));
 }
 
 function toSimpleAdf(text: string) {

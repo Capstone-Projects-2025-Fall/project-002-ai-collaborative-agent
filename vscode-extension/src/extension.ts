@@ -17,6 +17,7 @@ import {
   getIssueTransitions,
   transitionIssue,
   findUserAccountId,
+  getAssignableUsers,
 } from "./lib/jira";
 import { PeerSuggestionService } from "./peerSuggestionService";
 
@@ -1124,9 +1125,13 @@ async function openMainPanel(
             projectKey: msg.payload.projectKey,
             summary: msg.payload.summary,
             description: msg.payload.description,
+            assigneeAccountId: msg.payload.assigneeAccountId ?? undefined,
           });
-          if (msg.payload.assigneeEmail) {
-            const accountId = await resolveAssigneeAccountId(auth, msg.payload.assigneeEmail); // Translate email → Jira account id
+          // assignIssue is kept as a fallback for cases where Jira ignores assignee in create payload
+          if (msg.payload.assigneeAccountId || msg.payload.assigneeEmail) {
+            const accountId =
+              msg.payload.assigneeAccountId ||
+              (await resolveAssigneeAccountId(auth, msg.payload.assigneeEmail)); // Translate email → Jira account id
             if (accountId) {
               await assignIssue(auth, created.id ?? created.key, accountId);
             }
@@ -1155,14 +1160,27 @@ async function openMainPanel(
             email: msg.payload.email,
             token: msg.payload.token,
           };
+          const assigneeAccountId =
+            msg.payload.assigneeAccountId !== undefined
+              ? msg.payload.assigneeAccountId
+              : await resolveAssigneeAccountId(auth, msg.payload.assigneeEmail);
+          console.log("[Extension:Jira] Updating issue", {
+            issueId: msg.payload.issueId,
+            hasAssigneeEmail: msg.payload.assigneeEmail ? true : false,
+            assigneeAccountId,
+            transitionRequested: msg.payload.transitionId ? true : false,
+          });
+
           await updateIssue(auth, msg.payload.issueId, {
             summary: msg.payload.summary,
             description: msg.payload.description,
+            assigneeAccountId: assigneeAccountId === undefined ? undefined : assigneeAccountId || null,
           });
 
-          if (msg.payload.assigneeEmail !== undefined) {
-            const accountId = await resolveAssigneeAccountId(auth, msg.payload.assigneeEmail); // Keep assignee in sync with dropdown
-            await assignIssue(auth, msg.payload.issueId, accountId);
+          if ((msg.payload.assigneeEmail !== undefined || msg.payload.assigneeAccountId !== undefined) && assigneeAccountId === undefined) {
+            throw new Error(
+              `Jira user not found for ${msg.payload.assigneeEmail || msg.payload.assigneeAccountId}. Check access in Jira.`
+            );
           }
 
           if (msg.payload.transitionId) {
@@ -1227,6 +1245,28 @@ async function openMainPanel(
           panel.webview.postMessage({
             type: "jiraOperationError",
             payload: { message: error?.message || "Failed to load transitions." },
+          });
+        }
+        break;
+      }
+
+      case "jiraFetchAssignable": {
+        try {
+          validateJiraPayload(msg.payload);
+          const auth = {
+            baseUrl: msg.payload.baseUrl,
+            email: msg.payload.email,
+            token: msg.payload.token,
+          };
+          const users = await getAssignableUsers(auth, msg.payload.projectKey);
+          panel.webview.postMessage({
+            type: "jiraAssignableLoaded",
+            payload: { users },
+          });
+        } catch (error: any) {
+          panel.webview.postMessage({
+            type: "jiraAssignableError",
+            payload: { message: error?.message || "Failed to load assignable users." },
           });
         }
         break;
@@ -2098,10 +2138,14 @@ async function getHtml(
 	const nonce = getNonce();
 
 	const htmlPath = path.join(context.extensionPath, "media", "webview.html");
+  const logoUri = webview.asWebviewUri(
+    vscode.Uri.joinPath(context.extensionUri, "media", "logo.png")
+  );
 
 	let htmlContent = await fs.readFile(htmlPath, "utf-8");
 
 	htmlContent = htmlContent
+    .replace(/\{\{logoUri\}\}/g, logoUri.toString())
 		.replace(
 			/<head>/,
 			`<head>
