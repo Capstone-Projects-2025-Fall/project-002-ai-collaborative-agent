@@ -1172,7 +1172,9 @@ async function openMainPanel(context, authService) {
             }
             case "getRAGStats": {
                 const { projectId } = msg.payload;
+                console.log('Extension: Getting RAG stats for project:', projectId);
                 const ragStats = await ragService.getStats(projectId);
+                console.log('Extension: RAG stats:', ragStats);
                 panel.webview.postMessage({
                     type: "ragStatsUpdated",
                     payload: { stats: ragStats }

@@ -983,6 +983,115 @@
                 background: rgba(148, 163, 184, 0.6);   
             }
 
+        /* RAG Toggle Switch */
+        .rag-toggle {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+
+        .rag-toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .rag-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(148, 163, 184, 0.3);
+            transition: 0.3s;
+            border-radius: 24px;
+        }
+
+        .rag-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+
+        .rag-toggle input:checked + .rag-slider {
+            background-color: #10b981;
+        }
+
+        .rag-toggle input:checked + .rag-slider:before {
+            transform: translateX(20px);
+        }
+
+        .rag-toggle input:disabled + .rag-slider {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* RAG Info Icon */
+        .info-icon-rag {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: rgba(148, 163, 184, 0.3);
+            color: #cbd5e1;
+            font-size: 0.7rem;
+            font-weight: bold;
+            cursor: help;
+            position: relative;
+        }
+
+        .info-icon-rag:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            top: 120%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 280px;
+            background: #1e293b;
+            color: #f1f5f9;
+            padding: 12px 14px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            line-height: 1.5;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            white-space: pre-line;
+            z-index: 1000;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            font-weight: normal;
+        }
+
+        /* Minimal Button */
+        .btn-minimal {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #e2e8f0;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-minimal:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-minimal:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
     </style>
 </head>
 
@@ -1315,23 +1424,28 @@
                 </select>
             </div>
 
-            <!-- RAG Status Indicator -->
-            <div id="rag-status-container" style="margin: 15px 0; padding: 12px; background: rgba(59, 130, 246, 0.1); border-radius: 8px; border-left: 3px solid #3b82f6;">
-                <div style="display: flex; align-items: center; justify-content: space-between;">
-                    <div>
-                        <strong>📚 Workspace Intelligence</strong>
-                        <div id="rag-status-text" style="font-size: 0.85rem; color: #64748b; margin-top: 4px;">
-                            Not indexed
-                        </div>
-                    </div>
-                    <div style="display: flex; gap: 8px;">
-                        <button id="index-workspace-btn" class="btn btn-secondary" style="font-size: 0.85rem; padding: 6px 12px;">
-                            📂 Index Workspace
-                        </button>
-                        <button id="toggle-rag-btn" class="btn btn-secondary" style="font-size: 0.85rem; padding: 6px 12px; display: none;">
-                            🔄 Toggle RAG
-                        </button>
-                    </div>
+            <!-- RAG Control -->
+            <div id="rag-control" style="display: flex; align-items: center; justify-content: space-between; padding: 10px 15px; background: rgba(255,255,255,0.05); border-radius: 8px; margin: 12px 0;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="color: #e2e8f0; font-size: 0.9rem; font-weight: 500;">Smart Context</span>
+                    <div class="info-icon-rag" data-tooltip="Smart Context scans your code once, then sends only relevant snippets to AI.
+
+💰 Saves 60-80% of AI tokens
+⚡ Faster responses
+
+Toggle ON → Click 'Index' → Done!">ⓘ</div>
+                </div>
+                
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div id="rag-status-badge" style="font-size: 0.75rem; color: #94a3b8;">Not indexed</div>
+                    
+                    <!-- Toggle Switch -->
+                    <label class="rag-toggle">
+                        <input type="checkbox" id="rag-toggle-switch" disabled>
+                        <span class="rag-slider"></span>
+                    </label>
+                    
+                    <button id="index-workspace-btn" class="btn-minimal" style="display: none;">Index</button>
                 </div>
             </div>
 
@@ -1935,6 +2049,14 @@
                             type: 'setActiveProject',
                             payload: { projectId: selectedProjectId }
                         });
+                        // Request RAG stats for the selected project
+                        vscode.postMessage({
+                            type: 'getRAGStats',
+                            payload: { projectId: selectedProjectId }
+                        });
+                    } else {
+                        // Reset RAG UI when no project selected
+                        updateRAGStatus(null);
                     }
                 };
 
@@ -2278,6 +2400,7 @@
                     break;
                 
                 case 'ragStatsUpdated':
+                    console.log('Webview: Received RAG stats:', message.payload.stats);
                     updateRAGStatus(message.payload.stats);
                     break;
                 
@@ -2315,6 +2438,7 @@
                     break;
                 
                 case 'pastAnalysesLoaded':
+                    console.log('Past analyses loaded:', message.payload.analyses);
                     displayPastAnalyses(message.payload.analyses);
                     break;
             }
@@ -2545,9 +2669,15 @@
 
                 // Show loading state
                 const btn = document.getElementById('index-workspace-btn');
+                const statusBadge = document.getElementById('rag-status-badge');
+                
                 if (btn) {
                     btn.disabled = true;
-                    btn.textContent = '⏳ Indexing...';
+                    btn.textContent = 'Indexing...';
+                }
+                if (statusBadge) {
+                    statusBadge.textContent = 'Indexing...';
+                    statusBadge.style.color = '#3b82f6';
                 }
 
                 // Send message to extension
@@ -2561,10 +2691,13 @@
             }
         }
 
-        function toggleRAG() {
+        function toggleRAG(event) {
             const projectId = document.getElementById('promptProject').value;
+            const toggleSwitch = event.target;
+            
             if (!projectId) {
                 showStatus('promptStatus', 'Please select a project first', 'error');
+                toggleSwitch.checked = !toggleSwitch.checked; // Revert the toggle
                 return;
             }
 
@@ -2576,6 +2709,7 @@
 
         // Past Analyses Functions
         function loadPastAnalyses(projectId) {
+            console.log('loadPastAnalyses called with projectId:', projectId);
             // Request past analyses from extension
             vscode.postMessage({
                 type: 'loadPastAnalyses',
@@ -2584,14 +2718,19 @@
         }
 
         function displayPastAnalyses(analyses) {
+            console.log('displayPastAnalyses called with:', analyses);
             const listContainer = document.getElementById('pastAnalysisList');
             const itemsContainer = document.getElementById('pastAnalysisItems');
             
+            console.log('Elements found:', { listContainer: !!listContainer, itemsContainer: !!itemsContainer });
+            
             if (!analyses || analyses.length === 0) {
+                console.log('No analyses to display');
                 listContainer.style.display = 'none';
                 return;
             }
 
+            console.log('Displaying', analyses.length, 'analyses');
             listContainer.style.display = 'block';
             
             itemsContainer.innerHTML = analyses.map((analysis, index) => {
@@ -2641,45 +2780,38 @@
 
         function updateRAGStatus(stats) {
             console.log('updateRAGStatus called with:', stats);
-            const statusText = document.getElementById('rag-status-text');
+            const statusBadge = document.getElementById('rag-status-badge');
+            const toggleSwitch = document.getElementById('rag-toggle-switch');
             const indexBtn = document.getElementById('index-workspace-btn');
-            const toggleBtn = document.getElementById('toggle-rag-btn');
+            console.log('Elements:', { statusBadge: !!statusBadge, toggleSwitch: !!toggleSwitch, indexBtn: !!indexBtn });
 
-            console.log('Elements found:', { statusText: !!statusText, indexBtn: !!indexBtn, toggleBtn: !!toggleBtn });
-
-            if (!stats) {
-                statusText.textContent = 'Not indexed';
-                indexBtn.textContent = '📂 Index Workspace';
+            if (!stats || stats.totalFiles === 0) {
+                console.log('No stats or 0 files, showing not indexed');
+                // Not indexed yet
+                statusBadge.textContent = 'Not indexed';
+                statusBadge.style.color = '#94a3b8';
+                toggleSwitch.checked = false;
+                toggleSwitch.disabled = true;
+                indexBtn.style.display = 'inline-block';
+                indexBtn.textContent = 'Index';
                 indexBtn.disabled = false;
-                toggleBtn.style.display = 'none';
                 return;
             }
 
-            console.log('Stats values:', { enabled: stats.enabled, totalFiles: stats.totalFiles, totalChunks: stats.totalChunks });
+            // Already indexed - enable toggle and show re-index
+            toggleSwitch.disabled = false;
+            toggleSwitch.checked = stats.enabled;
+            indexBtn.style.display = 'inline-block';
+            indexBtn.textContent = '↻ Re-index';
+            indexBtn.disabled = false;
 
             if (stats.enabled) {
-                statusText.innerHTML = `✓ Indexed: ${stats.totalFiles} files, ${stats.totalChunks} chunks<br>` +
-                    `<span style="color: #10b981;">RAG Enabled</span>` +
-                    (stats.lastIndexed ? ` • Last: ${new Date(stats.lastIndexed).toLocaleString()}` : '');
-                indexBtn.textContent = '🔄 Re-index';
-                toggleBtn.style.display = 'inline-block';
-                toggleBtn.textContent = '🔴 Disable RAG';
-                console.log('Set toggle button to visible (Disable RAG)');
-            } else if (stats.totalFiles > 0) {
-                statusText.innerHTML = `⚠️ Indexed: ${stats.totalFiles} files, ${stats.totalChunks} chunks<br>` +
-                    `<span style="color: #f59e0b;">RAG Disabled</span>`;
-                indexBtn.textContent = '🔄 Re-index';
-                toggleBtn.style.display = 'inline-block';
-                toggleBtn.textContent = '🟢 Enable RAG';
-                console.log('Set toggle button to visible (Enable RAG)');
+                statusBadge.textContent = `✓ ${stats.totalFiles} files indexed`;
+                statusBadge.style.color = '#10b981';
             } else {
-                statusText.textContent = 'Not indexed';
-                indexBtn.textContent = '📂 Index Workspace';
-                toggleBtn.style.display = 'none';
-                console.log('Hiding toggle button (no files)');
+                statusBadge.textContent = `${stats.totalFiles} files (disabled)`;
+                statusBadge.style.color = '#f59e0b';
             }
-
-            indexBtn.disabled = false;
         }
 
 
@@ -2734,7 +2866,7 @@
             document.getElementById('copy-prompt-btn')?.addEventListener('click', copyPrompt);
             document.getElementById('start-project')?.addEventListener('click', startProject);
             document.getElementById('index-workspace-btn')?.addEventListener('click', indexWorkspace);
-            document.getElementById('toggle-rag-btn')?.addEventListener('click', toggleRAG);
+            document.getElementById('rag-toggle-switch')?.addEventListener('change', toggleRAG);
             document.getElementById('signOutBtn')?.addEventListener('click', () => {
                 vscode.postMessage({ type: 'signOut' });
             });
