@@ -25,3 +25,4 @@ coverage/
 /vscode-extension/dist/
 /vscode-extension/coverage/
 *.vsix
+*.js
