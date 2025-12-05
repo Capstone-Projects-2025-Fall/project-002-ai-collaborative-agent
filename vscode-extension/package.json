@@ -70,6 +70,35 @@
         "title": "Toggle Auto-Analysis",
         "category": "AI Code Assistant",
         "icon": "$(debug-pause)"
+      },
+      {
+        "command": "aiCollab.showNotifications",
+        "title": "Show Notifications",
+        "category": "AI Collab Agent",
+        "icon": "$(bell)"
+      },
+      {
+        "command": "aiCollab.markAllNotificationsRead",
+        "title": "Mark All as Read",
+        "category": "AI Collab Agent",
+        "icon": "$(check-all)"
+      },
+      {
+        "command": "aiCollab.clearAllNotifications",
+        "title": "Clear All Notifications",
+        "category": "AI Collab Agent",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "aiCollab.deleteNotification",
+        "title": "Delete Notification",
+        "category": "AI Collab Agent",
+        "icon": "$(close)"
+      },
+      {
+        "command": "aiCollab.notificationClicked",
+        "title": "View Notification",
+        "category": "AI Collab Agent"
       }
     ],
     "menus": {
@@ -81,6 +110,7 @@
         }
       ],
       "commandPalette": [
+        { "command": "ai.createJiraTasks", "when": "true" },
         {
           "command": "ai-code-reviewer.analyzeCode",
           "when": "workspaceFolderCount > 0"
@@ -90,6 +120,37 @@
         },
         {
           "command": "ai-code-reviewer.toggleAutoAnalyze"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "aiCollab.clearAllNotifications",
+          "when": "view == aiCollabNotificationsView",
+          "group": "navigation@1"
+        },
+        {
+          "command": "aiCollab.markAllNotificationsRead",
+          "when": "view == aiCollabNotificationsView",
+          "group": "navigation@2"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "aiCollab.deleteNotification",
+          "when": "view == aiCollabNotificationsView && viewItem == unreadNotification",
+          "group": "inline@1"
+        },
+        {
+          "command": "aiCollab.deleteNotification",
+          "when": "view == aiCollabNotificationsView && viewItem == readNotification",
+          "group": "inline@1"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "ai-code-reviewer.analyzeCode",
+          "group": "aiCollab@1",
+          "when": "editorTextFocus"
         }
       ]
     },
@@ -154,6 +215,11 @@
           "id": "aiCollab-sidebar",
           "title": "AI Collab",
           "icon": "media/collaboration.svg"
+        },
+        {
+          "id": "aiCollab-notifications",
+          "title": "AI Collab Notifications",
+          "icon": "$(bell)"
         }
       ]
     },
@@ -162,6 +228,12 @@
         {
           "id": "aiCollabView",
           "name": "Team Panel"
+        }
+      ],
+      "aiCollab-notifications": [
+        {
+          "id": "aiCollabNotificationsView",
+          "name": "Notifications"
         }
       ]
     }
