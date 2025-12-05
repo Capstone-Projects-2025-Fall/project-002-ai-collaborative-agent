@@ -99,7 +99,7 @@
             width: 100%;
             height: 100%;
             overflow: auto;
-            background-color: rgba(0,0,0,0.5);
+            background-color: rgba(0, 0, 0, 0.5);
             backdrop-filter: blur(5px);
         }
 
@@ -290,8 +290,8 @@
             color: #667eea;
         }
 
-        .radio-option input[type="checkbox"]:checked + label,
-        .radio-option input[type="radio"]:checked + label {
+        .radio-option input[type="checkbox"]:checked+label,
+        .radio-option input[type="radio"]:checked+label {
             color: #667eea;
             font-weight: 600;
         }
@@ -455,7 +455,7 @@
             border-radius: 12px;
             padding: 20px;
             margin-bottom: 20px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
 
         .analysis-section h3 {
@@ -556,7 +556,7 @@
             margin-bottom: 8px;
             border-radius: 8px;
             border-left: 4px solid #667eea;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
 
         .task-list li::before {
@@ -566,7 +566,9 @@
             margin-right: 10px;
         }
 
-        .challenge-item, .risk-item, .recommendation-item {
+        .challenge-item,
+        .risk-item,
+        .recommendation-item {
             background: #fef3c7;
             padding: 12px;
             margin-bottom: 10px;
@@ -813,6 +815,7 @@
                 opacity: 0;
                 transform: translateY(-10px);
             }
+
             to {
                 opacity: 1;
                 transform: translateY(0);
@@ -887,7 +890,7 @@
             background: #f8fafc;
             color: #764ba2;
         }
-        
+
         .app-logo {
             height: 120px;
             width: auto;
@@ -913,30 +916,29 @@
             max-height: 55vh;
             overflow-y: auto;
             margin-bottom: 0;
-        
+
             /* Firefox */
-            scrollbar-width: thin;                                         
-            scrollbar-color: rgba(148, 163, 184, 0.4) transparent;   
+            scrollbar-width: thin;
+            scrollbar-color: rgba(148, 163, 184, 0.4) transparent;
         }
 
-            /* Chrome / Edge / VS Code webview (WebKit-based) */
-            #projects .project-list::-webkit-scrollbar {
-                width: 4px;   
-            }
+        /* Chrome / Edge / VS Code webview (WebKit-based) */
+        #projects .project-list::-webkit-scrollbar {
+            width: 4px;
+        }
 
-            #projects .project-list::-webkit-scrollbar-track {
-                background: transparent;  
-            }
+        #projects .project-list::-webkit-scrollbar-track {
+            background: transparent;
+        }
 
-            #projects .project-list::-webkit-scrollbar-thumb {
-                background: rgba(148, 163, 184, 0.35);  
-                border-radius: 999px;                   
-            }
+        #projects .project-list::-webkit-scrollbar-thumb {
+            background: rgba(148, 163, 184, 0.35);
+            border-radius: 999px;
+        }
 
-            #projects .project-list::-webkit-scrollbar-thumb:hover {
-                background: rgba(148, 163, 184, 0.6);   
-            }
-
+        #projects .project-list::-webkit-scrollbar-thumb:hover {
+            background: rgba(148, 163, 184, 0.6);
+        }
     </style>
 </head>
 
@@ -976,7 +978,7 @@
                         </div>
                     </div>
                 </div>
-                
+
 
                 <h1><img src="{{logoUri}}" alt="AI Collab Agent logo" class="app-logo">Pallas AI</h1>
                 <div style="width: 140px;"></div> <!-- Spacer -->
@@ -1129,7 +1131,7 @@
                         placeholder="Describe your interests and preferred project types..."></textarea>
                 </div>
             </form>
-           <div class="button-group">
+            <div class="button-group">
                 <button id="update-profile-btn" class="btn btn-primary">Update Profile</button>
                 <button id="clear-profile-form-btn" class="btn btn-secondary">Reset Form</button>
             </div>
@@ -1145,7 +1147,7 @@
                     <div class="section-title">Create Project</div>
 
                     <form class="form-grid">
-                    
+
                         <div class="form-group">
                             <label for="projectName">Project Name *</label>
                             <input type="text" id="projectName" required placeholder="Enter project name">
@@ -1155,7 +1157,7 @@
                             <label for="projectDescription">Description *</label>
                             <textarea id="projectDescription" required placeholder="Describe the project..."></textarea>
                         </div>
-                    
+
                         <div class="form-group">
                             <label for="projectGoals">Goals</label>
                             <textarea id="projectGoals" placeholder="List main objectives..."></textarea>
@@ -1164,14 +1166,7 @@
                         <div class="form-group">
                             <label for="projectRequirements">Requirements</label>
                             <textarea id="projectRequirements"
-                            placeholder="Technical requirements and constraints..."></textarea>
-                        </div>
-
-                        <div class="form-group">
-                            <label>Select Team Members *</label>
-                            <div id="userSelection" class="multi-select">
-                                <p style="text-align: center; color: #64748b; padding: 10px;">Add team members first</p>
-                            </div>
+                                placeholder="Technical requirements and constraints..."></textarea>
                         </div>
                     </form>
 
@@ -1200,9 +1195,12 @@
 
                     <div id="joinStatus" class="status-message" style="display: none;"></div>
 
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin: 25px 0 15px;">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin: 25px 0 15px;">
                         <div class="section-title" style="margin-bottom: 0;">Projects</div>
-                        <button id="refresh-projects-btn" class="btn btn-secondary" style="padding: 8px 16px; font-size: 0.85rem;" title="Refresh projects from database">🔄 Refresh</button>
+                        <button id="refresh-projects-btn" class="btn btn-secondary"
+                            style="padding: 8px 16px; font-size: 0.85rem;" title="Refresh projects from database">🔄
+                            Refresh</button>
                     </div>
 
                     <div id="projectList" class="project-list">
@@ -1215,35 +1213,38 @@
 
         <!-- Edit Project Modal -->
         <div id="editProjectModal" class="modal" style="display: none;">
-            <div class="modal-content" style="max-width: 600px; margin: 50px auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+            <div class="modal-content"
+                style="max-width: 600px; margin: 50px auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                     <h2 style="margin: 0;">Edit Project</h2>
-                    <button id="closeEditModal" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #64748b;">&times;</button>
+                    <button id="closeEditModal"
+                        style="background: none; border: none; font-size: 24px; cursor: pointer; color: #64748b;">&times;</button>
                 </div>
-                
+
                 <form id="editProjectForm">
                     <input type="hidden" id="editProjectId">
-                    
+
                     <div class="form-group">
                         <label for="editProjectName">Project Name *</label>
                         <input type="text" id="editProjectName" required placeholder="Enter project name">
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="editProjectDescription">Description *</label>
                         <textarea id="editProjectDescription" required placeholder="Describe the project..."></textarea>
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="editProjectGoals">Goals</label>
                         <textarea id="editProjectGoals" placeholder="List main objectives..."></textarea>
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="editProjectRequirements">Requirements</label>
-                        <textarea id="editProjectRequirements" placeholder="Technical requirements and constraints..."></textarea>
+                        <textarea id="editProjectRequirements"
+                            placeholder="Technical requirements and constraints..."></textarea>
                     </div>
-                    
+
                     <div class="form-group" id="memberManagementSection" style="display: none;">
                         <label>Team Members (Owner can remove members)</label>
                         <div id="editProjectMembers" style="margin-top: 10px;">
@@ -1251,7 +1252,7 @@
                         </div>
                     </div>
                 </form>
-                
+
                 <div class="button-group" style="margin-top: 20px;">
                     <button id="saveProjectBtn" class="btn btn-primary">Save Changes</button>
                     <button id="cancelEditBtn" class="btn btn-secondary">Cancel</button>
@@ -1292,7 +1293,7 @@
                     </ul>
                 </div>
             </div>
-            
+
             <!-- New structured visualization container -->
             <div id="aiAnalysisVisualization" style="display: none;"></div>
             <div class="button-group" style="justify-content: right">
@@ -1402,13 +1403,13 @@
                 if (!this.currentUser) return;
 
                 document.getElementById('userName').value = this.currentUser.name;
-                
+
                 // Load skills - parse and set radio buttons + other
                 this.loadSkillsFromString(this.currentUser.skills || '');
-                
+
                 // Load programming languages - parse and set radio buttons + other
                 this.loadLanguagesFromString(this.currentUser.programmingLanguages || '');
-                
+
                 document.getElementById('userWilling').value = this.currentUser.willingToWorkOn;
 
                 const jiraBaseUrlInput = document.getElementById('jiraBaseUrl');
@@ -1693,7 +1694,7 @@
                     type: 'setActiveProject',
                     payload: { projectId: projectId }
                 });
-                
+
                 // Send projectId to the extension
                 vscode.postMessage({
                     type: 'generatePrompt',
@@ -1779,7 +1780,7 @@
                     const isMember = this.currentUser && (project.selectedMemberIds || []).includes(String(this.currentUser.id));
                     const ownerBadge = isOwner ? '<span style="background: #10b981; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; margin-left: 8px;">Owner</span>' : '';
                     const canEdit = isOwner || isMember;
-                    
+
                     return `
                         <div class="project-item">
                             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
@@ -1798,10 +1799,10 @@
                                 ${isOwner ? '<p style="margin-top: 8px; font-size: 0.85rem; color: #64748b;">As owner, you can remove members by editing the project.</p>' : ''}
                             </div>
                             <p style="margin-top: 10px;"><strong>Created:</strong> ${new Date(project.createdAt).toLocaleString()}</p>
-                            ${isOwner 
-                                ? `<button class="btn btn-danger delete-project-btn" data-project-id="${project.id}" style='margin-top: 8px; padding: 6px 12px; font-size: 0.8rem; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer;'>Delete Project</button>`
-                                : `<button class="btn btn-secondary leave-project-btn" data-project-id="${project.id}" style='margin-top: 8px; padding: 6px 12px; font-size: 0.8rem; border: none; border-radius: 4px; cursor: pointer;'>Leave Project</button>`
-                            }
+                            ${isOwner
+                            ? `<button class="btn btn-danger delete-project-btn" data-project-id="${project.id}" style='margin-top: 8px; padding: 6px 12px; font-size: 0.8rem; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer;'>Delete Project</button>`
+                            : `<button class="btn btn-secondary leave-project-btn" data-project-id="${project.id}" style='margin-top: 8px; padding: 6px 12px; font-size: 0.8rem; border: none; border-radius: 4px; cursor: pointer;'>Leave Project</button>`
+                        }
                         </div>
                     `;
                 }).join('');
@@ -1813,7 +1814,7 @@
                     // Element doesn't exist (might be commented out), skip updating
                     return;
                 }
-                
+
                 if (this.users.length === 0) {
                     userSelection.innerHTML = '<p style="text-align: center; color: #64748b; padding: 10px;">Add team members first</p>';
                     return;
@@ -1832,10 +1833,10 @@
                 if (!projectSelect) {
                     return;
                 }
-                
+
                 projectSelect.innerHTML = '<option value="">Choose a project...</option>' +
                     this.projects.map(project => `<option value="${project.id}">${project.name}</option>`).join('');
-                
+
                 // Add change listener to send setActiveProject message
                 projectSelect.onchange = (e) => {
                     const selectedProjectId = e.target.value;
@@ -1865,11 +1866,11 @@
                 // This method is kept for backward compatibility but now calls backend
                 const project = this.projects.find(p => p.id === projectId);
                 if (!project) return;
-                
+
                 const currentUserId = this.currentUser ? String(this.currentUser.id) : null;
                 const projectOwnerId = project.owner_id ? String(project.owner_id) : null;
                 const isOwner = currentUserId && projectOwnerId && currentUserId === projectOwnerId;
-                
+
                 if (isOwner) {
                     // Owner deletes the project
                     vscode.postMessage({
@@ -1892,7 +1893,7 @@
                 const currentUserId = this.currentUser ? String(this.currentUser.id) : null;
                 const projectOwnerId = project.owner_id ? String(project.owner_id) : null;
                 const isOwner = currentUserId && projectOwnerId && currentUserId === projectOwnerId;
-                
+
                 // Populate form
                 document.getElementById('editProjectId').value = project.id;
                 document.getElementById('editProjectName').value = project.name;
@@ -1903,7 +1904,7 @@
                 // Populate members list (only show if owner)
                 const membersSection = document.getElementById('memberManagementSection');
                 const membersContainer = document.getElementById('editProjectMembers');
-                
+
                 if (isOwner) {
                     membersSection.style.display = 'block';
                     const teamMembers = this.users.filter(user => project.selectedMemberIds && project.selectedMemberIds.includes(user.id));
@@ -1935,7 +1936,7 @@
         // Render AI Analysis Visualization
         function renderAnalysisVisualization(data, projectName) {
             if (!data) return '<p>No analysis data available</p>';
-            
+
             let html = `<div style="margin-bottom: 20px;">
                 <h2 style="color: #1e293b; font-size: 1.8rem; margin-bottom: 5px;">${projectName || 'Project'} Analysis</h2>
                 <p style="color: #64748b; font-size: 0.9rem;">AI-powered team analysis and task delegation</p>
@@ -2131,7 +2132,7 @@
                     setPromptLoading(false); // restore button + cursor
                     const promptOutput = document.getElementById('promptOutput');
                     const visualization = document.getElementById('aiAnalysisVisualization');
-                    
+
                     if (message.payload.parsed) {
                         // Hide text output, show visualization
                         if (promptOutput) {
@@ -2200,7 +2201,7 @@
         function addUser() {
             try {
                 const name = document.getElementById('userName').value.trim();
-                
+
                 // Collect skills from checkboxes
                 const selectedSkills = Array.from(document.querySelectorAll('input[name="skills"]:checked'))
                     .map(checkbox => checkbox.value);
@@ -2462,12 +2463,12 @@
                 const deleteBtn = target.closest('.delete-project-btn');
                 const leaveBtn = target.closest('.leave-project-btn');
                 const removeBtn = target.closest('.remove-project-btn');
-                
+
                 if (deleteBtn || leaveBtn || removeBtn) {
                     const button = deleteBtn || leaveBtn || removeBtn;
                     const projectId = button.dataset.projectId;
                     console.log('Button clicked:', { type: deleteBtn ? 'delete' : leaveBtn ? 'leave' : 'remove', projectId });
-                    
+
                     if (projectId) {
                         if (deleteBtn) {
                             // Send message directly - extension will handle confirmation
@@ -2556,4 +2557,5 @@
         });
     </script>
 </body>
+
 </html>
