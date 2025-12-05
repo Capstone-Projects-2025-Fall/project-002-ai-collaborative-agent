@@ -400,6 +400,76 @@ export class TimelineManager {
     // 7. LAST RESORT: Refactor
     return 'refactor';
   }
+
+  /**
+   * TIER 3: AI Gatekeeper - Validate if change should create timeline point
+   */
+  private async validateWithAI(
+    filePath: string,
+    codeBefore: string,
+    codeAfter: string,
+    changeTypes: string[],
+    linesChanged: number
+  ): Promise<{
+    shouldCreatePoint: boolean;
+    category: 'feature' | 'bugfix' | 'refactor' | 'style' | 'docs' | 'test';
+    description: string;
+    significance: 'low' | 'medium' | 'high' | 'critical';
+    reasoning: string;
+  }> {
+    
+    try {
+      // TODO: Replace with your actual values
+      const SUPABASE_FUNCTION_URL = 'https://ptthofpfrmhhmvmbzgxx.supabase.co/functions/v1/validate-timeline-change';
+      const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB0dGhvZnBmcm1oaG12bWJ6Z3h4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxMjIzMTUsImV4cCI6MjA3MzY5ODMxNX0.vmIQd2JlfigERJTG5tkFGpoRgqBOj0FudEvGDzNd5Ko';
+      
+      console.log('🤖 Calling AI to validate timeline change...');
+      
+      const response = await fetch(SUPABASE_FUNCTION_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'apikey': SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({
+          codeBefore,
+          codeAfter,
+          changeTypes,
+          filePath,
+          linesChanged
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`AI validation failed: ${response.statusText}`);
+      }
+      
+      const aiResponse = await response.json();
+      
+      console.log('✅ AI Response:', aiResponse);
+      
+      return {
+        shouldCreatePoint: aiResponse.shouldCreatePoint,
+        category: aiResponse.category,
+        description: aiResponse.description,
+        significance: aiResponse.significance,
+        reasoning: aiResponse.reasoning
+      };
+      
+    } catch (error) {
+      console.error('❌ AI validation error:', error);
+      
+      // Fallback: If AI fails, use regex categorization
+      return {
+        shouldCreatePoint: true,
+        category: this.categorizeChange(filePath, codeBefore, codeAfter, changeTypes),
+        description: 'Code structure changed',
+        significance: 'medium',
+        reasoning: 'AI unavailable - using fallback'
+      };
+    }
+  }
   
   /**
    * Calculate similarity between two code strings (0 to 1)
@@ -589,20 +659,34 @@ export class TimelineManager {
         ? `Structural changes detected: ${changeTypes[0]}${changeTypes.length > 1 ? ` (+${changeTypes.length - 1} more)` : ''}`
         : `${changesSinceLastPoint} lines changed`;
       
-      console.log(`📊 TimelineManager: Significant change in ${filePath} - ${reason}`);
+      console.log(`📊 TimelineManager: Potential change in ${filePath} - ${reason}`);
       
-      this.createTimelinePoint(filePath, {
-        description: hasStructuralChanges ? 'Code structure changed' : 'Significant changes',
-        details: hasStructuralChanges 
-          ? changeTypes.slice(0, 2).join(', ') 
-          : 'Major code modifications detected',
-        linesAdded: changesSinceLastPoint,
-        linesRemoved: 0,
-        changeType: hasStructuralChanges ? 'major' : 'major',
-        trigger: 'significant_change',
-        codeBefore: previousContent,
-        codeAfter: currentContent
-      });
+      // NEW: AI GATEKEEPER - Validate with AI before creating timeline point
+      const aiValidation = await this.validateWithAI(
+        filePath,
+        previousContent,
+        currentContent,
+        changeTypes,
+        changesSinceLastPoint
+      );
+      
+      if (aiValidation.shouldCreatePoint) {
+        console.log(`✅ AI approved timeline point - ${aiValidation.category.toUpperCase()}: ${aiValidation.description}`);
+        
+        this.createTimelinePoint(filePath, {
+          description: aiValidation.description,  // AI-generated description
+          details: aiValidation.reasoning,        // AI reasoning
+          linesAdded: changesSinceLastPoint,
+          linesRemoved: 0,
+          changeType: aiValidation.significance === 'high' || aiValidation.significance === 'critical' ? 'major' : 'minor',
+          trigger: 'significant_change',
+          codeBefore: previousContent,
+          codeAfter: currentContent,
+          aiCategory: aiValidation.category       // NEW: Pass AI category
+        });
+      } else {
+        console.log(`❌ AI rejected timeline point: ${aiValidation.reasoning}`);
+      }
       
       // Reset counter and update last known content
       activity.changesSinceLastPoint = 0;
@@ -646,6 +730,7 @@ export class TimelineManager {
     trigger: TimelinePoint['trigger'];
     codeBefore: string;
     codeAfter: string;
+    aiCategory?: 'feature' | 'bugfix' | 'refactor' | 'style' | 'docs' | 'test';  // NEW: Optional AI category
   }) {
     // Get existing timeline for this file
     let timeline = this.timelineData.get(filePath);
@@ -657,8 +742,8 @@ export class TimelineManager {
     // NEW: Analyze what changed (Tier 2)
     const changeTypes = this.analyzeChangeTypes(options.codeBefore, options.codeAfter);
     
-    // NEW: Categorize the change (Tier 2)
-    const category = this.categorizeChange(filePath, options.codeBefore, options.codeAfter, changeTypes);
+    // NEW: Use AI category if provided, otherwise use regex categorization
+    const category = options.aiCategory || this.categorizeChange(filePath, options.codeBefore, options.codeAfter, changeTypes);
     
     // Create the point with snapshots, change types, and category
     const point: TimelinePoint = {
