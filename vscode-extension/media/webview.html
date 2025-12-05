@@ -110,11 +110,12 @@
         }
 
         .jira-setup-grid {
-            display: grid;
-            grid-template-columns: 1.1fr 1fr;
+            display: flex;
+            flex-direction: column;
             gap: 18px;
             align-items: stretch;
             margin-bottom: 22px;
+            width: 100%;
         }
 
         .jira-hero-card {
@@ -169,6 +170,40 @@
             border-radius: 16px;
             padding: 18px 20px;
             box-shadow: 0 15px 35px rgba(15, 23, 42, 0.12);
+        }
+
+        #jiraAssignableCard,
+        #jiraBoard {
+            width: 100%;
+        }
+
+        #jiraAssignableCard {
+            margin-top: 18px;
+        }
+
+        #jiraBoard {
+            margin-top: 18px;
+        }
+
+        #jiraTaskStatus,
+        #jiraCredentialsWarning {
+            margin: 10px 0 14px;
+        }
+
+        .jira-credentials-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .jira-credentials-body {
+            margin-top: 14px;
+        }
+
+        .jira-credentials-card.collapsed .jira-credentials-body {
+            display: none;
         }
 
         .jira-quick-actions {
@@ -265,7 +300,7 @@
             gap: 24px;
             margin-top: 20px;
             flex-wrap: wrap;
-            align-items: flex-start;
+            align-items: stretch;
         }
 
         .jira-column {
@@ -278,6 +313,8 @@
             display: flex;
             flex-direction: column;
             min-height: 420px;
+            height: 75vh;
+            overflow: hidden;
             box-shadow: 0 20px 45px rgba(15, 23, 42, 0.08);
         }
 
@@ -289,6 +326,7 @@
             flex-direction: column;
             gap: 12px;
             padding-right: 6px;
+            min-height: 0;
         }
 
         .jira-task-list::-webkit-scrollbar {
@@ -406,6 +444,10 @@
             border-radius: 16px;
             padding: 18px;
             box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+            flex: 1;
+            min-height: 0;
+            height: 100%;
+            overflow-y: auto;
         }
 
         .jira-detail select,
@@ -1693,78 +1735,64 @@
         <div id="jira" class="tab-content">
             <div class="jira-header">
                 <div class="section-title">Jira Tasks</div>
-                <div class="jira-quick-actions" aria-label="Jira task shortcuts">
-                    <div class="button-group compact">
-                        <button type="button" id="jiraJumpToBoardBtn" class="btn btn-secondary">Jump to tasks</button>
-                        <button type="button" id="jiraQuickRefreshBtn" class="btn btn-primary">Refresh tasks</button>
-                    </div>
-                </div>
             </div>
 
             <div class="jira-setup-grid">
-                <div class="jira-hero-card">
-                    <h3>Plan & sync your backlog</h3>
-                    <p>Keep Jira credentials, AI backlog generation, and live issue updates together so the team knows exactly what is shipping.</p>
-                    <div class="jira-hero-steps">
-                        <span class="jira-pill">🔐 Connect workspace</span>
-                        <span class="jira-pill">🧠 Generate backlog</span>
-                        <span class="jira-pill">📌 Manage issues</span>
-                    </div>
-                    <div class="jira-setup-actions">
+                <div id="jiraCredentialsCard" class="jira-credentials-card">
+                    <div class="jira-credentials-header">
+                        <div class="profile-card-title">Jira Credentials</div>
                         <button type="button" id="toggle-jira-credentials-btn" class="btn btn-secondary" aria-expanded="true">Hide Jira setup</button>
                     </div>
-                </div>
-
-                <div id="jiraCredentialsCard" class="jira-credentials-card">
-                    <div class="profile-card-title">Jira Credentials</div>
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label for="jiraBaseUrl">
-                                Jira Cloud base URL (e.g. https://your-team.atlassian.net)
-                                <span class="info-icon" tabindex="0" role="button" aria-label="How to find your Jira Cloud base URL" data-tooltip="1. Sign in to Jira Cloud in your browser.&#10;2. Copy the site URL up to atlassian.net (e.g., https://team.atlassian.net).&#10;3. Remove everything after the domain before pasting here.">?</span>
-                            </label>
-                            <input type="text" id="jiraBaseUrl" placeholder="https://your-team.atlassian.net">
-                        </div>
-                        <div class="form-group">
-                            <label for="jiraProjectKey">
-                                Jira Project Key (e.g. STAR, TUFF, ENG)
-                                <span class="info-icon" tabindex="0" role="button" aria-label="How to find your Jira Project Key" data-tooltip="1. In Jira, open Project settings &gt; Details.&#10;2. Find the Project key (2-10 uppercase letters shown under the project name).&#10;3. Paste that exact key here—do not use the project name.">?</span>
-                            </label>
-                            <input type="text" id="jiraProjectKey" placeholder="TEAM">
-                        </div>
-                        <div class="form-group">
-                            <label for="jiraEmail">
-                                Jira account email (the one tied to the API token)
-                                <span class="info-icon" tabindex="0" role="button" aria-label="Which email to use for Jira" data-tooltip="1. Use the Atlassian account email tied to your API token.&#10;2. Confirm it from https://id.atlassian.com/manage-profile.&#10;3. This email must have access to the Jira site you entered.">?</span>
-                            </label>
-                            <input type="email" id="jiraEmail" placeholder="you@company.com">
-                        </div>
-                        <div class="form-group">
-                            <label for="jiraApiToken">
-                                Jira API Token
-                                <span class="info-icon" tabindex="0" role="button" aria-label="How to generate a Jira API token" data-tooltip="1. Go to https://id.atlassian.com/manage-profile/security/api-tokens (while logged in).&#10;2. Click Create API token, give it a label, then Create.&#10;3. Copy the token once and paste it here—store it securely because it cannot be shown again.">?</span>
-                            </label>
-                            <input type="password" id="jiraApiToken" placeholder="••••••••">
-                        </div>
-                        <div class="form-group" style="grid-column: 1 / -1;">
-                            <div class="label-with-action">
-                                <label for="jiraProjectPrompt">
-                                    Project prompt (Describe your project to generate a Jira backlog)
-                                    <span class="info-icon" tabindex="0" role="button" aria-label="What to include in the Jira project prompt" data-tooltip="Describe what Jira should build for you.&#10;Include the product vision, target users, tech stack, constraints, and any priority backlog items or milestones.">?</span>
+                    <div id="jiraCredentialsBody" class="jira-credentials-body">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="jiraBaseUrl">
+                                    Jira Cloud base URL (e.g. https://your-team.atlassian.net)
+                                    <span class="info-icon" tabindex="0" role="button" aria-label="How to find your Jira Cloud base URL" data-tooltip="1. Sign in to Jira Cloud in your browser.&#10;2. Copy the site URL up to atlassian.net (e.g., https://team.atlassian.net).&#10;3. Remove everything after the domain before pasting here.">?</span>
                                 </label>
-                                <button type="button" id="jira-use-ai-prompt-btn" class="btn btn-secondary" title="Use the latest AI Analysis & Task Delegation output to populate your Jira backlog prompt">Use AI analysis output</button>
+                                <input type="text" id="jiraBaseUrl" placeholder="https://your-team.atlassian.net">
                             </div>
-                            <textarea id="jiraProjectPrompt" placeholder="e.g., Build a fitness app that tracks workouts and suggests plans…" rows="4"></textarea>
+                            <div class="form-group">
+                                <label for="jiraProjectKey">
+                                    Jira Project Key (e.g. STAR, TUFF, ENG)
+                                    <span class="info-icon" tabindex="0" role="button" aria-label="How to find your Jira Project Key" data-tooltip="1. In Jira, open Project settings &gt; Details.&#10;2. Find the Project key (2-10 uppercase letters shown under the project name).&#10;3. Paste that exact key here—do not use the project name.">?</span>
+                                </label>
+                                <input type="text" id="jiraProjectKey" placeholder="TEAM">
+                            </div>
+                            <div class="form-group">
+                                <label for="jiraEmail">
+                                    Jira account email (the one tied to the API token)
+                                    <span class="info-icon" tabindex="0" role="button" aria-label="Which email to use for Jira" data-tooltip="1. Use the Atlassian account email tied to your API token.&#10;2. Confirm it from https://id.atlassian.com/manage-profile.&#10;3. This email must have access to the Jira site you entered.">?</span>
+                                </label>
+                                <input type="email" id="jiraEmail" placeholder="you@company.com">
+                            </div>
+                            <div class="form-group">
+                                <label for="jiraApiToken">
+                                    Jira API Token
+                                    <span class="info-icon" tabindex="0" role="button" aria-label="How to generate a Jira API token" data-tooltip="1. Go to https://id.atlassian.com/manage-profile/security/api-tokens (while logged in).&#10;2. Click Create API token, give it a label, then Create.&#10;3. Copy the token once and paste it here—store it securely because it cannot be shown again.">?</span>
+                                </label>
+                                <input type="password" id="jiraApiToken" placeholder="••••••••">
+                            </div>
+                            <div class="form-group" style="grid-column: 1 / -1;">
+                                <div class="label-with-action">
+                                    <label for="jiraProjectPrompt">
+                                        Project prompt (Describe your project to generate a Jira backlog)
+                                        <span class="info-icon" tabindex="0" role="button" aria-label="What to include in the Jira project prompt" data-tooltip="Describe what Jira should build for you.&#10;Include the product vision, target users, tech stack, constraints, and any priority backlog items or milestones.">?</span>
+                                    </label>
+                                    <button type="button" id="jira-use-ai-prompt-btn" class="btn btn-secondary" title="Use the latest AI Analysis & Task Delegation output to populate your Jira backlog prompt">Use AI analysis output</button>
+                                </div>
+                                <textarea id="jiraProjectPrompt" placeholder="e.g., Build a fitness app that tracks workouts and suggests plans…" rows="4"></textarea>
+                            </div>
                         </div>
+                        <div class="button-group" style="justify-content: flex-end;">
+                            <button type="button" id="jira-profile-create-btn" class="btn btn-primary">Create Jira Tasks</button>
+                        </div>
+                        <div id="jiraStatus" class="status-message" style="display: none;"></div>
                     </div>
-                    <div class="button-group" style="justify-content: flex-end;">
-                        <button type="button" id="jira-profile-create-btn" class="btn btn-primary">Create Jira Tasks</button>
-                    </div>
-                    <div id="jiraStatus" class="status-message" style="display: none;"></div>
                 </div>
             </div>
 
-            <div class="jira-credentials-card jira-collapsible-card" id="jiraAssignableCard" style="margin-top: 16px;">
+            <div class="jira-credentials-card jira-collapsible-card" id="jiraAssignableCard">
                 <div class="collapsible-header">
                     <div>
                         <div class="profile-card-title">Jira Users from linked Jira Board</div>
@@ -4005,12 +4033,14 @@
             document.getElementById('jira-use-ai-prompt-btn')?.addEventListener('click', () => app.useAiAnalysisForJira());
             const jiraToggleBtn = document.getElementById('toggle-jira-credentials-btn');
             const jiraCredentialsCard = document.getElementById('jiraCredentialsCard');
+            const jiraCredentialsBody = document.getElementById('jiraCredentialsBody');
             jiraToggleBtn?.addEventListener('click', () => {
-                if (!jiraCredentialsCard) return;
-                const isHidden = jiraCredentialsCard.classList.toggle('hidden');
-                jiraToggleBtn.textContent = isHidden ? 'Show Jira setup' : 'Hide Jira setup';
-                jiraToggleBtn.setAttribute('aria-expanded', String(!isHidden));
-                if (!isHidden) {
+                if (!jiraCredentialsCard || !jiraCredentialsBody) return;
+                const collapsed = jiraCredentialsCard.classList.toggle('collapsed');
+                jiraCredentialsBody.classList.toggle('hidden', collapsed);
+                jiraToggleBtn.textContent = collapsed ? 'Show Jira setup' : 'Hide Jira setup';
+                jiraToggleBtn.setAttribute('aria-expanded', String(!collapsed));
+                if (!collapsed) {
                     document.getElementById('jiraBaseUrl')?.focus();
                 }
             });
