@@ -26,8 +26,11 @@ export interface TimelinePoint {
   codeBefore: string;
   codeAfter: string;
   
-  // NEW: Tier 2 - Change Types
+  // Tier 2 - Change Types
   changeTypes: string[];  // ["Function added: login", "Import added: bcrypt"]
+  
+  // NEW: Tier 2 - Smart Categorization
+  category: 'feature' | 'bugfix' | 'refactor' | 'style' | 'docs' | 'test';
 }
 
 export class TimelineManager {
@@ -262,6 +265,156 @@ export class TimelineManager {
     }
     
     return changeTypes;
+  }
+  
+  /**
+   * TIER 2: Categorize the type of change
+   * Returns: 'feature' | 'bugfix' | 'refactor' | 'style' | 'docs' | 'test'
+   */
+  private categorizeChange(
+    filePath: string, 
+    codeBefore: string, 
+    codeAfter: string, 
+    changeTypes: string[]
+  ): 'feature' | 'bugfix' | 'refactor' | 'style' | 'docs' | 'test' {
+    
+    // 1. CHECK FILE PATH for obvious categories (HIGHEST PRIORITY)
+    const lowerPath = filePath.toLowerCase();
+    
+    // Test files - very specific check
+    if (lowerPath.includes('/test/') || 
+        lowerPath.includes('/tests/') || 
+        lowerPath.includes('test_') || 
+        lowerPath.includes('.test.') || 
+        lowerPath.includes('.spec.') ||
+        lowerPath.includes('_test.')) {
+      return 'test';
+    }
+    
+    // Documentation files - check extension
+    if (lowerPath.endsWith('.md') || 
+        lowerPath.endsWith('.txt') || 
+        lowerPath.endsWith('.rst') ||
+        lowerPath.includes('readme') || 
+        lowerPath.includes('doc/') ||
+        lowerPath.includes('docs/')) {
+      return 'docs';
+    }
+    
+    // 2. CHECK FOR STYLE CHANGES (formatting only) - SECOND PRIORITY
+    const codeBeforeNoWhitespace = codeBefore.replace(/\s+/g, '');
+    const codeAfterNoWhitespace = codeAfter.replace(/\s+/g, '');
+    
+    if (codeBeforeNoWhitespace === codeAfterNoWhitespace && codeBefore !== codeAfter) {
+      return 'style';
+    }
+    
+    // 3. CHECK FOR BUG FIX PATTERNS - THIRD PRIORITY
+    const codeAfterLower = codeAfter.toLowerCase();
+    const codeBeforeLower = codeBefore.toLowerCase();
+    
+    // Check for error handling added
+    const errorHandlingAdded = (
+      // Try-catch blocks
+      (codeAfter.includes('try {') && !codeBefore.includes('try {')) ||
+      (codeAfter.includes('try:') && !codeBefore.includes('try:')) ||
+      (codeAfter.includes('catch') && !codeBefore.includes('catch')) ||
+      (codeAfter.includes('except') && !codeBefore.includes('except')) ||
+      (codeAfter.includes('finally') && !codeBefore.includes('finally')) ||
+      
+      // Null/undefined checks
+      (codeAfter.includes('if (') && codeAfter.includes('null') && !codeBefore.includes('null')) ||
+      (codeAfter.includes('if (') && codeAfter.includes('undefined') && !codeBefore.includes('undefined')) ||
+      (codeAfter.includes('if ') && codeAfter.includes('None') && !codeBefore.includes('None')) ||
+      (codeAfter.includes('if not ') && !codeBefore.includes('if not ')) ||
+      
+      // Error handling keywords
+      (codeAfter.includes('Error(') && !codeBefore.includes('Error(')) ||
+      (codeAfter.includes('throw ') && !codeBefore.includes('throw ')) ||
+      (codeAfter.includes('raise ') && !codeBefore.includes('raise '))
+    );
+    
+    // Check for bug-related keywords in comments or variable names
+    const bugKeywords = ['fix', 'bug', 'error', 'issue', 'patch', 'correct', 'repair', 'resolve', 'handle'];
+    const hasBugKeywords = bugKeywords.some(keyword => {
+      const inAfter = codeAfterLower.includes(keyword);
+      const inBefore = codeBeforeLower.includes(keyword);
+      return inAfter && !inBefore;
+    });
+    
+    if (errorHandlingAdded || hasBugKeywords) {
+      return 'bugfix';
+    }
+    
+    // 4. CHECK FOR REFACTORING - FOURTH PRIORITY
+    const functionsRemoved = changeTypes.some(ct => ct.includes('Function removed'));
+    const functionsAdded = changeTypes.some(ct => ct.includes('Function added'));
+    
+    // If functions were both added and removed, likely refactoring
+    if (functionsRemoved && functionsAdded) {
+      const linesBefore = codeBefore.split('\n').length;
+      const linesAfter = codeAfter.split('\n').length;
+      const lineDiff = Math.abs(linesAfter - linesBefore);
+      
+      // If total lines didn't change much, it's refactoring
+      if (lineDiff < 15) {
+        return 'refactor';
+      }
+    }
+    
+    // Renaming detection (similar code structure)
+    const similarityThreshold = 0.7;
+    const similarity = this.calculateCodeSimilarity(codeBefore, codeAfter);
+    if (similarity > similarityThreshold && functionsAdded) {
+      return 'refactor';
+    }
+    
+    // 5. CHECK FOR FEATURE (new functionality) - DEFAULT FOR NEW CODE
+    const featureIndicators = (
+      // New functions/classes
+      functionsAdded && !functionsRemoved ||
+      changeTypes.some(ct => ct.includes('Class added')) ||
+      
+      // New imports (usually for new features)
+      changeTypes.some(ct => ct.includes('Import added')) ||
+      
+      // Export keywords (new public API)
+      (codeAfter.includes('export ') && !codeBefore.includes('export ')) ||
+      (codeAfter.includes('public ') && !codeBefore.includes('public ')) ||
+      
+      // New endpoints/routes
+      (codeAfter.includes('route') && !codeBefore.includes('route')) ||
+      (codeAfter.includes('endpoint') && !codeBefore.includes('endpoint')) ||
+      (codeAfter.includes('@app.') && !codeBefore.includes('@app.'))
+    );
+    
+    if (featureIndicators) {
+      return 'feature';
+    }
+    
+    // 6. DEFAULT: If just adding code without clear indicators, it's a feature
+    if (codeAfter.length > codeBefore.length * 1.2) {
+      return 'feature';
+    }
+    
+    // 7. LAST RESORT: Refactor
+    return 'refactor';
+  }
+  
+  /**
+   * Calculate similarity between two code strings (0 to 1)
+   */
+  private calculateCodeSimilarity(code1: string, code2: string): number {
+    const words1 = code1.split(/\s+/).filter(w => w.length > 0);
+    const words2 = code2.split(/\s+/).filter(w => w.length > 0);
+    
+    const set1 = new Set(words1);
+    const set2 = new Set(words2);
+    
+    const intersection = new Set([...set1].filter(x => set2.has(x)));
+    const union = new Set([...set1, ...set2]);
+    
+    return intersection.size / union.size;
   }
   
   // NEW: Cache current file contents
@@ -504,7 +657,10 @@ export class TimelineManager {
     // NEW: Analyze what changed (Tier 2)
     const changeTypes = this.analyzeChangeTypes(options.codeBefore, options.codeAfter);
     
-    // Create the point with snapshots and change types
+    // NEW: Categorize the change (Tier 2)
+    const category = this.categorizeChange(filePath, options.codeBefore, options.codeAfter, changeTypes);
+    
+    // Create the point with snapshots, change types, and category
     const point: TimelinePoint = {
       id: `point-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       filePath,
@@ -517,7 +673,8 @@ export class TimelineManager {
       trigger: options.trigger,
       codeBefore: options.codeBefore,
       codeAfter: options.codeAfter,
-      changeTypes: changeTypes  // NEW: Add detected change types
+      changeTypes: changeTypes,  // Tier 2: Change types
+      category: category          // NEW: Tier 2: Category
     };
     
     // Add to timeline (newest first)
@@ -530,6 +687,7 @@ export class TimelineManager {
     
     // Log what we detected
     console.log(`✨ TimelineManager: Created ${options.trigger} point for ${filePath}`);
+    console.log(`   Category: ${category.toUpperCase()}`);
     if (changeTypes.length > 0) {
       console.log(`   Detected changes: ${changeTypes.join('; ')}`);
     }
