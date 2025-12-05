@@ -9,8 +9,8 @@
 .env.production.local
 .env
 
-node_modules/
-vscode-extension/node_modules
+/node_modules/
+/vscode-extension/node_modules
 dist/
 build/
 out/
