@@ -10,6 +10,7 @@
 
 import * as vscode from 'vscode';
 import * as path from 'path';
+import { DatabaseService } from './databaseService';
 
 export interface TimelinePoint {
   id: string;
@@ -20,7 +21,7 @@ export interface TimelinePoint {
   linesAdded: number;
   linesRemoved: number;
   changeType: 'major' | 'minor';
-  trigger: 'file_created' | 'significant_change' | 'hourly_checkpoint' | 'manual';
+  trigger_type: 'file_created' | 'significant_change' | 'hourly_checkpoint' | 'manual';
   
   // Code snapshots for diff viewing
   codeBefore: string;
@@ -36,6 +37,9 @@ export interface TimelinePoint {
 export class TimelineManager {
   // In-memory storage: Map<filePath, TimelinePoint[]>
   private timelineData: Map<string, TimelinePoint[]> = new Map();
+
+  // NEW: Database service
+  private db: DatabaseService;
   
   // Track file activity for time-based points
   private fileActivity: Map<string, {
@@ -500,11 +504,18 @@ export class TimelineManager {
   private readonly CHECKPOINT_INTERVAL = 60 * 60 * 1000;
   
   constructor(private context: vscode.ExtensionContext) {
-    this.initialize();
+  this.db = new DatabaseService(
+    'https://ptthofpfrmhhmvmbzgxx.supabase.co',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB0dGhvZnBmcm1oaG12bWJ6Z3h4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxMjIzMTUsImV4cCI6MjA3MzY5ODMxNX0.vmIQd2JlfigERJTG5tkFGpoRgqBOj0FudEvGDzNd5Ko'
+  );
+  this.initialize();
   }
   
-  private initialize() {
+  private async initialize() {
     console.log('🎬 TimelineManager: Initializing with snapshot support...');
+    
+    // Load existing timeline points from database
+    await this.loadFromDatabase();
     
     // Watch for file creation
     const fileCreateWatcher = vscode.workspace.onDidCreateFiles((event) => {
@@ -525,6 +536,36 @@ export class TimelineManager {
     this.disposables.push(fileSaveWatcher);
     
     console.log('✅ TimelineManager: Initialized with snapshot storage');
+  }
+
+  /**
+   * Load timeline points from database on startup
+   */
+  private async loadFromDatabase() {
+    try {
+      console.log('💾 Loading timeline from database...');
+      const loadedData = await this.db.loadAllTimelinePoints();
+      
+      if (loadedData.size > 0) {
+        this.timelineData = loadedData;
+        console.log(`✅ Loaded timeline for ${loadedData.size} files from database`);
+      } else {
+        console.log('📭 No existing timeline data in database');
+      }
+    } catch (error) {
+      console.error('❌ Failed to load from database:', error);
+    }
+  }
+
+  /**
+   * Save timeline point to database
+   */
+  private async saveToDatabase(point: TimelinePoint) {
+    try {
+      await this.db.saveTimelinePoint(point);
+    } catch (error) {
+      console.error('❌ Failed to save to database:', error);
+    }
   }
   
   /**
@@ -570,7 +611,7 @@ export class TimelineManager {
         linesAdded: initialContent.split('\n').length,
         linesRemoved: 0,
         changeType: 'major',
-        trigger: 'file_created',
+        trigger_type: 'file_created',
         codeBefore: '', // No content before
         codeAfter: initialContent
       });
@@ -679,7 +720,7 @@ export class TimelineManager {
           linesAdded: changesSinceLastPoint,
           linesRemoved: 0,
           changeType: aiValidation.significance === 'high' || aiValidation.significance === 'critical' ? 'major' : 'minor',
-          trigger: 'significant_change',
+          trigger_type: 'significant_change',
           codeBefore: previousContent,
           codeAfter: currentContent,
           aiCategory: aiValidation.category       // NEW: Pass AI category
@@ -703,7 +744,7 @@ export class TimelineManager {
         linesAdded: changesSinceLastPoint,
         linesRemoved: 0,
         changeType: 'minor',
-        trigger: 'hourly_checkpoint',
+        trigger_type: 'hourly_checkpoint',
         codeBefore: previousContent,
         codeAfter: currentContent
       });
@@ -727,7 +768,7 @@ export class TimelineManager {
     linesAdded: number;
     linesRemoved: number;
     changeType: 'major' | 'minor';
-    trigger: TimelinePoint['trigger'];
+    trigger_type: TimelinePoint['trigger_type'];
     codeBefore: string;
     codeAfter: string;
     aiCategory?: 'feature' | 'bugfix' | 'refactor' | 'style' | 'docs' | 'test';  // NEW: Optional AI category
@@ -755,7 +796,7 @@ export class TimelineManager {
       linesAdded: options.linesAdded,
       linesRemoved: options.linesRemoved,
       changeType: options.changeType,
-      trigger: options.trigger,
+      trigger_type: options.trigger_type,
       codeBefore: options.codeBefore,
       codeAfter: options.codeAfter,
       changeTypes: changeTypes,  // Tier 2: Change types
@@ -771,11 +812,14 @@ export class TimelineManager {
     }
     
     // Log what we detected
-    console.log(`✨ TimelineManager: Created ${options.trigger} point for ${filePath}`);
+    console.log(`✨ TimelineManager: Created ${options.trigger_type} point for ${filePath}`);
     console.log(`   Category: ${category.toUpperCase()}`);
     if (changeTypes.length > 0) {
       console.log(`   Detected changes: ${changeTypes.join('; ')}`);
     }
+    
+    // NEW: Save to database
+    this.saveToDatabase(point);
   }
   
   /**

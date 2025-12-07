@@ -2204,7 +2204,7 @@
                 <div class="diff-info">
                     <p><strong>File:</strong> ${point.filePath}</p>
                     <p><strong>When:</strong> ${timeStr}</p>
-                    <p><strong>Trigger:</strong> ${point.trigger.replace(/_/g, ' ')}</p>
+                    <p><strong>Trigger:</strong> ${(point.trigger_type || point.trigger || 'unknown').replace(/_/g, ' ')}</p>
                 </div>
                 
                 <div class="diff-stats">
