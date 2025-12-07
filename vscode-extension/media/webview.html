@@ -2119,8 +2119,6 @@
                                 ${point.description}
                                 ${isMajor ? '<span class="timeline-badge">MAJOR</span>' : ''}
                             </div>
-                            <div class="timeline-details">${point.details}</div>
-                            
                             ${point.changeTypes && point.changeTypes.length > 0 ? `
                                 <div class="timeline-change-types">
                                     ${point.changeTypes.map(ct => `
@@ -2206,7 +2204,7 @@
                     <p><strong>When:</strong> ${timeStr}</p>
                     <p><strong>Trigger:</strong> ${(point.trigger_type || point.trigger || 'unknown').replace(/_/g, ' ')}</p>
                 </div>
-                
+
                 <div class="diff-stats">
                     <div class="diff-stat added">
                         <span class="diff-stat-icon">+</span>
@@ -2221,7 +2219,7 @@
                         <span>Net: ${netChange > 0 ? '+' : ''}${netChange} lines</span>
                     </div>
                 </div>
-                
+
                 <div class="diff-comparison">
                     <div class="diff-panel">
                         <div class="diff-panel-header before">❌ Before</div>
