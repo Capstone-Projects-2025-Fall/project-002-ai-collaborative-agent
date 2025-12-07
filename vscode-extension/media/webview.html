@@ -41,6 +41,7 @@
         .header p {
             font-size: 1.1rem;
             opacity: 0.9;
+            margin-top: 16px;
         }
 
         .tabs {
@@ -75,6 +76,11 @@
             border-color: rgba(255, 255, 255, 0.5);
         }
 
+        .tab-button.tab-disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
         .tab-content {
             display: none;
             background: rgba(255, 255, 255, 0.95);
@@ -89,6 +95,431 @@
             animation: slideIn 0.3s ease-out;
         }
 
+        .label-with-action {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .label-with-action button {
+            white-space: nowrap;
+            font-size: 0.85rem;
+            padding: 8px 14px;
+        }
+
+        .jira-setup-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            align-items: stretch;
+            margin-bottom: 22px;
+            width: 100%;
+        }
+
+        .jira-hero-card {
+            background: linear-gradient(135deg, #eef2ff, #e0f2fe);
+            color: #0f172a;
+            border-radius: 16px;
+            padding: 18px 20px;
+            box-shadow: 0 20px 45px rgba(15, 23, 42, 0.35);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .jira-hero-card h3 {
+            font-size: 1.2rem;
+            margin: 0;
+            color: #4338ca;
+        }
+
+        .jira-hero-card p {
+            margin: 0;
+            line-height: 1.6;
+            color: #334155;
+        }
+
+        .jira-hero-steps {
+            display: grid;
+            gap: 10px;
+        }
+
+        .jira-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(99, 102, 241, 0.12);
+            color: #4338ca;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .jira-setup-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .jira-credentials-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 18px 20px;
+            box-shadow: 0 15px 35px rgba(15, 23, 42, 0.12);
+        }
+
+        #jiraAssignableCard,
+        #jiraBoard {
+            width: 100%;
+        }
+
+        #jiraAssignableCard {
+            margin-top: 18px;
+        }
+
+        #jiraBoard {
+            margin-top: 18px;
+        }
+
+        #jiraTaskStatus,
+        #jiraCredentialsWarning {
+            margin: 10px 0 14px;
+        }
+
+        .jira-credentials-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .jira-credentials-body {
+            margin-top: 14px;
+        }
+
+        .jira-credentials-card.collapsed .jira-credentials-body {
+            display: none;
+        }
+
+        .jira-quick-actions {
+            position: sticky;
+            top: 8px;
+            right: 0;
+            z-index: 10;
+            display: inline-flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 10px;
+            margin: 0 0 6px auto;
+            background: linear-gradient(135deg, #eef2ff, #fff);
+            color: #1f2937;
+            border-radius: 14px;
+            box-shadow: 0 10px 24px rgba(99, 102, 241, 0.12);
+            border: 1px solid rgba(99, 102, 241, 0.25);
+            width: auto;
+        }
+
+        .jira-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 10px;
+            position: sticky;
+            top: 8px;
+            z-index: 15;
+            padding: 4px 8px;
+            background: rgba(255, 255, 255, 0.96);
+            backdrop-filter: blur(8px);
+            border-radius: 12px;
+            border: 1px solid rgba(219, 234, 254, 0.9);
+        }
+
+        .jira-header .section-title {
+            margin-bottom: 0;
+        }
+
+        .jira-quick-actions .quick-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            letter-spacing: 0.01em;
+        }
+
+        .jira-quick-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #22c55e;
+            box-shadow: 0 0 0 6px rgba(34, 197, 94, 0.18);
+        }
+
+        .button-group.compact {
+            gap: 6px;
+        }
+
+        .button-group.compact .btn {
+            padding: 6px 10px;
+            font-size: 0.9rem;
+        }
+
+        .jira-collapsible-card {
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .jira-collapsible-card.collapsed {
+            border-color: #e2e8f0;
+            box-shadow: 0 5px 12px rgba(15, 23, 42, 0.06);
+        }
+
+        .collapsible-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .collapsible-body {
+            margin-top: 12px;
+        }
+
+        .jira-collapsible-card.collapsed .collapsible-body {
+            display: none;
+        }
+
+        .jira-layout {
+            display: flex;
+            gap: 24px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+            align-items: stretch;
+        }
+
+        .jira-column {
+            flex: 1;
+            min-width: 320px;
+            background: rgba(248, 250, 252, 0.95);
+            border: 1px solid #dbeafe;
+            border-radius: 18px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            min-height: 420px;
+            height: 75vh;
+            overflow: hidden;
+            box-shadow: 0 20px 45px rgba(15, 23, 42, 0.08);
+        }
+
+        .jira-task-list {
+            flex: 1;
+            overflow-y: auto;
+            margin-top: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding-right: 6px;
+            min-height: 0;
+        }
+
+        .jira-task-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .jira-task-list::-webkit-scrollbar-thumb {
+            background: rgba(99, 102, 241, 0.4);
+            border-radius: 999px;
+        }
+
+        .jira-task-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 14px;
+            padding: 14px 16px;
+            border: 1px solid rgba(99, 102, 241, 0.08);
+            border-radius: 14px;
+            cursor: pointer;
+            transition: border 0.2s ease, background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+            background: white;
+            box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
+            flex-wrap: wrap;
+        }
+
+        .jira-task-row:hover {
+            border-color: rgba(99, 102, 241, 0.35);
+            transform: translateY(-1px);
+            box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+        }
+
+        .jira-task-row.selected {
+            border-color: #6366f1;
+            background: linear-gradient(135deg, rgba(238, 242, 255, 0.95), rgba(219, 234, 254, 0.7));
+            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.25);
+        }
+
+        .jira-task-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .jira-task-summary {
+            font-weight: 600;
+            color: #0f172a;
+            line-height: 1.4;
+            word-break: break-word;
+        }
+
+        .jira-task-key {
+            display: inline-block;
+            padding: 2px 10px;
+            margin-right: 8px;
+            border-radius: 999px;
+            background: rgba(99, 102, 241, 0.12);
+            color: #4338ca;
+            font-size: 0.78rem;
+            font-weight: 700;
+        }
+
+        .jira-task-purpose {
+            font-size: 0.85rem;
+            color: #475569;
+            margin-top: 8px;
+            line-height: 1.4;
+        }
+
+        .jira-task-meta {
+            font-size: 0.8rem;
+            color: #64748b;
+            margin-top: 6px;
+        }
+
+        .jira-status-chip {
+            background: linear-gradient(135deg, #f0f9ff, #dbeafe);
+            color: #0f172a;
+            padding: 6px 14px;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            white-space: nowrap;
+            align-self: flex-start;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+        }
+
+        .jira-controls {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 14px;
+            box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
+        }
+
+        .jira-controls select,
+        .jira-controls input {
+            flex: 1;
+            min-width: 160px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+            background: white;
+        }
+
+        .jira-detail {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 18px;
+            box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+            flex: 1;
+            min-height: 0;
+            height: 100%;
+            overflow-y: auto;
+        }
+
+        .jira-detail select,
+        .jira-detail textarea,
+        .jira-detail input {
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+            background: white;
+            overflow: hidden;
+        }
+
+        .jira-detail select {
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+
+        .jira-detail textarea {
+            min-height: 160px;
+            resize: vertical;
+        }
+
+        #jiraDetailSummary {
+            min-height: 90px;
+            line-height: 1.45;
+            font-weight: 600;
+        }
+
+        .jira-detail-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #0f172a;
+            line-height: 1.5;
+        }
+
+        .jira-summary-hint {
+            font-size: 0.78rem;
+            color: #94a3b8;
+            margin-top: 6px;
+        }
+
+        .jira-purpose-card {
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 12px 14px;
+            background: #f8fafc;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+        }
+
+        .jira-purpose-card label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #475569;
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        .jira-purpose-card p {
+            margin: 0;
+            color: #1e293b;
+            line-height: 1.5;
+        }
+
+        .jira-empty-state {
+            text-align: center;
+            padding: 30px;
+            color: #94a3b8;
+        }
+
         .modal {
             display: none;
             position: fixed;
@@ -98,7 +529,7 @@
             width: 100%;
             height: 100%;
             overflow: auto;
-            background-color: rgba(0,0,0,0.5);
+            background-color: rgba(0, 0, 0, 0.5);
             backdrop-filter: blur(5px);
         }
 
@@ -168,7 +599,6 @@
         .info-icon:focus-visible::before {
             opacity: 1;
             transform: translate(-50%, 0);
->>>>>>> origin/main
         }
 
         @keyframes slideIn {
@@ -247,6 +677,79 @@
             resize: vertical;
             min-height: 100px;
             font-family: inherit;
+        }
+
+        .radio-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 12px;
+            margin-bottom: 15px;
+            padding: 15px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 2px solid #e5e7eb;
+        }
+
+        .radio-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .radio-option input[type="checkbox"],
+        .radio-option input[type="radio"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: #667eea;
+            margin: 0;
+            flex-shrink: 0;
+        }
+
+        .radio-option label {
+            font-weight: 500;
+            color: #475569;
+            cursor: pointer;
+            margin: 0;
+            font-size: 0.9rem;
+            user-select: none;
+        }
+
+        .radio-option:hover label {
+            color: #667eea;
+        }
+
+        .radio-option input[type="checkbox"]:checked+label,
+        .radio-option input[type="radio"]:checked+label {
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .other-input-group {
+            margin-top: 10px;
+        }
+
+        .other-input-group label {
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: #374151;
+            font-size: 0.9rem;
+        }
+
+        .other-input-group input {
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            background: white;
+            width: 100%;
+        }
+
+        .other-input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
 
         .button-group {
@@ -381,7 +884,7 @@
             border-radius: 12px;
             padding: 20px;
             margin-bottom: 20px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
 
         .analysis-section h3 {
@@ -482,7 +985,7 @@
             margin-bottom: 8px;
             border-radius: 8px;
             border-left: 4px solid #667eea;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
 
         .task-list li::before {
@@ -492,7 +995,9 @@
             margin-right: 10px;
         }
 
-        .challenge-item, .risk-item, .recommendation-item {
+        .challenge-item,
+        .risk-item,
+        .recommendation-item {
             background: #fef3c7;
             padding: 12px;
             margin-bottom: 10px;
@@ -638,6 +1143,10 @@
 
             .tab-content {
                 padding: 20px;
+            }
+
+            .jira-setup-grid {
+                grid-template-columns: 1fr;
             }
         }
 
@@ -894,186 +1403,362 @@
         }
 
         /* CODE DIFF VIEWER STYLES */
-.diff-viewer-modal {
-    display: none;
-    position: fixed;
-    z-index: 2000;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.7);
-    backdrop-filter: blur(5px);
-    animation: fadeIn 0.2s ease;
-}
+        .diff-viewer-modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            animation: fadeIn 0.2s ease;
+        }
 
-.diff-viewer-modal.active {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
+        .diff-viewer-modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
 
-.diff-viewer-content {
-    background: white;
-    border-radius: 15px;
-    width: 90%;
-    max-width: 1200px;
-    max-height: 85vh;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-    display: flex;
-    flex-direction: column;
-    animation: slideUp 0.3s ease;
-}
+        .diff-viewer-content {
+            background: white;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 1200px;
+            max-height: 85vh;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            animation: slideUp 0.3s ease;
+        }
 
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
 
-@keyframes slideUp {
-    from { transform: translateY(30px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
-}
+        @keyframes slideUp {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
 
-.diff-viewer-header {
-    padding: 20px 25px;
-    border-bottom: 2px solid #e5e7eb;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
+        .diff-viewer-header {
+            padding: 20px 25px;
+            border-bottom: 2px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
 
-.diff-viewer-header h2 {
-    margin: 0;
-    color: #1e293b;
-    font-size: 1.3rem;
-}
+        .diff-viewer-header h2 {
+            margin: 0;
+            color: #1e293b;
+            font-size: 1.3rem;
+        }
 
-.diff-viewer-close {
-    background: #ef4444;
-    color: white;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: 600;
-    font-size: 0.9rem;
-    transition: all 0.2s;
-}
+        .diff-viewer-close {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
 
-.diff-viewer-close:hover {
-    background: #dc2626;
-    transform: scale(1.05);
-}
+        .diff-viewer-close:hover {
+            background: #dc2626;
+            transform: scale(1.05);
+        }
 
-.diff-viewer-body {
-    padding: 25px;
-    overflow-y: auto;
-    flex: 1;
-}
+        .diff-viewer-body {
+            padding: 25px;
+            overflow-y: auto;
+            flex: 1;
+        }
 
-.diff-info {
-    background: #f8fafc;
-    border-radius: 8px;
-    padding: 15px;
-    margin-bottom: 20px;
-    border-left: 4px solid #667eea;
-}
+        .diff-info {
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-left: 4px solid #667eea;
+        }
 
-.diff-info p {
-    margin: 5px 0;
-    color: #475569;
-}
+        .diff-info p {
+            margin: 5px 0;
+            color: #475569;
+        }
 
-.diff-info strong {
-    color: #1e293b;
-}
+        .diff-info strong {
+            color: #1e293b;
+        }
 
-.diff-comparison {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-    margin-top: 20px;
-}
+        .diff-comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
 
-.diff-panel {
-    background: #1e293b;
-    border-radius: 8px;
-    overflow: hidden;
-}
+        .diff-panel {
+            background: #1e293b;
+            border-radius: 8px;
+            overflow: hidden;
+        }
 
-.diff-panel-header {
-    padding: 10px 15px;
-    font-weight: 600;
-    font-size: 0.9rem;
-    color: white;
-}
+        .diff-panel-header {
+            padding: 10px 15px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: white;
+        }
 
-.diff-panel-header.before {
-    background: #dc2626;
-}
+        .diff-panel-header.before {
+            background: #dc2626;
+        }
 
-.diff-panel-header.after {
-    background: #16a34a;
-}
+        .diff-panel-header.after {
+            background: #16a34a;
+        }
 
-.diff-code {
-    padding: 15px;
-    font-family: 'Consolas', 'Monaco', monospace;
-    font-size: 0.85rem;
-    line-height: 1.5;
-    color: #e2e8f0;
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    max-height: 400px;
-    overflow-y: auto;
-}
+        .diff-code {
+            padding: 15px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            color: #e2e8f0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-height: 400px;
+            overflow-y: auto;
+        }
 
-.diff-empty {
-    color: #94a3b8;
-    font-style: italic;
-    padding: 30px;
-    text-align: center;
-}
+        .diff-empty {
+            color: #94a3b8;
+            font-style: italic;
+            padding: 30px;
+            text-align: center;
+        }
 
-.diff-stats {
-    display: flex;
-    gap: 20px;
-    margin-top: 15px;
-    padding: 15px;
-    background: #f1f5f9;
-    border-radius: 8px;
-}
+        .diff-stats {
+            display: flex;
+            gap: 20px;
+            margin-top: 15px;
+            padding: 15px;
+            background: #f1f5f9;
+            border-radius: 8px;
+        }
 
-.diff-stat {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-weight: 600;
-}
+        .diff-stat {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+        }
 
-.diff-stat.added {
-    color: #16a34a;
-}
+        .diff-stat.added {
+            color: #16a34a;
+        }
 
-.diff-stat.removed {
-    color: #dc2626;
-}
+        .diff-stat.removed {
+            color: #dc2626;
+        }
 
-.diff-stat-icon {
-    font-size: 1.2rem;
-}
+        .diff-stat-icon {
+            font-size: 1.2rem;
+        }
 
-@media (max-width: 768px) {
-    .diff-comparison {
-        grid-template-columns: 1fr;
-    }
-    
-    .diff-viewer-content {
-        width: 95%;
-        max-height: 90vh;
-    }
-}
+        @media (max-width: 768px) {
+            .diff-comparison {
+                grid-template-columns: 1fr;
+            }
+            
+            .diff-viewer-content {
+                width: 95%;
+                max-height: 90vh;
+            }
+        }
+
+        .profile-dropdown-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        .profile-button {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            font-size: 0.9rem;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 600;
+        }
+
+        .profile-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .profile-button .profile-icon {
+            font-size: 1.2rem;
+        }
+
+        .profile-dropdown {
+            display: none;
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 0;
+            min-width: 320px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            animation: dropdownSlide 0.2s ease-out;
+        }
+
+        .profile-dropdown.show {
+            display: block;
+        }
+
+        @keyframes dropdownSlide {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .profile-dropdown-header {
+            padding: 20px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .profile-dropdown-header h3 {
+            margin: 0 0 8px 0;
+            color: #1e293b;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .profile-dropdown-content {
+            padding: 15px 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .profile-dropdown-item {
+            margin-bottom: 12px;
+        }
+
+        .profile-dropdown-item label {
+            display: block;
+            font-weight: 600;
+            color: #475569;
+            font-size: 0.85rem;
+            margin-bottom: 4px;
+        }
+
+        .profile-dropdown-item p {
+            color: #64748b;
+            margin: 0;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .profile-dropdown-footer {
+            padding: 15px 20px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .profile-dropdown-footer .btn {
+            width: 100%;
+            justify-content: center;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .edit-profile-link {
+            display: block;
+            text-align: center;
+            padding: 10px;
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .edit-profile-link:hover {
+            background: #f8fafc;
+            color: #764ba2;
+        }
+
+        .app-logo {
+            height: 120px;
+            width: auto;
+            margin-right: 0;
+            padding: 0;
+            vertical-align: middle;
+        }
+
+        .projects-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+            gap: 24px;
+            align-items: flex-start;
+        }
+
+        @media (max-width: 1000px) {
+            .projects-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        #projects .project-list {
+            max-height: 55vh;
+            overflow-y: auto;
+            margin-bottom: 0;
+
+            /* Firefox */
+            scrollbar-width: thin;
+            scrollbar-color: rgba(148, 163, 184, 0.4) transparent;
+        }
+
+        /* Chrome / Edge / VS Code webview (WebKit-based) */
+        #projects .project-list::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        #projects .project-list::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        #projects .project-list::-webkit-scrollbar-thumb {
+            background: rgba(148, 163, 184, 0.35);
+            border-radius: 999px;
+        }
+
+        #projects .project-list::-webkit-scrollbar-thumb:hover {
+            background: rgba(148, 163, 184, 0.6);
+        }
     </style>
 </head>
 
@@ -1081,36 +1766,55 @@
     <div class="container">
         <div class="header">
             <div class="header-top">
-                <h1>🚀 AI Collab Agent</h1>
-                <button id="signOutBtn" class="btn btn-secondary signout-btn">Sign Out</button>
+                <div class="profile-dropdown-container">
+                    <button id="profileBtn" class="profile-button">
+                        <span class="profile-icon">👤</span>
+                        <span id="profileBtnName">Profile</span>
+                    </button>
+                    <div id="profileDropdown" class="profile-dropdown">
+                        <div class="profile-dropdown-header">
+                            <h3><span>👤</span> <span id="dropdownUserName">User</span></h3>
+                        </div>
+                        <div class="profile-dropdown-content">
+                            <div class="profile-dropdown-item">
+                                <label>Skills</label>
+                                <p id="dropdownSkills">Not specified</p>
+                            </div>
+                            <div class="profile-dropdown-item">
+                                <label>Programming Languages</label>
+                                <p id="dropdownLanguages">Not specified</p>
+                            </div>
+                            <div class="profile-dropdown-item">
+                                <label>Willing to Work On</label>
+                                <p id="dropdownWilling">Not specified</p>
+                            </div>
+                        </div>
+                        <a class="edit-profile-link" id="editProfileLink">✏️ Edit Profile</a>
+                        <div class="profile-dropdown-footer">
+                            <button id="signOutBtn" class="btn btn-secondary">
+                                <span>🚪</span>
+                                <span>Sign Out</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+
+                <h1><img src="{{logoUri}}" alt="AI Collab Agent logo" class="app-logo">Pallas AI</h1>
+                <div style="width: 140px;"></div> <!-- Spacer -->
             </div>
             <p>Team Collaboration & AI-Powered Project Management</p>
 
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <h3 id="userCount">0</h3>
-                    <p>Team Members</p>
-                </div>
-                <div class="stat-card">
-                    <h3 id="projectCount">0</h3>
-                    <p>Projects</p>
-                </div>
-                <div class="stat-card">
-                    <h3 id="promptCount">0</h3>
-                    <p>AI Prompts</p>
-                </div>
-            </div>
         </div>
 
         <div class="tabs">
-            <button class="tab-button active" data-tab="users">👤 My Profile</button>
             <button class="tab-button" data-tab="projects">📋 Projects</button>
-            <button class="tab-button" data-tab="join">🔗 Join Project</button>
-            <button class="tab-button" data-tab="prompts">🤖 AI Prompts</button>
+            <button class="tab-button" data-tab="prompts">🤖 Workspace</button>
+            <button class="tab-button" data-tab="jira">🗂️ Jira Tasks</button>
             <button class="tab-button" data-tab="timeline">📅 Timeline</button>
         </div>
 
-        <div id="users" class="tab-content active">
+        <div id="users" class="tab-content">
             <div class="section-title">My Profile</div>
 
             <form class="form-grid" id="profile-form">
@@ -1121,13 +1825,126 @@
 
                 <div class="form-group">
                     <label for="userSkills">Skills</label>
-                    <textarea id="userSkills"
-                        placeholder="e.g., Leadership, Design, Analysis, Problem Solving"></textarea>
+                    <div class="radio-group">
+                        <div class="radio-option">
+                            <input type="checkbox" id="skill-ml" name="skills" value="Machine Learning">
+                            <label for="skill-ml">Machine Learning</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="skill-db" name="skills" value="Databases">
+                            <label for="skill-db">Databases</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="skill-cloud" name="skills" value="Cloud Computing">
+                            <label for="skill-cloud">Cloud Computing</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="skill-frontend" name="skills" value="Frontend Development">
+                            <label for="skill-frontend">Frontend Development</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="skill-backend" name="skills" value="Backend Development">
+                            <label for="skill-backend">Backend Development</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="skill-devops" name="skills" value="DevOps">
+                            <label for="skill-devops">DevOps</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="skill-security" name="skills" value="Security">
+                            <label for="skill-security">Security</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="skill-mobile" name="skills" value="Mobile Development">
+                            <label for="skill-mobile">Mobile Development</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="skill-testing" name="skills" value="Testing">
+                            <label for="skill-testing">Testing</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="skill-uiux" name="skills" value="UI/UX Design">
+                            <label for="skill-uiux">UI/UX Design</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="skill-data" name="skills" value="Data Science">
+                            <label for="skill-data">Data Science</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="skill-architecture" name="skills" value="Software Architecture">
+                            <label for="skill-architecture">Software Architecture</label>
+                        </div>
+                    </div>
+                    <div class="other-input-group">
+                        <label for="userSkillsOther">Other Skills (comma-separated)</label>
+                        <input type="text" id="userSkillsOther" placeholder="e.g., Leadership, Design, Analysis">
+                    </div>
                 </div>
 
                 <div class="form-group">
                     <label for="userLanguages">Programming Languages</label>
-                    <input type="text" id="userLanguages" placeholder="e.g., Python, JavaScript, TypeScript, Java">
+                    <div class="radio-group">
+                        <div class="radio-option">
+                            <input type="checkbox" id="lang-python" name="languages" value="Python">
+                            <label for="lang-python">Python</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="lang-java" name="languages" value="Java">
+                            <label for="lang-java">Java</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="lang-javascript" name="languages" value="JavaScript">
+                            <label for="lang-javascript">JavaScript</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="lang-typescript" name="languages" value="TypeScript">
+                            <label for="lang-typescript">TypeScript</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="lang-cpp" name="languages" value="C++">
+                            <label for="lang-cpp">C++</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="lang-csharp" name="languages" value="C#">
+                            <label for="lang-csharp">C#</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="lang-go" name="languages" value="Go">
+                            <label for="lang-go">Go</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="lang-rust" name="languages" value="Rust">
+                            <label for="lang-rust">Rust</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="lang-php" name="languages" value="PHP">
+                            <label for="lang-php">PHP</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="lang-ruby" name="languages" value="Ruby">
+                            <label for="lang-ruby">Ruby</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="lang-swift" name="languages" value="Swift">
+                            <label for="lang-swift">Swift</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="lang-kotlin" name="languages" value="Kotlin">
+                            <label for="lang-kotlin">Kotlin</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="lang-sql" name="languages" value="SQL">
+                            <label for="lang-sql">SQL</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="checkbox" id="lang-html" name="languages" value="HTML/CSS">
+                            <label for="lang-html">HTML/CSS</label>
+                        </div>
+                    </div>
+                    <div class="other-input-group">
+                        <label for="userLanguagesOther">Other Languages (comma-separated)</label>
+                        <input type="text" id="userLanguagesOther" placeholder="e.g., R, Scala, Dart">
+                    </div>
                 </div>
 
                 <div class="form-group">
@@ -1136,165 +1953,121 @@
                         placeholder="Describe your interests and preferred project types..."></textarea>
                 </div>
             </form>
-           <div class="button-group">
+            <div class="button-group">
                 <button id="update-profile-btn" class="btn btn-primary">Update Profile</button>
                 <button id="clear-profile-form-btn" class="btn btn-secondary">Reset Form</button>
             </div>
 
             <div id="userStatus" class="status-message" style="display: none;"></div>
 
-            <div class="section-title">Profile Information</div>
-            <div id="currentUserDisplay" class="user-list">
-                <p style="text-align: center; color: #64748b; padding: 15px;">Loading profile...</p>
-            </div>
         </div>
 
         <div id="projects" class="tab-content">
-            <div class="section-title">Create Project</div>
+            <div class="projects-layout">
+                <!-- Left Column -->
+                <div>
+                    <div class="section-title">Create Project</div>
 
-            <form class="form-grid">
-                <div class="form-group">
-                    <label for="projectName">Project Name *</label>
-                    <input type="text" id="projectName" required placeholder="Enter project name">
-                </div>
+                    <form class="form-grid">
 
-                <div class="form-group">
-                    <label for="projectDescription">Description *</label>
-                    <textarea id="projectDescription" required placeholder="Describe the project..."></textarea>
-                </div>
+                        <div class="form-group">
+                            <label for="projectName">Project Name *</label>
+                            <input type="text" id="projectName" required placeholder="Enter project name">
+                        </div>
 
-                <div class="form-group">
-                    <label for="projectGoals">Goals</label>
-                    <textarea id="projectGoals" placeholder="List main objectives..."></textarea>
-                </div>
+                        <div class="form-group">
+                            <label for="projectDescription">Description *</label>
+                            <textarea id="projectDescription" required placeholder="Describe the project..."></textarea>
+                        </div>
 
-                <div class="form-group">
-                    <label for="projectRequirements">Requirements</label>
-                    <textarea id="projectRequirements"
-                        placeholder="Technical requirements and constraints..."></textarea>
-                </div>
+                        <div class="form-group">
+                            <label for="projectGoals">Goals</label>
+                            <textarea id="projectGoals" placeholder="List main objectives..."></textarea>
+                        </div>
 
-                <div class="form-group">
-                    <label>Select Team Members *</label>
-                    <div id="userSelection" class="multi-select">
-                        <p style="text-align: center; color: #64748b; padding: 10px;">Add team members first</p>
+                        <div class="form-group">
+                            <label for="projectRequirements">Requirements</label>
+                            <textarea id="projectRequirements"
+                                placeholder="Technical requirements and constraints..."></textarea>
+                        </div>
+                    </form>
+
+                    <div class="button-group">
+                        <button id="create-project-btn" class="btn btn-primary">Create Project</button>
+                        <button id="clear-project-form-btn" class="btn btn-secondary">Clear Form</button>
                     </div>
+
+                    <div id="projectStatus" class="status-message" style="display: none;"></div>
+
                 </div>
-            </form>
 
-            <div class="button-group">
-                <button id="create-project-btn" class="btn btn-primary">Create Project</button>
-                <button id="clear-project-form-btn" class="btn btn-secondary">Clear Form</button>
-            </div>
+                <!-- Right Column -->
+                <div>
+                    <div class="section-title">Join Project</div>
 
-            <div id="projectStatus" class="status-message" style="display: none;"></div>
-
-            <div class="section-title">Jira Task Generator</div>
-            <p style="color: #475569; margin-bottom: 12px;">Connect to Jira Cloud to auto-generate a backlog for the selected project.</p>
-            <div class="button-group" style="justify-content: flex-start; margin-bottom: 0;">
-                <button type="button" id="toggle-jira-credentials-btn" class="btn btn-primary" aria-expanded="false">Generate Jira Tasks</button>
-            </div>
-            <div id="jiraCredentialsCard" class="profile-card hidden">
-                <div class="profile-card-title">Jira Credentials</div>
-                <div class="form-grid">
                     <div class="form-group">
-                        <label for="jiraBaseUrl">
-                            Jira Cloud base URL (e.g. https://your-team.atlassian.net)
-                            <span class="info-icon" tabindex="0" role="button" aria-label="How to find your Jira Cloud base URL" data-tooltip="1. Sign in to Jira Cloud in your browser.&#10;2. Copy the site URL up to atlassian.net (e.g., https://team.atlassian.net).&#10;3. Remove everything after the domain before pasting here.">?</span>
-                        </label>
-                        <input type="text" id="jiraBaseUrl" placeholder="https://your-team.atlassian.net">
+                        <label for="inviteCode">Invite Code</label>
+                        <input type="text" id="inviteCode" placeholder="Enter 6-character invite code" maxlength="6"
+                            style="text-transform: uppercase;">
                     </div>
-                    <div class="form-group">
-                        <label for="jiraProjectKey">
-                            Jira Project Key (e.g. STAR, TUFF, ENG)
-                            <span class="info-icon" tabindex="0" role="button" aria-label="How to find your Jira Project Key" data-tooltip="1. In Jira, open Project settings &gt; Details.&#10;2. Find the Project key (2-10 uppercase letters shown under the project name).&#10;3. Paste that exact key here—do not use the project name.">?</span>
-                        </label>
-                        <input type="text" id="jiraProjectKey" placeholder="TEAM">
+
+                    <div class="button-group">
+                        <button id="join-project-btn" class="btn btn-primary">Join Project</button>
                     </div>
-                    <div class="form-group">
-                        <label for="jiraEmail">
-                            Jira account email (the one tied to the API token)
-                            <span class="info-icon" tabindex="0" role="button" aria-label="Which email to use for Jira" data-tooltip="1. Use the Atlassian account email tied to your API token.&#10;2. Confirm it from https://id.atlassian.com/manage-profile.&#10;3. This email must have access to the Jira site you entered.">?</span>
-                        </label>
-                        <input type="email" id="jiraEmail" placeholder="you@company.com">
+
+                    <div id="joinStatus" class="status-message" style="display: none;"></div>
+
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin: 25px 0 15px;">
+                        <div class="section-title" style="margin-bottom: 0;">Projects</div>
+                        <button id="refresh-projects-btn" class="btn btn-secondary"
+                            style="padding: 8px 16px; font-size: 0.85rem;" title="Refresh projects from database">🔄
+                            Refresh</button>
                     </div>
-                    <div class="form-group">
-                        <label for="jiraApiToken">
-                            Jira API Token
-                            <span class="info-icon" tabindex="0" role="button" aria-label="How to generate a Jira API token" data-tooltip="1. Go to https://id.atlassian.com/manage-profile/security/api-tokens (while logged in).&#10;2. Click Create API token, give it a label, then Create.&#10;3. Copy the token once and paste it here—store it securely because it cannot be shown again.">?</span>
-                        </label>
-                        <input type="password" id="jiraApiToken" placeholder="••••••••">
+
+                    <div id="projectList" class="project-list">
+                        <p style="text-align: center; color: #64748b; padding: 15px;">No projects yet</p>
                     </div>
-                    <div class="form-group" style="grid-column: 1 / -1;">
-                        <label for="jiraProjectPrompt">
-                            Project prompt (Describe your project to generate a Jira backlog)
-                            <span class="info-icon" tabindex="0" role="button" aria-label="What to include in the Jira project prompt" data-tooltip="Describe what Jira should build for you.&#10;Include the product vision, target users, tech stack, constraints, and any priority backlog items or milestones.">?</span>
-                        </label>
-                        <textarea id="jiraProjectPrompt" placeholder="e.g., Build a fitness app that tracks workouts and suggests plans…" rows="4"></textarea>
-                    </div>
+                    <div id="projectRefreshStatus" class="status-message" style="display: none;"></div>
                 </div>
-                <div class="button-group" style="justify-content: flex-end;">
-                    <button type="button" id="jira-profile-create-btn" class="btn btn-primary">Create Jira Tasks</button>
-                </div>
-                <div id="jiraStatus" class="status-message" style="display: none;"></div>
-            </div>
-            
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <div class="section-title" style="margin-bottom: 0;">Projects</div>
-                <button id="refresh-projects-btn" class="btn btn-secondary" style="padding: 8px 16px; font-size: 0.85rem;" title="Refresh projects from database">🔄 Refresh</button>
-            </div>
-            <div id="projectList" class="project-list">
-                <p style="text-align: center; color: #64748b; padding: 15px;">No projects yet</p>
-            </div>
-        </div>
-
-        <div id="join" class="tab-content">
-            <div class="section-title">Join Project</div>
-
-            <div class="form-group">
-                <label for="inviteCode">Invite Code</label>
-                <input type="text" id="inviteCode" placeholder="Enter 6-character invite code" maxlength="6"
-                    style="text-transform: uppercase;">
             </div>
 
-            <div class="button-group">
-                <button id="join-project-btn" class="btn btn-primary">Join Project</button>
-            </div>
-
-            <div id="joinStatus" class="status-message" style="display: none;"></div>
         </div>
 
         <!-- Edit Project Modal -->
         <div id="editProjectModal" class="modal" style="display: none;">
-            <div class="modal-content" style="max-width: 600px; margin: 50px auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+            <div class="modal-content"
+                style="max-width: 600px; margin: 50px auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                     <h2 style="margin: 0;">Edit Project</h2>
-                    <button id="closeEditModal" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #64748b;">&times;</button>
+                    <button id="closeEditModal"
+                        style="background: none; border: none; font-size: 24px; cursor: pointer; color: #64748b;">&times;</button>
                 </div>
-                
+
                 <form id="editProjectForm">
                     <input type="hidden" id="editProjectId">
-                    
+
                     <div class="form-group">
                         <label for="editProjectName">Project Name *</label>
                         <input type="text" id="editProjectName" required placeholder="Enter project name">
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="editProjectDescription">Description *</label>
                         <textarea id="editProjectDescription" required placeholder="Describe the project..."></textarea>
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="editProjectGoals">Goals</label>
                         <textarea id="editProjectGoals" placeholder="List main objectives..."></textarea>
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="editProjectRequirements">Requirements</label>
-                        <textarea id="editProjectRequirements" placeholder="Technical requirements and constraints..."></textarea>
+                        <textarea id="editProjectRequirements"
+                            placeholder="Technical requirements and constraints..."></textarea>
                     </div>
-                    
+
                     <div class="form-group" id="memberManagementSection" style="display: none;">
                         <label>Team Members (Owner can remove members)</label>
                         <div id="editProjectMembers" style="margin-top: 10px;">
@@ -1302,7 +2075,7 @@
                         </div>
                     </div>
                 </form>
-                
+
                 <div class="button-group" style="margin-top: 20px;">
                     <button id="saveProjectBtn" class="btn btn-primary">Save Changes</button>
                     <button id="cancelEditBtn" class="btn btn-secondary">Cancel</button>
@@ -1343,11 +2116,118 @@
                     </ul>
                 </div>
             </div>
-            
+
             <!-- New structured visualization container -->
             <div id="aiAnalysisVisualization" style="display: none;"></div>
             <div class="button-group" style="justify-content: right">
                 <button id="start-project" class="btn btn-primary">Start Project</button>
+            </div>
+        </div>
+
+        <div id="jira" class="tab-content">
+            <div class="jira-header">
+                <div class="section-title">Jira Tasks</div>
+            </div>
+
+            <div class="jira-setup-grid">
+                <div id="jiraCredentialsCard" class="jira-credentials-card">
+                    <div class="jira-credentials-header">
+                        <div class="profile-card-title">Jira Credentials</div>
+                        <button type="button" id="toggle-jira-credentials-btn" class="btn btn-secondary" aria-expanded="true">Hide Jira setup</button>
+                    </div>
+                    <div id="jiraCredentialsBody" class="jira-credentials-body">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="jiraBaseUrl">
+                                    Jira Cloud base URL (e.g. https://your-team.atlassian.net)
+                                    <span class="info-icon" tabindex="0" role="button" aria-label="How to find your Jira Cloud base URL" data-tooltip="1. Sign in to Jira Cloud in your browser.&#10;2. Copy the site URL up to atlassian.net (e.g., https://team.atlassian.net).&#10;3. Remove everything after the domain before pasting here.">?</span>
+                                </label>
+                                <input type="text" id="jiraBaseUrl" placeholder="https://your-team.atlassian.net">
+                            </div>
+                            <div class="form-group">
+                                <label for="jiraProjectKey">
+                                    Jira Project Key (e.g. STAR, TUFF, ENG)
+                                    <span class="info-icon" tabindex="0" role="button" aria-label="How to find your Jira Project Key" data-tooltip="1. In Jira, open Project settings &gt; Details.&#10;2. Find the Project key (2-10 uppercase letters shown under the project name).&#10;3. Paste that exact key here—do not use the project name.">?</span>
+                                </label>
+                                <input type="text" id="jiraProjectKey" placeholder="TEAM">
+                            </div>
+                            <div class="form-group">
+                                <label for="jiraEmail">
+                                    Jira account email (the one tied to the API token)
+                                    <span class="info-icon" tabindex="0" role="button" aria-label="Which email to use for Jira" data-tooltip="1. Use the Atlassian account email tied to your API token.&#10;2. Confirm it from https://id.atlassian.com/manage-profile.&#10;3. This email must have access to the Jira site you entered.">?</span>
+                                </label>
+                                <input type="email" id="jiraEmail" placeholder="you@company.com">
+                            </div>
+                            <div class="form-group">
+                                <label for="jiraApiToken">
+                                    Jira API Token
+                                    <span class="info-icon" tabindex="0" role="button" aria-label="How to generate a Jira API token" data-tooltip="1. Go to https://id.atlassian.com/manage-profile/security/api-tokens (while logged in).&#10;2. Click Create API token, give it a label, then Create.&#10;3. Copy the token once and paste it here—store it securely because it cannot be shown again.">?</span>
+                                </label>
+                                <input type="password" id="jiraApiToken" placeholder="••••••••">
+                            </div>
+                            <div class="form-group" style="grid-column: 1 / -1;">
+                                <div class="label-with-action">
+                                    <label for="jiraProjectPrompt">
+                                        Project prompt (Describe your project to generate a Jira backlog)
+                                        <span class="info-icon" tabindex="0" role="button" aria-label="What to include in the Jira project prompt" data-tooltip="Describe what Jira should build for you.&#10;Include the product vision, target users, tech stack, constraints, and any priority backlog items or milestones.">?</span>
+                                    </label>
+                                    <button type="button" id="jira-use-ai-prompt-btn" class="btn btn-secondary" title="Use the latest AI Analysis & Task Delegation output to populate your Jira backlog prompt">Use AI analysis output</button>
+                                </div>
+                                <textarea id="jiraProjectPrompt" placeholder="e.g., Build a fitness app that tracks workouts and suggests plans…" rows="4"></textarea>
+                            </div>
+                        </div>
+                        <div class="button-group" style="justify-content: flex-end;">
+                            <button type="button" id="jira-profile-create-btn" class="btn btn-primary">Create Jira Tasks</button>
+                        </div>
+                        <div id="jiraStatus" class="status-message" style="display: none;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="jira-credentials-card jira-collapsible-card" id="jiraAssignableCard">
+                <div class="collapsible-header">
+                    <div>
+                        <div class="profile-card-title">Jira Users from linked Jira Board</div>
+                        <p style="margin: 4px 0 0; color: #475569;">Pulled directly from Jira. Use the buttons below to refresh the roster.</p>
+                    </div>
+                    <button type="button" id="toggleAssignableCardBtn" class="btn btn-secondary" aria-expanded="true">Hide</button>
+                </div>
+                <div id="jiraAssignableBody" class="collapsible-body">
+                    <div class="button-group" style="justify-content: flex-end;">
+                        <button type="button" id="jiraRefreshAssignableBtn" class="btn btn-primary">Reload Assignable Users</button>
+                        <button type="button" id="jiraSaveAssignableBtn" class="btn btn-secondary">Refresh from Jira</button>
+                        <button type="button" id="jiraClearAssignableBtn" class="btn btn-secondary">Clear</button>
+                    </div>
+                    <div id="jiraAssignableList" class="project-list" style="margin-top: 12px; min-height: 40px;">
+                        <p style="text-align: center; color: #64748b; padding: 10px;">Assignable users will appear here after you reload from Jira.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-title">Task Board</div>
+            <div id="jiraTaskStatus" class="status-message" style="display: none;"></div>
+            <p id="jiraCredentialsWarning" class="status-message status-error" style="display: none;">Add your Jira workspace credentials above to view and manage tasks.</p>
+            <div id="jiraBoard" class="jira-layout hidden">
+                <div class="jira-column">
+                    <div class="jira-controls">
+                        <select id="jiraFilterStatus">
+                            <option value="">All Statuses</option>
+                        </select>
+                        <input type="text" id="jiraSearchInput" placeholder="Search tasks...">
+                        <button id="jiraRefreshBtn" class="btn btn-secondary" type="button">Refresh</button>
+                        <button id="jiraNewTaskBtn" class="btn btn-primary" type="button">+ New Task</button>
+                    </div>
+                    <div id="jiraTaskList" class="jira-task-list">
+                        <div class="jira-empty-state">
+                            <p>No Jira tasks loaded yet.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="jira-column">
+                    <div class="jira-detail" id="jiraTaskDetail">
+                        <p class="jira-empty-state">Select a task to view and edit details.</p>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -1433,7 +2313,7 @@
             <div class="diff-viewer-body" id="diffViewerBody">
                 <!-- Content populated by JavaScript -->
             </div>
-        </div>
+        </div> 
     </div>
 
     <script>
@@ -1474,6 +2354,18 @@
                 this.promptCount = 0;
                 this.workspaceFiles = [];
                 this.filteredFiles = [];
+                this.aiAnalysisByProject = {};
+                this.latestAiProjectId = null;
+                this.jiraTasks = []; // Tasks pulled from Jira search endpoint
+                this.jiraStatuses = []; // Status options fetched per project for filtering
+                this.jiraSelectedTask = null; // Currently highlighted task in detail pane
+                this.jiraLoading = false; // Prevents duplicate loads while waiting on Jira
+                this.jiraTransitions = {}; // Cached transitions per issue id for status dropdown
+                this.jiraFilters = { status: '', search: '' }; // Local filters applied to Jira list
+                this.jiraActiveRequestId = 0; // Tracks in-flight Jira load to discard stale responses
+                this.isCreatingJiraTask = false; // Toggle for new-task form vs editing existing
+                this.jiraUnlocked = window.localStorage.getItem('jiraUnlocked') === 'true'; // Remembers if Jira tab has been shown already
+                this.jiraAssignableEmails = []; // Roster fetched from Jira
 
                 // Request data from VS Code extension
                 vscode.postMessage({ type: 'loadData' });
@@ -1569,99 +2461,257 @@
 
             // Updated to handle currentUser separately
             loadData(data) {
-                // Load current user's profile
-                if (data.currentUser) {
-                    this.currentUser = {
-                        id: data.currentUser.id,
-                        name: data.currentUser.name,
-                        skills: data.currentUser.skills || '',
-                        programmingLanguages: data.currentUser.programming_languages || '',
-                        willingToWorkOn: data.currentUser.willing_to_work_on || '',
-                        jiraBaseUrl: data.currentUser.jira_base_url || '',
-                        jiraProjectKey: data.currentUser.jira_project_key || '',
-                        jiraEmail: data.currentUser.jira_email || '',
-                        jiraApiToken: data.currentUser.jira_api_token || '',
-                        jiraProjectPrompt: data.currentUser.jira_project_prompt || '',
-                        createdAt: data.currentUser.created_at
-                    };
-                    this.loadCurrentUserProfile();
-                }
+                try {
+                    // Remember if modal was open before reloading
+                    const modal = document.getElementById('editProjectModal');
+                    const wasModalOpen = modal && modal.style.display === 'block';
+                    const openProjectId = wasModalOpen ? document.getElementById('editProjectId')?.value : null;
+                    
+                    // Close any open modals to prevent stale references
+                    // But we'll reopen it after data reload if it was open
+                    this.closeEditModal();
+                    
+                    // Load current user's profile
+                    if (data.currentUser) {
+                        this.currentUser = {
+                            id: data.currentUser.id,
+                            name: data.currentUser.name,
+                            skills: data.currentUser.skills || '',
+                            programmingLanguages: data.currentUser.programming_languages || '',
+                            willingToWorkOn: data.currentUser.willing_to_work_on || '',
+                            jiraBaseUrl: data.currentUser.jira_base_url || '',
+                            jiraProjectKey: data.currentUser.jira_project_key || '',
+                            jiraEmail: data.currentUser.jira_email || '',
+                            jiraApiToken: data.currentUser.jira_api_token || '',
+                            jiraProjectPrompt: data.currentUser.jira_project_prompt || '',
+                            createdAt: data.currentUser.created_at
+                        };
+                        this.loadCurrentUserProfile();
+                    }
 
-                if (data.users) {
-                    this.users = data.users.map(userData => {
-                        const user = new TeamMember(userData.name, userData.skills, userData.programming_languages, userData.willing_to_work_on);
-                        user.id = userData.id;
-                        user.createdAt = userData.created_at;
-                        return user;
-                    });
-                }
+                    if (data.users) {
+                        this.users = data.users.map(userData => {
+                            const user = new TeamMember(userData.name, userData.skills, userData.programming_languages, userData.willing_to_work_on);
+                            user.id = userData.id;
+                            user.createdAt = userData.created_at;
+                            return user;
+                        });
+                    }
 
-                if (data.projects) {
-                    this.projects = data.projects.map(projectData => {
-                        // Ensure selectedMemberIds is an array
-                        const memberIds = Array.isArray(projectData.selectedMemberIds) ? projectData.selectedMemberIds : [];
-                        const project = new Project(
-                            projectData.name,
-                            projectData.description,
-                            projectData.goals,
-                            projectData.requirements,
-                            memberIds,
-                            projectData.invite_code || ''
-                        );
-                        project.id = projectData.id;
-                        project.createdAt = projectData.created_at;
-                        // CRITICAL: Copy owner_id to project object for ownership checks
-                        project.owner_id = projectData.owner_id;
-                        return project;
-                    });
-                }
+                    if (data.projects) {
+                        // Get valid user IDs to filter out any invalid member references
+                        const validUserIds = new Set(this.users.map(u => String(u.id)));
+                        
+                        this.projects = data.projects.map(projectData => {
+                            // Ensure selectedMemberIds is an array
+                            let memberIds = Array.isArray(projectData.selectedMemberIds) ? projectData.selectedMemberIds : [];
+                            // Filter out any member IDs that don't exist in users array (defensive programming)
+                            memberIds = memberIds.filter(id => validUserIds.has(String(id)));
+                            
+                            const project = new Project(
+                                projectData.name,
+                                projectData.description,
+                                projectData.goals,
+                                projectData.requirements,
+                                memberIds,
+                                projectData.invite_code || ''
+                            );
+                            project.id = projectData.id;
+                            project.createdAt = projectData.created_at;
+                            // CRITICAL: Copy owner_id to project object for ownership checks
+                            project.owner_id = projectData.owner_id;
+                            return project;
+                        });
+                    }
 
-                if (data.promptCount !== undefined) { // Check for undefined, not just falsy
-                    this.promptCount = data.promptCount;
-                }
+                    if (data.promptCount !== undefined) { // Check for undefined, not just falsy
+                        this.promptCount = data.promptCount;
+                    }
 
-                this.updateUI();
+                    this.updateUI();
+                    
+                    // Reopen modal if it was open before, and the project still exists
+                    if (wasModalOpen && openProjectId) {
+                        const projectStillExists = this.projects.some(p => p.id === openProjectId);
+                        if (projectStillExists) {
+                            // Small delay to ensure UI is updated first
+                            setTimeout(() => {
+                                this.openEditModal(openProjectId);
+                            }, 100);
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error loading data:', error);
+                    // Show error to user but don't crash
+                    showStatus('userStatus', 'Error loading data. Please refresh.', 'error');
+                }
+                this.renderJiraBoard();
             }
 
             loadCurrentUserProfile() {
                 if (!this.currentUser) return;
 
                 document.getElementById('userName').value = this.currentUser.name;
-                document.getElementById('userSkills').value = this.currentUser.skills;
-                document.getElementById('userLanguages').value = this.currentUser.programmingLanguages;
+
+                // Load skills - parse and set radio buttons + other
+                this.loadSkillsFromString(this.currentUser.skills || '');
+
+                // Load programming languages - parse and set radio buttons + other
+                this.loadLanguagesFromString(this.currentUser.programmingLanguages || '');
+
                 document.getElementById('userWilling').value = this.currentUser.willingToWorkOn;
-                document.getElementById('jiraBaseUrl').value = this.currentUser.jiraBaseUrl || '';
-                document.getElementById('jiraProjectKey').value = this.currentUser.jiraProjectKey || '';
-                document.getElementById('jiraEmail').value = this.currentUser.jiraEmail || '';
-                document.getElementById('jiraApiToken').value = this.currentUser.jiraApiToken || '';
-                document.getElementById('jiraProjectPrompt').value = this.currentUser.jiraProjectPrompt || '';
+                this.populateJiraCredentialsForm();
+                updateProfileDropdown();
+            }
+
+            populateJiraCredentialsForm() {
+                if (!this.currentUser) return;
+
+                const jiraBaseUrlInput = document.getElementById('jiraBaseUrl');
+                if (jiraBaseUrlInput) jiraBaseUrlInput.value = this.currentUser.jiraBaseUrl || '';
+
+                const jiraProjectKeyInput = document.getElementById('jiraProjectKey');
+                if (jiraProjectKeyInput) jiraProjectKeyInput.value = this.currentUser.jiraProjectKey || '';
+
+                const jiraEmailInput = document.getElementById('jiraEmail');
+                if (jiraEmailInput) jiraEmailInput.value = this.currentUser.jiraEmail || '';
+
+                const jiraApiTokenInput = document.getElementById('jiraApiToken');
+                if (jiraApiTokenInput) jiraApiTokenInput.value = this.currentUser.jiraApiToken || '';
+
+                const jiraProjectPromptInput = document.getElementById('jiraProjectPrompt');
+                if (jiraProjectPromptInput) jiraProjectPromptInput.value = this.currentUser.jiraProjectPrompt || '';
+            }
+
+            loadSkillsFromString(skillsString) {
+                if (!skillsString) {
+                    // Clear all selections
+                    document.querySelectorAll('input[name="skills"]').forEach(radio => radio.checked = false);
+                    document.getElementById('userSkillsOther').value = '';
+                    return;
+                }
+
+                const skillsList = skillsString.split(',').map(s => s.trim()).filter(s => s);
+                const predefinedSkills = [
+                    'Machine Learning', 'Databases', 'Cloud Computing', 'Frontend Development',
+                    'Backend Development', 'DevOps', 'Security', 'Mobile Development',
+                    'Testing', 'UI/UX Design', 'Data Science', 'Software Architecture'
+                ];
+
+                const otherSkills = [];
+
+                // First, uncheck all checkboxes
+                document.querySelectorAll('input[name="skills"]').forEach(cb => cb.checked = false);
+
+                skillsList.forEach(skill => {
+                    if (predefinedSkills.includes(skill)) {
+                        // Check the corresponding checkbox
+                        const checkbox = document.querySelector(`input[name="skills"][value="${skill}"]`);
+                        if (checkbox) {
+                            checkbox.checked = true;
+                        }
+                    } else {
+                        otherSkills.push(skill);
+                    }
+                });
+
+                // Set other skills
+                document.getElementById('userSkillsOther').value = otherSkills.join(', ');
+            }
+
+            loadLanguagesFromString(languagesString) {
+                if (!languagesString) {
+                    // Clear all selections
+                    document.querySelectorAll('input[name="languages"]').forEach(radio => radio.checked = false);
+                    document.getElementById('userLanguagesOther').value = '';
+                    return;
+                }
+
+                const languagesList = languagesString.split(',').map(l => l.trim()).filter(l => l);
+                const predefinedLanguages = [
+                    'Python', 'Java', 'JavaScript', 'TypeScript', 'C++', 'C#',
+                    'Go', 'Rust', 'PHP', 'Ruby', 'Swift', 'Kotlin', 'SQL', 'HTML/CSS'
+                ];
+
+                const otherLanguages = [];
+
+                // First, uncheck all checkboxes
+                document.querySelectorAll('input[name="languages"]').forEach(cb => cb.checked = false);
+
+                languagesList.forEach(language => {
+                    if (predefinedLanguages.includes(language)) {
+                        // Check the corresponding checkbox
+                        const checkbox = document.querySelector(`input[name="languages"][value="${language}"]`);
+                        if (checkbox) {
+                            checkbox.checked = true;
+                        }
+                    } else {
+                        otherLanguages.push(language);
+                    }
+                });
+
+                // Set other languages
+                document.getElementById('userLanguagesOther').value = otherLanguages.join(', ');
             }
 
             collectProfileFormData() {
-                const skills = (document.getElementById('userSkills')?.value || '').trim();
-                const programmingLanguages = (document.getElementById('userLanguages')?.value || '').trim();
-                const willingToWorkOn = (document.getElementById('userWilling')?.value || '').trim();
-                const jiraBaseUrl = (document.getElementById('jiraBaseUrl')?.value || '').trim();
-                const jiraProjectKey = (document.getElementById('jiraProjectKey')?.value || '').trim();
-                const jiraEmail = (document.getElementById('jiraEmail')?.value || '').trim();
-                const jiraApiToken = (document.getElementById('jiraApiToken')?.value || '').trim();
-                const jiraProjectPrompt = (document.getElementById('jiraProjectPrompt')?.value || '').trim();
+                const name = (document.getElementById('userName')?.value || '').trim();
 
-                return {
-                    skills,
-                    programmingLanguages,
-                    willingToWorkOn,
-                    jiraBaseUrl,
-                    jiraProjectKey,
-                    jiraEmail,
-                    jiraApiToken,
-                    jiraProjectPrompt
+                // Collect selected skills from checkboxes
+                const selectedSkills = Array.from(document.querySelectorAll('input[name="skills"]:checked'))
+                    .map(checkbox => checkbox.value);
+                const otherSkills = (document.getElementById('userSkillsOther')?.value || '').trim();
+                const allSkills = [...selectedSkills];
+                if (otherSkills) {
+                    const otherSkillsList = otherSkills.split(',').map(s => s.trim()).filter(s => s);
+                    allSkills.push(...otherSkillsList);
+                }
+                const skills = allSkills.join(', ');
+
+                // Collect selected languages from checkboxes
+                const selectedLanguages = Array.from(document.querySelectorAll('input[name="languages"]:checked'))
+                    .map(checkbox => checkbox.value);
+                const otherLanguages = (document.getElementById('userLanguagesOther')?.value || '').trim();
+                const allLanguages = [...selectedLanguages];
+                if (otherLanguages) {
+                    const otherLanguagesList = otherLanguages.split(',').map(l => l.trim()).filter(l => l);
+                    allLanguages.push(...otherLanguagesList);
+                }
+                const programmingLanguages = allLanguages.join(', ');
+
+                const willingToWorkOn = (document.getElementById('userWilling')?.value || '').trim();
+                return { name, skills, programmingLanguages, willingToWorkOn };
+            }
+
+            collectJiraCredentials(useFallback = false) {
+                // Pull Jira credentials + backlog prompt from the form, optionally defaulting to currentUser values
+                const fallback = useFallback && this.currentUser ? {
+                    jiraBaseUrl: this.currentUser.jiraBaseUrl || '',
+                    jiraProjectKey: this.currentUser.jiraProjectKey || '',
+                    jiraEmail: this.currentUser.jiraEmail || '',
+                    jiraApiToken: this.currentUser.jiraApiToken || '',
+                    jiraProjectPrompt: this.currentUser.jiraProjectPrompt || ''
+                } : {
+                    jiraBaseUrl: '',
+                    jiraProjectKey: '',
+                    jiraEmail: '',
+                    jiraApiToken: '',
+                    jiraProjectPrompt: ''
                 };
+
+                const jiraBaseUrl = (document.getElementById('jiraBaseUrl')?.value || fallback.jiraBaseUrl || '').trim();
+                const jiraProjectKey = (document.getElementById('jiraProjectKey')?.value || fallback.jiraProjectKey || '').trim();
+                const jiraEmail = (document.getElementById('jiraEmail')?.value || fallback.jiraEmail || '').trim();
+                const jiraApiToken = (document.getElementById('jiraApiToken')?.value || fallback.jiraApiToken || '').trim();
+                const jiraProjectPrompt = (document.getElementById('jiraProjectPrompt')?.value || fallback.jiraProjectPrompt || '').trim();
+
+                return { jiraBaseUrl, jiraProjectKey, jiraEmail, jiraApiToken, jiraProjectPrompt };
             }
 
             updateProfile() {
-                const name = document.getElementById('userName').value.trim();
                 const profileData = this.collectProfileFormData();
+                const jiraData = this.collectJiraCredentials(true);
+                const name = profileData.name || this.currentUser?.name || '';
 
                 if (!name) {
                     showStatus('userStatus', 'Error: Name is required', 'error');
@@ -1673,11 +2723,11 @@
                     this.currentUser.skills = profileData.skills;
                     this.currentUser.programmingLanguages = profileData.programmingLanguages;
                     this.currentUser.willingToWorkOn = profileData.willingToWorkOn;
-                    this.currentUser.jiraBaseUrl = profileData.jiraBaseUrl;
-                    this.currentUser.jiraProjectKey = profileData.jiraProjectKey;
-                    this.currentUser.jiraEmail = profileData.jiraEmail;
-                    this.currentUser.jiraApiToken = profileData.jiraApiToken;
-                    this.currentUser.jiraProjectPrompt = profileData.jiraProjectPrompt;
+                    this.currentUser.jiraBaseUrl = jiraData.jiraBaseUrl;
+                    this.currentUser.jiraProjectKey = jiraData.jiraProjectKey;
+                    this.currentUser.jiraEmail = jiraData.jiraEmail;
+                    this.currentUser.jiraApiToken = jiraData.jiraApiToken;
+                    this.currentUser.jiraProjectPrompt = jiraData.jiraProjectPrompt;
                 }
 
                 // Send update to extension
@@ -1688,11 +2738,11 @@
                         skills: profileData.skills,
                         programmingLanguages: profileData.programmingLanguages,
                         willingToWorkOn: profileData.willingToWorkOn,
-                        jiraBaseUrl: profileData.jiraBaseUrl,
-                        jiraProjectKey: profileData.jiraProjectKey,
-                        jiraEmail: profileData.jiraEmail,
-                        jiraApiToken: profileData.jiraApiToken,
-                        jiraProjectPrompt: profileData.jiraProjectPrompt
+                        jiraBaseUrl: jiraData.jiraBaseUrl,
+                        jiraProjectKey: jiraData.jiraProjectKey,
+                        jiraEmail: jiraData.jiraEmail,
+                        jiraApiToken: jiraData.jiraApiToken,
+                        jiraProjectPrompt: jiraData.jiraProjectPrompt
                     }
                 });
 
@@ -1704,15 +2754,130 @@
                 showStatus('userStatus', 'Form reset to saved values', 'info');
             }
 
+            storeAiAnalysis(projectId, analysis) {
+                if (!projectId || !analysis) {
+                    return;
+                }
+                this.aiAnalysisByProject[projectId] = analysis;
+                this.latestAiProjectId = projectId;
+            }
+
+            getProjectNameById(projectId) {
+                if (!projectId) {
+                    return '';
+                }
+                const matchingProject = this.projects.find(project => String(project.id) === String(projectId));
+                return matchingProject ? matchingProject.name : '';
+            }
+
+            buildBacklogFromAnalysis(analysis) {
+                if (!analysis) {
+                    return '';
+                }
+
+                const tasks = [];
+                const seen = new Set();
+                const addTask = (text) => {
+                    const cleaned = (text || '').replace(/\s+/g, ' ').trim();
+                    if (!cleaned || seen.has(cleaned)) {
+                        return;
+                    }
+                    seen.add(cleaned);
+                    tasks.push(`- [ ] ${cleaned}`);
+                };
+
+                if (Array.isArray(analysis.roleAssignments)) {
+                    analysis.roleAssignments.forEach(member => {
+                        const memberPrefix = member?.memberName ? `${member.memberName}: ` : '';
+                        const taskGroups = member?.tasks || {};
+
+                        if (Array.isArray(taskGroups.immediate)) {
+                            taskGroups.immediate.forEach(task => addTask(`${memberPrefix}${task}`));
+                        }
+
+                        if (Array.isArray(taskGroups.future)) {
+                            taskGroups.future.forEach(task => addTask(`${memberPrefix}(Future) ${task}`));
+                        }
+
+                        if (Array.isArray(member?.responsibilities)) {
+                            member.responsibilities.forEach(resp => addTask(`${memberPrefix}(Responsibility) ${resp}`));
+                        }
+                    });
+                }
+
+                if (Array.isArray(analysis.deliverables)) {
+                    analysis.deliverables.forEach(deliverable => {
+                        const parts = [];
+                        if (deliverable?.name) {
+                            parts.push(deliverable.name);
+                        }
+                        if (deliverable?.description) {
+                            parts.push(deliverable.description);
+                        }
+                        if (deliverable?.assignedTo) {
+                            parts.push(`Owner: ${deliverable.assignedTo}`);
+                        }
+                        if (deliverable?.milestone) {
+                            parts.push(`Milestone: ${deliverable.milestone}`);
+                        }
+                        if (deliverable?.timeline) {
+                            parts.push(`Timeline: ${deliverable.timeline}`);
+                        }
+                        if (parts.length > 0) {
+                            addTask(parts.join(' | '));
+                        }
+                    });
+                }
+
+                return tasks.join('\n');
+            }
+
+            useAiAnalysisForJira() {
+                const promptProjectSelect = document.getElementById('promptProject');
+                const selectedProjectId = promptProjectSelect?.value?.trim() || '';
+                const targetProjectId = selectedProjectId || this.latestAiProjectId;
+
+                if (!targetProjectId) {
+                    showStatus('jiraStatus', '❌ Please generate an AI analysis for a project first.', 'error');
+                    return;
+                }
+
+                const analysis = this.aiAnalysisByProject[targetProjectId];
+                if (!analysis) {
+                    showStatus('jiraStatus', '❌ No AI analysis found for the selected project. Run the AI Analysis & Task Delegation feature first.', 'error');
+                    return;
+                }
+
+                const backlog = this.buildBacklogFromAnalysis(analysis);
+                if (!backlog) {
+                    showStatus('jiraStatus', '❌ The AI analysis does not include any actionable tasks to send to Jira.', 'error');
+                    return;
+                }
+
+                const projectPromptField = document.getElementById('jiraProjectPrompt');
+                if (projectPromptField) {
+                    projectPromptField.value = backlog;
+                }
+
+                const projectName = this.getProjectNameById(targetProjectId);
+                showStatus('jiraStatus', `🧠 Using AI-delegated tasks${projectName ? ` from ${projectName}` : ''}.`, 'info');
+
+                this.createJiraTasksFromProfile();
+            }
+
             createJiraTasksFromProfile() {
+                // Validate Jira form inputs then send AI backlog → Jira creation request to extension
                 const profileData = this.collectProfileFormData();
+                const jiraData = this.collectJiraCredentials();
+                const name = profileData.name || this.currentUser?.name || '';
                 const missingFields = [];
 
-                if (!profileData.jiraBaseUrl) missingFields.push('Jira base URL');
-                if (!profileData.jiraProjectKey) missingFields.push('Jira project key');
-                if (!profileData.jiraEmail) missingFields.push('Jira account email');
-                if (!profileData.jiraApiToken) missingFields.push('Jira API token');
-                if (!profileData.jiraProjectPrompt) missingFields.push('project prompt');
+                if (!name) missingFields.push('Your name (set it in My Profile)');
+                if (!jiraData.jiraBaseUrl) missingFields.push('Jira base URL');
+                if (!jiraData.jiraProjectKey) missingFields.push('Jira project key');
+                if (!jiraData.jiraEmail) missingFields.push('Jira account email');
+                if (!jiraData.jiraApiToken) missingFields.push('Jira API token');
+                if (!jiraData.jiraProjectPrompt) missingFields.push('project prompt');
 
                 if (missingFields.length > 0) {
                     showStatus(
@@ -1724,25 +2889,30 @@
                 }
 
                 if (this.currentUser) {
-                    this.currentUser.jiraBaseUrl = profileData.jiraBaseUrl;
-                    this.currentUser.jiraProjectKey = profileData.jiraProjectKey;
-                    this.currentUser.jiraEmail = profileData.jiraEmail;
-                    this.currentUser.jiraApiToken = profileData.jiraApiToken;
-                    this.currentUser.jiraProjectPrompt = profileData.jiraProjectPrompt;
+                    this.currentUser.name = name;
+                    this.currentUser.skills = profileData.skills;
+                    this.currentUser.programmingLanguages = profileData.programmingLanguages;
+                    this.currentUser.willingToWorkOn = profileData.willingToWorkOn;
+                    this.currentUser.jiraBaseUrl = jiraData.jiraBaseUrl;
+                    this.currentUser.jiraProjectKey = jiraData.jiraProjectKey;
+                    this.currentUser.jiraEmail = jiraData.jiraEmail;
+                    this.currentUser.jiraApiToken = jiraData.jiraApiToken;
+                    this.currentUser.jiraProjectPrompt = jiraData.jiraProjectPrompt;
                 }
 
                 // Persist credentials to profile
                 vscode.postMessage({
                     type: 'updateProfile',
                     payload: {
+                        name,
                         skills: profileData.skills,
                         programmingLanguages: profileData.programmingLanguages,
                         willingToWorkOn: profileData.willingToWorkOn,
-                        jiraBaseUrl: profileData.jiraBaseUrl,
-                        jiraProjectKey: profileData.jiraProjectKey,
-                        jiraEmail: profileData.jiraEmail,
-                        jiraApiToken: profileData.jiraApiToken,
-                        jiraProjectPrompt: profileData.jiraProjectPrompt
+                        jiraBaseUrl: jiraData.jiraBaseUrl,
+                        jiraProjectKey: jiraData.jiraProjectKey,
+                        jiraEmail: jiraData.jiraEmail,
+                        jiraApiToken: jiraData.jiraApiToken,
+                        jiraProjectPrompt: jiraData.jiraProjectPrompt
                     }
                 });
 
@@ -1750,15 +2920,634 @@
                 vscode.postMessage({
                     type: 'createJiraTasks',
                     payload: {
-                        baseUrl: profileData.jiraBaseUrl,
-                        projectKey: profileData.jiraProjectKey,
-                        email: profileData.jiraEmail,
-                        token: profileData.jiraApiToken,
-                        description: profileData.jiraProjectPrompt
+                        baseUrl: jiraData.jiraBaseUrl,
+                        projectKey: jiraData.jiraProjectKey,
+                        email: jiraData.jiraEmail,
+                        token: jiraData.jiraApiToken,
+                        description: jiraData.jiraProjectPrompt
                     }
                 });
 
                 showStatus('jiraStatus', '🚀 Creating Jira tasks...', 'info');
+            }
+
+            hasJiraCredentials() {
+                return (
+                    this.currentUser &&
+                    this.currentUser.jiraBaseUrl &&
+                    this.currentUser.jiraProjectKey &&
+                    this.currentUser.jiraEmail &&
+                    this.currentUser.jiraApiToken
+                );
+            }
+
+            getJiraPayload(extra = {}) {
+                if (!this.hasJiraCredentials()) {
+                    throw new Error('Jira credentials are missing.');
+                }
+                return {
+                    baseUrl: this.currentUser.jiraBaseUrl,
+                    email: this.currentUser.jiraEmail,
+                    token: this.currentUser.jiraApiToken,
+                    projectKey: this.currentUser.jiraProjectKey, // Core fields the extension expects for Jira REST calls
+                    ...extra
+                };
+            }
+
+            fetchAssignableFromJira() {
+                try {
+                    const payload = this.getJiraPayload();
+                    vscode.postMessage({
+                        type: 'jiraFetchAssignable',
+                        payload
+                    });
+                } catch (err) {
+                    this.showJiraStatus(err.message || 'Add Jira credentials to load assignees.', 'error');
+                }
+            }
+
+            renderJiraBoard() {
+                const warning = document.getElementById('jiraCredentialsWarning');
+                const board = document.getElementById('jiraBoard');
+                if (!warning || !board) return;
+
+                const hasCredentials = this.hasJiraCredentials();
+                if (!hasCredentials) {
+                    warning.textContent = 'Add your Jira credentials above to manage tasks.';
+                    warning.style.display = 'block';
+                    board.classList.add('hidden');
+                    return;
+                }
+
+                if (!this.jiraUnlocked) {
+                    this.unlockJiraTab();
+                }
+
+                warning.style.display = 'none';
+                board.classList.remove('hidden');
+
+                const statusSelect = document.getElementById('jiraFilterStatus');
+                if (statusSelect) {
+                    const currentValue = this.jiraFilters.status || '';
+                    statusSelect.innerHTML = '<option value="">All Statuses</option>' +
+                        this.jiraStatuses.map(status => `<option value="${status}">${status}</option>`).join('');
+                    statusSelect.value = currentValue;
+                }
+
+                this.renderJiraTaskList();
+                this.renderJiraTaskDetail();
+            }
+
+            renderJiraTaskList() {
+                const listEl = document.getElementById('jiraTaskList');
+                if (!listEl) return;
+
+                if (this.jiraLoading) {
+                    listEl.innerHTML = `<div class="jira-empty-state"><p>Loading Jira tasks...</p></div>`;
+                    return;
+                }
+
+                if (!this.jiraTasks.length) {
+                    listEl.innerHTML = `<div class="jira-empty-state"><p>No Jira tasks found.</p></div>`;
+                    return;
+                }
+
+                listEl.innerHTML = this.jiraTasks.map(task => `
+                    <div class="jira-task-row ${this.jiraSelectedTask && this.jiraSelectedTask.id === task.id ? 'selected' : ''}" data-issue-id="${task.id}">
+                        <div class="jira-task-content">
+                            <div class="jira-task-summary"><span class="jira-task-key">${task.key || 'Task'}</span>${this.getJiraTaskTitle(task)}</div>
+                            ${this.renderJiraTaskPurpose(task)}
+                            <div class="jira-task-meta">${this.getJiraAssigneeLabel(task.assignee)} · ${new Date(task.updated).toLocaleString()}</div>
+                        </div>
+                        <span class="jira-status-chip">${task.status?.name || 'Unknown'}</span>
+                    </div>
+                `).join('');
+            }
+
+            unlockJiraTab(autoShow = false) {
+                if (this.jiraUnlocked) {
+                    if (autoShow) {
+                        const btn = document.querySelector('.tab-button[data-tab="jira"]');
+                        showTab('jira', btn);
+                        this.loadJiraTasks();
+                        this.fetchAssignableFromJira();
+                    }
+                    return;
+                }
+                this.jiraUnlocked = true;
+                try {
+                    window.localStorage.setItem('jiraUnlocked', 'true');
+                } catch (err) {
+                    console.warn('Unable to persist Jira unlock state:', err);
+                }
+                const btn = document.querySelector('.tab-button[data-tab="jira"]');
+                if (btn) {
+                    btn.classList.remove('tab-disabled');
+                    btn.removeAttribute('title');
+                }
+                this.renderJiraBoard();
+                this.fetchAssignableFromJira();
+                if (autoShow) {
+                    showTab('jira', btn);
+                    this.loadJiraTasks();
+                }
+            }
+
+            renderJiraTaskDetail() {
+                const detailEl = document.getElementById('jiraTaskDetail');
+                if (!detailEl) return;
+
+                if (this.isCreatingJiraTask) {
+                    detailEl.innerHTML = this.renderJiraDetailForm({
+                        summary: '',
+                        description: '',
+                        assigneeEmail: '',
+                        status: '',
+                        mode: 'create',
+                        purpose: '',
+                        assignee: null
+                    });
+                    return;
+                }
+
+                if (!this.jiraSelectedTask) {
+                    detailEl.innerHTML = `<p class="jira-empty-state">Select a task to view and edit details.</p>`;
+                    return;
+                }
+
+                detailEl.innerHTML = this.renderJiraDetailForm({
+                    summary: this.jiraSelectedTask.summary || '',
+                    description: this.extractDescription(this.jiraSelectedTask.description),
+                    assigneeEmail: this.jiraSelectedTask.assignee?.email || '',
+                    status: this.jiraSelectedTask.status?.name || '',
+                    mode: 'edit',
+                    key: this.jiraSelectedTask.key,
+                    purpose: this.getJiraPurposeText(this.jiraSelectedTask),
+                    assignee: this.jiraSelectedTask.assignee || null
+                });
+
+                if (!this.jiraTransitions[this.jiraSelectedTask.id]) {
+                    this.requestJiraTransitions(this.jiraSelectedTask.id);
+                }
+            }
+
+            renderJiraDetailForm(opts) {
+                const teamOptions = this.users
+                    .map(user => {
+                        const email = user.jiraEmail || user.email || '';
+                        const label = `${user.name}${email ? ` (${email})` : ''}`;
+                        if (!email) {
+                            return '';
+                        }
+                        return `<option value="${email}" ${opts.assigneeEmail === email ? 'selected' : ''}>${label}</option>`;
+                    })
+                    .filter(Boolean)
+                    .join('');
+                const assigneeOptions = this.getJiraAssigneeOptions();
+                const activeProjectName = this.getProjectNameById(this.getActiveProjectIdForJira());
+                const currentAssigneeLabel = this.getJiraAssigneeLabel(opts.assignee);
+                const currentAssigneeEmail = opts.assigneeEmail || opts.assignee?.email || '';
+                const currentAssigneeAccountId = opts.assignee?.accountId || '';
+                const currentAssigneeValue = currentAssigneeEmail || currentAssigneeAccountId;
+                const currentStatusName = opts.status || (this.jiraSelectedTask?.status?.name) || 'Unknown';
+                const assigneeExists = assigneeOptions.some(option =>
+                    (currentAssigneeEmail && option.email === currentAssigneeEmail) ||
+                    (currentAssigneeAccountId && option.accountId === currentAssigneeAccountId)
+                );
+
+                // Ensure current Jira assignee (from server) appears in dropdown if it has an email
+                const enrichedAssigneeOptions = [...assigneeOptions];
+                if (currentAssigneeEmail && !assigneeOptions.some(option => option.email === currentAssigneeEmail)) {
+                    enrichedAssigneeOptions.unshift({
+                        email: currentAssigneeEmail,
+                        name: currentAssigneeLabel || currentAssigneeEmail,
+                        projectNames: [],
+                        isProjectMember: false
+                    });
+                }
+
+                const viewOnlyAssigneeOption = !assigneeExists && !currentAssigneeEmail && opts.assignee
+                    ? `<option value="${opts.assignee.accountId || ''}" data-email="${opts.assignee.email || ''}" data-account-id="${opts.assignee.accountId || ''}" selected>${currentAssigneeLabel} (view only)</option>`
+                    : '';
+
+                const assigneeOptionsHtml = enrichedAssigneeOptions.length
+                    ? enrichedAssigneeOptions.map(option => {
+                        const identifier = option.email || option.accountId || '';
+                        if (!identifier) {
+                            return '';
+                        }
+                        const projectsLabel = option.projectNames && option.projectNames.length
+                            ? ` — ${option.projectNames.join(', ')}`
+                            : '';
+                        const emailLabel = option.email ? `(${option.email})` : '';
+                        const label = `${option.name} ${emailLabel}${projectsLabel}${option.isProjectMember ? ' — Project teammate' : ''}`;
+                        const isSelected =
+                            (currentAssigneeEmail && option.email && currentAssigneeEmail === option.email) ||
+                            (!currentAssigneeEmail && currentAssigneeAccountId && option.accountId && currentAssigneeAccountId === option.accountId);
+                        return `<option value="${identifier}" data-email="${option.email || ''}" data-account-id="${option.accountId || ''}" ${isSelected ? 'selected' : ''}>${label}</option>`;
+                    }).join('')
+                    : '';
+                const assigneeHint = assigneeOptions.length
+                    ? `<p class="jira-summary-hint">Assignees pulled from Jira${activeProjectName ? ` for ${activeProjectName}` : ''}.</p>`
+                    : `<p class="jira-summary-hint">Reload assignable users from Jira above to populate this list.</p>`;
+                const externalAssigneeNote = (!currentAssigneeValue && !currentAssigneeLabel)
+                    ? ''
+                    : !assigneeExists
+                        ? `<p class="jira-summary-hint">Current Jira assignee: ${currentAssigneeLabel || 'Unknown user'} (not in teammate list)</p>`
+                        : '';
+
+                const transitions = (this.jiraSelectedTask && this.jiraTransitions[this.jiraSelectedTask.id]) || [];
+
+                const statusOptions = (transitions || []).map(t => `<option value="${t.id}" ${t.name === currentStatusName ? 'selected' : ''}>${t.name}</option>`).join('');
+                const statusHint = `<p style="font-size:0.8rem; color:#94a3b8; margin-top:4px;">Status changes apply through Jira transitions. Current: ${currentStatusName}</p>`;
+
+                const keyLine = opts.key ? `<p style="font-size:0.9rem; color:#64748b; margin-bottom:8px;">${opts.key}</p>` : '';
+                const summaryHiddenField = `<input type="hidden" id="jiraDetailSummary" value="${opts.summary || ''}">`;
+                const summaryDisplay = opts.summary
+                    ? `<div class="jira-detail-title">${opts.summary}</div>`
+                    : '';
+
+                const descriptionField = opts.mode === 'create'
+                    ? `
+                    ${keyLine}
+                    ${summaryHiddenField}
+                    ${summaryDisplay}
+                    ${opts.purpose ? `
+                    <div class="jira-purpose-card">
+                        <label>Task Purpose</label>
+                        <p>${opts.purpose}</p>
+                    </div>` : ''}
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea id="jiraDetailDescription">${opts.description || ''}</textarea>
+                    </div>
+                    `
+                    : `
+                    ${keyLine}
+                    ${summaryHiddenField}
+                    ${summaryDisplay}
+                    ${opts.purpose ? `
+                    <div class="jira-purpose-card">
+                        <label>Task Purpose</label>
+                        <p>${opts.purpose}</p>
+                    </div>` : ''}
+                    `;
+
+                return `
+                    ${descriptionField}
+                    <div>
+                        <label>Assignee</label>
+                        <select id="jiraDetailAssignee">
+                            <option value="" ${(!currentAssigneeEmail && !viewOnlyAssigneeOption) ? 'selected' : ''}>Unassigned</option>
+                            ${viewOnlyAssigneeOption}
+                            ${assigneeOptionsHtml || teamOptions}
+                        </select>
+                        ${assigneeHint}
+                        ${externalAssigneeNote}
+                    </div>
+                    <div>
+                        <label>Status</label>
+                        <select id="jiraDetailStatus">
+                            <option value="">--</option>
+                            ${statusOptions}
+                        </select>
+                        ${statusHint}
+                    </div>
+                    <div class="button-group" style="justify-content:flex-end;">
+                        ${opts.mode === 'edit'
+                            ? `<button type="button" class="btn btn-danger" id="jiraDeleteTaskBtn">Delete</button>
+                               <button type="button" class="btn btn-primary" id="jiraSaveTaskBtn">Save Changes</button>`
+                            : `<button type="button" class="btn btn-secondary" id="jiraCancelCreateBtn">Cancel</button>
+                               <button type="button" class="btn btn-primary" id="jiraCreateTaskBtn">Create Task</button>`}
+                    </div>
+                `;
+            }
+
+            extractDescription(descriptionNode) {
+                if (!descriptionNode) {
+                    return '';
+                }
+                if (typeof descriptionNode === 'string') {
+                    return descriptionNode;
+                }
+                if (descriptionNode.content) {
+                    return descriptionNode.content
+                        .map((node) => node.content ? node.content.map(c => c.text || '').join(' ') : node.text || '')
+                        .join('\n');
+                }
+                return '';
+            }
+
+            getJiraTaskTitle(task) {
+                if (!task) {
+                    return 'Untitled Task';
+                }
+                const text = (task.summary || '').replace(/\s+/g, ' ').trim();
+                return text || 'Untitled Task';
+            }
+
+            getJiraPurposeText(task) {
+                if (!task) {
+                    return '';
+                }
+                const descriptionText = this.extractDescription(task.description);
+                return this.formatJiraSummary(task.summary, descriptionText);
+            }
+
+            renderJiraTaskPurpose(task) {
+                const purpose = this.getJiraPurposeText(task);
+                if (!purpose) {
+                    return '';
+                }
+                return `<div class="jira-task-purpose">${purpose}</div>`;
+            }
+
+            getJiraAssigneeLabel(assignee) {
+                if (!assignee) {
+                    return 'Unassigned';
+                }
+                return assignee.displayName || assignee.email || 'Assignee';
+            }
+
+            looksLikeEmail(value) {
+                return /\S+@\S+\.\S+/.test(value || '');
+            }
+
+            formatJiraSummary(rawSummary, descriptionText = '') {
+                const summary = (rawSummary || '').replace(/\s+/g, ' ').trim();
+                const description = (descriptionText || '').replace(/\s+/g, ' ').trim();
+                const firstSentence = this.extractFirstSentence(description);
+
+                if (!summary && !description) {
+                    return 'Clarify this task so that the AI collaboration experience stays on track.';
+                }
+
+                if (this.summaryHasReason(summary)) {
+                    return this.ensureSentence(summary);
+                }
+
+                if (!summary && firstSentence) {
+                    return this.combineSummaryClauses(firstSentence, this.extractReasonClause(description));
+                }
+
+                const reasonClause = this.extractReasonClause(description) ||
+                    (firstSentence && firstSentence !== summary ? firstSentence : '');
+
+                return this.combineSummaryClauses(summary || firstSentence || 'Document this task clearly', reasonClause);
+            }
+
+            summaryHasReason(text) {
+                if (!text) {
+                    return false;
+                }
+                return /(so that|because|to ensure|to support|to enable|allows|enables)/i.test(text);
+            }
+
+            extractFirstSentence(text) {
+                const sentences = this.splitIntoSentences(text);
+                return sentences.length ? sentences[0] : '';
+            }
+
+            extractReasonClause(text) {
+                if (!text) {
+                    return '';
+                }
+                const patterns = [
+                    { regex: /so that\s+([^.!?]+)/i, extract: (m) => `so that ${m[1].trim()}` },
+                    { regex: /so the\s+([^.!?]+)/i, extract: (m) => `so the ${m[1].trim()}` },
+                    { regex: /because\s+([^.!?]+)/i, extract: (m) => `because ${m[1].trim()}` },
+                    { regex: /in order to\s+([^.!?]+)/i, extract: (m) => `in order to ${m[1].trim()}` },
+                    { regex: /to ensure\s+([^.!?]+)/i, extract: (m) => `to ensure ${m[1].trim()}` },
+                    { regex: /allows?\s+([^.!?]+)/i, extract: (m) => m[0].trim() },
+                    { regex: /enables?\s+([^.!?]+)/i, extract: (m) => m[0].trim() }
+                ];
+
+                for (const pattern of patterns) {
+                    const match = text.match(pattern.regex);
+                    if (match) {
+                        return pattern.extract(match);
+                    }
+                }
+
+                const sentences = this.splitIntoSentences(text);
+                if (sentences.length > 1) {
+                    return sentences[1];
+                }
+
+                return '';
+            }
+
+            combineSummaryClauses(actionClause, reasonClause) {
+                const action = this.cleanClause(actionClause);
+                const fallbackReason = 'the AI collaboration experience stays on track';
+                const rawReason = (reasonClause || '').trim();
+                if (!rawReason) {
+                    return this.ensureSentence(`${action} so that ${fallbackReason}`);
+                }
+                const prefixPattern = /^(so\b|because\b|to\b|in order to\b|allows?\b|enables?\b)/i;
+                if (prefixPattern.test(rawReason)) {
+                    const adjusted = this.cleanClause(rawReason, true);
+                    return this.ensureSentence(`${action} ${adjusted}`);
+                }
+                const normalized = this.cleanClause(rawReason, true);
+                return this.ensureSentence(`${action} so that ${normalized}`);
+            }
+
+            cleanClause(text, lowercase = false) {
+                let value = (text || '').replace(/\s+/g, ' ').trim();
+                value = value.replace(/^[-–•]+\s*/, '');
+                value = value.replace(/[.?!]+$/, '');
+                if (!value) {
+                    return '';
+                }
+                if (lowercase) {
+                    return value.charAt(0).toLowerCase() + value.slice(1);
+                }
+                return value.charAt(0).toUpperCase() + value.slice(1);
+            }
+
+            ensureSentence(text) {
+                let value = (text || '').replace(/\s+/g, ' ').trim();
+                if (!value) {
+                    return '';
+                }
+                if (!/[.?!]$/.test(value)) {
+                    value += '.';
+                }
+                return value;
+            }
+
+            splitIntoSentences(text) {
+                if (!text) {
+                    return [];
+                }
+                return text
+                    .split(/(?<=[.?!])\s+/)
+                    .map(sentence => sentence.trim())
+                    .filter(Boolean);
+            }
+
+            loadJiraTasks(autoShowTab = false) {
+                if (!this.jiraUnlocked) {
+                    return;
+                }
+                if (!this.hasJiraCredentials()) {
+                    this.renderJiraBoard();
+                    this.showJiraStatus('Add Jira credentials to fetch tasks.', 'error');
+                    return;
+                }
+                if (autoShowTab) {
+                    const jiraTabBtn = document.querySelector('.tab-button[data-tab="jira"]');
+                    showTab('jira', jiraTabBtn);
+                }
+                const requestId = ++this.jiraActiveRequestId; // Increment counter so stale responses can be ignored
+                this.jiraLoading = true; // Show loading state while waiting on Jira
+                this.renderJiraTaskList();
+                vscode.postMessage({
+                    type: 'loadJiraTasks',
+                    payload: this.getJiraPayload({
+                        requestId,
+                        status: this.jiraFilters.status,
+                        search: this.jiraFilters.search
+                    })
+                });
+            }
+
+            requestJiraTransitions(issueId) {
+                if (!issueId || !this.hasJiraCredentials()) {
+                    return;
+                }
+                vscode.postMessage({
+                    type: 'jiraGetTransitions', // Ask extension for allowed status moves for this issue
+                    payload: this.getJiraPayload({ issueId })
+                });
+            }
+
+            selectJiraTask(issueId) {
+                const task = this.jiraTasks.find(t => t.id === issueId);
+                this.isCreatingJiraTask = false;
+                this.jiraSelectedTask = task || null;
+                this.renderJiraTaskList();
+                this.renderJiraTaskDetail();
+            }
+
+            startCreatingJiraTask() {
+                this.isCreatingJiraTask = true; // Switch detail pane into creation mode
+                this.jiraSelectedTask = null; // Clear selection so form defaults are blank
+                this.renderJiraTaskDetail();
+            }
+
+            submitJiraTaskForm() {
+                try {
+                    const summaryInput = document.getElementById('jiraDetailSummary');
+                    const descriptionInput = document.getElementById('jiraDetailDescription');
+                    const assigneeInput = document.getElementById('jiraDetailAssignee');
+                    const assigneeSelectedOption = assigneeInput?.selectedOptions?.[0];
+                    const statusInput = document.getElementById('jiraDetailStatus');
+
+                    const descriptionSource = descriptionInput
+                        ? descriptionInput.value
+                        : this.extractDescription(this.jiraSelectedTask?.description);
+                    const generatedSummary = summaryInput?.value?.trim()
+                        || this.jiraSelectedTask?.summary
+                        || this.extractFirstSentence(descriptionSource)
+                        || 'New Jira Task';
+                    const summary = generatedSummary.trim();
+                    const description = this.formatJiraSummary(summary, descriptionSource); // Ensure summary is echoed in description when Jira renders
+                    const selectedAssignee = assigneeInput ? assigneeInput.value : '';
+                    const selectedAssigneeEmail = assigneeSelectedOption?.getAttribute('data-email') || (this.looksLikeEmail(selectedAssignee) ? selectedAssignee : '');
+                    const selectedAssigneeAccountId = assigneeSelectedOption?.getAttribute('data-account-id') || (!this.looksLikeEmail(selectedAssignee) && selectedAssignee ? selectedAssignee : '');
+                    const currentAssigneeEmail = this.jiraSelectedTask?.assignee?.email || '';
+                    const currentAssigneeAccountId = this.jiraSelectedTask?.assignee?.accountId || '';
+                    let selectedAssigneeIdentifier = selectedAssigneeAccountId || selectedAssigneeEmail || '';
+                    const currentAssigneeIdentifier = currentAssigneeAccountId || currentAssigneeEmail || '';
+                    // Keep current assignee when the dropdown shows a view-only option with empty value
+                    if (!selectedAssigneeIdentifier && currentAssigneeIdentifier) {
+                        selectedAssigneeIdentifier = currentAssigneeIdentifier;
+                    }
+                    // Only send an assignee update when the user explicitly changes the selection.
+                    const assigneeChanged = this.isCreatingJiraTask
+                        ? !!selectedAssigneeIdentifier
+                        : (selectedAssigneeIdentifier !== currentAssigneeIdentifier);
+                    const assigneeEmail = assigneeChanged ? (selectedAssigneeEmail || null) : undefined;
+                    let assigneeAccountId;
+                    if (assigneeChanged) {
+                        if (selectedAssigneeAccountId) {
+                            assigneeAccountId = selectedAssigneeAccountId;
+                        } else if (selectedAssigneeEmail) {
+                            assigneeAccountId = undefined; // let the extension resolve email → accountId
+                        } else {
+                            assigneeAccountId = null; // explicit unassign
+                        }
+                    }
+                    const transitionId = statusInput ? statusInput.value || null : null; // Track requested status change
+
+                    if (!summary) {
+                        this.showJiraStatus('Summary is required.', 'error');
+                        return;
+                    }
+
+                    if (summaryInput) {
+                        summaryInput.value = summary;
+                    }
+                    if (descriptionInput) {
+                        descriptionInput.value = description;
+                    }
+
+                    if (this.isCreatingJiraTask) {
+                        console.log('[Webview:Jira] Creating task', { assigneeChanged, assigneeEmail, assigneeAccountId });
+                        vscode.postMessage({
+                            type: 'jiraCreateTask',
+                            payload: this.getJiraPayload({
+                                summary,
+                                description,
+                                assigneeEmail,
+                                assigneeAccountId
+                            })
+                        });
+                    } else if (this.jiraSelectedTask) {
+                        console.log('[Webview:Jira] Updating task', { issueId: this.jiraSelectedTask.id, assigneeChanged, assigneeEmail, assigneeAccountId, transitionId });
+                        vscode.postMessage({
+                            type: 'jiraUpdateTask',
+                            payload: this.getJiraPayload({
+                                issueId: this.jiraSelectedTask.id,
+                                summary,
+                                description,
+                                assigneeEmail,
+                                assigneeAccountId,
+                                transitionId
+                            })
+                        });
+                    }
+                } catch (error) {
+                    this.showJiraStatus(error.message || 'Failed to submit task.', 'error');
+                }
+            }
+
+            deleteSelectedJiraTask() {
+                if (!this.jiraSelectedTask) {
+                    return;
+                }
+                if (!confirm('Delete this Jira task?')) {
+                    return;
+                }
+                vscode.postMessage({
+                    type: 'jiraDeleteTask',
+                    payload: this.getJiraPayload({
+                        issueId: this.jiraSelectedTask.id
+                    })
+                });
+            }
+
+            showJiraStatus(message, type = 'success') {
+                const el = document.getElementById('jiraTaskStatus');
+                if (!el) return;
+                el.textContent = message;
+                el.className = `status-message status-${type}`;
+                el.style.display = 'block';
+                setTimeout(() => {
+                    el.style.display = 'none';
+                }, 4000);
             }
 
             saveData() {
@@ -1803,6 +3592,12 @@
 
             // Webview now only requests prompt generation from extension
             generateAIPrompt(projectId) {
+                // Set active project first
+                vscode.postMessage({
+                    type: 'setActiveProject',
+                    payload: { projectId: projectId }
+                });
+
                 // Send projectId to the extension
                 vscode.postMessage({
                     type: 'generatePrompt',
@@ -1817,21 +3612,35 @@
             // Removed createComprehensivePrompt from webview as extension handles it
 
             updateUI() {
-                this.updateStats();
-                this.updateCurrentUserDisplay();
-                this.updateProjectList();
-                this.updateUserSelection();
-                this.updateProjectSelection();
+                try {
+                    this.updateStats();
+                    this.updateCurrentUserDisplay();
+                    this.updateProjectList();
+                    this.updateUserSelection();
+                    this.updateProjectSelection();
+                } catch (error) {
+                    console.error('Error updating UI:', error);
+                    // Try to show a basic error message
+                    const projectList = document.getElementById('projectList');
+                    if (projectList) {
+                        projectList.innerHTML = '<p style="text-align: center; color: #ef4444; padding: 15px;">Error updating UI. Please refresh the panel.</p>';
+                    }
+                }
             }
 
             updateStats() {
-                document.getElementById('userCount').textContent = this.users.length.toString();
-                document.getElementById('projectCount').textContent = this.projects.length.toString();
-                document.getElementById('promptCount').textContent = this.promptCount.toString();
+                const userCountEl = document.getElementById('userCount');
+                const projectCountEl = document.getElementById('projectCount');
+                const promptCountEl = document.getElementById('promptCount');
+                if (userCountEl) userCountEl.textContent = this.users.length.toString();
+                if (projectCountEl) projectCountEl.textContent = this.projects.length.toString();
+                if (promptCountEl) promptCountEl.textContent = this.promptCount.toString();
             }
 
             updateCurrentUserDisplay() {
                 const userDisplay = document.getElementById('currentUserDisplay');
+                if (!userDisplay) return; // Profile summary section removed to match demo3
+
                 if (!this.currentUser) {
                     userDisplay.innerHTML = '<p style="text-align: center; color: #64748b; padding: 15px;">Please log in to view your profile</p>';
                     return;
@@ -1843,10 +3652,7 @@
                         <p><strong>Skills:</strong> ${this.currentUser.skills || 'Not specified'}</p>
                         <p><strong>Languages:</strong> ${this.currentUser.programmingLanguages || 'Not specified'}</p>
                         <p><strong>Interests:</strong> ${this.currentUser.willingToWorkOn || 'Not specified'}</p>
-                        <p><strong>Jira Base URL:</strong> ${this.currentUser.jiraBaseUrl || 'Not set'}</p>
-                        <p><strong>Jira Project Key:</strong> ${this.currentUser.jiraProjectKey || 'Not set'}</p>
-                        <p><strong>Jira Email:</strong> ${this.currentUser.jiraEmail || 'Not set'}</p>
-                        <p><strong>Project Prompt:</strong> ${this.currentUser.jiraProjectPrompt || 'Not set'}</p>
+                        <p><strong>Jira Setup:</strong> ${this.hasJiraCredentials() ? 'Ready in the Jira Tasks tab' : 'Set up Jira in the Jira Tasks tab'}</p>
                         <p><strong>Member Since:</strong> ${new Date(this.currentUser.createdAt).toLocaleString()}</p>
                     </div>
                 `;
@@ -1854,14 +3660,21 @@
 
             updateProjectList() {
                 const projectList = document.getElementById('projectList');
+                if (!projectList) return; // Safety check
+                
                 if (this.projects.length === 0) {
                     projectList.innerHTML = '<p style="text-align: center; color: #64748b; padding: 15px;">No projects yet</p>';
                     return;
                 }
 
+                // Create a set of valid user IDs for efficient lookup
+                const validUserIds = new Set(this.users.map(u => String(u.id)));
+
                 projectList.innerHTML = this.projects.map(project => {
-                    // Filter this.users by IDs stored in project.selectedMemberIds
-                    const teamMembers = this.users.filter(user => project.selectedMemberIds.includes(user.id));
+                    // Ensure selectedMemberIds is an array and filter to only valid user IDs
+                    const validMemberIds = (project.selectedMemberIds || []).filter(id => validUserIds.has(String(id)));
+                    // Filter this.users by valid IDs stored in project.selectedMemberIds
+                    const teamMembers = this.users.filter(user => validMemberIds.includes(String(user.id)));
 
                     // Create detailed team member cards
                     const teamMemberCards = teamMembers.length > 0 ? teamMembers.map(member => `
@@ -1881,7 +3694,7 @@
                     const isMember = this.currentUser && (project.selectedMemberIds || []).includes(String(this.currentUser.id));
                     const ownerBadge = isOwner ? '<span style="background: #10b981; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; margin-left: 8px;">Owner</span>' : '';
                     const canEdit = isOwner || isMember;
-                    
+
                     return `
                         <div class="project-item">
                             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
@@ -1900,10 +3713,10 @@
                                 ${isOwner ? '<p style="margin-top: 8px; font-size: 0.85rem; color: #64748b;">As owner, you can remove members by editing the project.</p>' : ''}
                             </div>
                             <p style="margin-top: 10px;"><strong>Created:</strong> ${new Date(project.createdAt).toLocaleString()}</p>
-                            ${isOwner 
-                                ? `<button class="btn btn-danger delete-project-btn" data-project-id="${project.id}" style='margin-top: 8px; padding: 6px 12px; font-size: 0.8rem; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer;'>Delete Project</button>`
-                                : `<button class="btn btn-secondary leave-project-btn" data-project-id="${project.id}" style='margin-top: 8px; padding: 6px 12px; font-size: 0.8rem; border: none; border-radius: 4px; cursor: pointer;'>Leave Project</button>`
-                            }
+                            ${isOwner
+                            ? `<button class="btn btn-danger delete-project-btn" data-project-id="${project.id}" style='margin-top: 8px; padding: 6px 12px; font-size: 0.8rem; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer;'>Delete Project</button>`
+                            : `<button class="btn btn-secondary leave-project-btn" data-project-id="${project.id}" style='margin-top: 8px; padding: 6px 12px; font-size: 0.8rem; border: none; border-radius: 4px; cursor: pointer;'>Leave Project</button>`
+                        }
                         </div>
                     `;
                 }).join('');
@@ -1911,6 +3724,11 @@
 
             updateUserSelection() {
                 const userSelection = document.getElementById('userSelection');
+                if (!userSelection) {
+                    // Element doesn't exist (might be commented out), skip updating
+                    return;
+                }
+
                 if (this.users.length === 0) {
                     userSelection.innerHTML = '<p style="text-align: center; color: #64748b; padding: 10px;">Add team members first</p>';
                     return;
@@ -1926,8 +3744,209 @@
 
             updateProjectSelection() {
                 const projectSelect = document.getElementById('promptProject');
+                if (!projectSelect) {
+                    return;
+                }
+
                 projectSelect.innerHTML = '<option value="">Choose a project...</option>' +
                     this.projects.map(project => `<option value="${project.id}">${project.name}</option>`).join('');
+
+                // Add change listener to send setActiveProject message
+                projectSelect.onchange = (e) => {
+                    const selectedProjectId = e.target.value;
+                    
+                    // BUG FIX: We removed "if (selectedProjectId)" 
+                    // We MUST send the message even if it is empty string (""), 
+                    // so the backend knows to clear the active project.
+                    vscode.postMessage({
+                        type: 'setActiveProject',
+                        payload: { projectId: selectedProjectId }
+                    });
+                };
+            }
+
+            getActiveProjectIdForJira() {
+                const projectSelect = document.getElementById('promptProject');
+                const selectedId = projectSelect?.value?.trim();
+                if (selectedId) {
+                    return selectedId;
+                }
+                if (this.latestAiProjectId) {
+                    return this.latestAiProjectId;
+                }
+                if (this.projects.length === 1) {
+                    return this.projects[0].id;
+                }
+                return null;
+            }
+
+            getProjectMembersForJira(projectId) {
+                if (!projectId) {
+                    return [];
+                }
+                const project = this.projects.find(p => String(p.id) === String(projectId));
+                if (!project || !Array.isArray(project.selectedMemberIds)) {
+                    return [];
+                }
+                const memberIdSet = new Set(project.selectedMemberIds.map(id => String(id)));
+                return this.users.filter(user => memberIdSet.has(String(user.id)));
+            }
+
+            getAllProjectMembersForJira() {
+                const memberProjectMap = new Map();
+                this.projects.forEach(project => {
+                    const projectName = project.name || 'Project';
+                    (project.selectedMemberIds || []).forEach(memberId => {
+                        const member = this.users.find(u => String(u.id) === String(memberId));
+                        if (!member) {
+                            return;
+                        }
+                        const key = String(member.id);
+                        const entry = memberProjectMap.get(key) || { member, projectNames: new Set() };
+                        entry.projectNames.add(projectName);
+                        memberProjectMap.set(key, entry);
+                    });
+                });
+                return Array.from(memberProjectMap.values()).map(entry => ({
+                    member: entry.member,
+                    projectNames: Array.from(entry.projectNames)
+                }));
+            }
+
+            getJiraAssigneeOptions() {
+                const activeProjectId = this.getActiveProjectIdForJira();
+                const projectMembers = this.getProjectMembersForJira(activeProjectId);
+                const allProjectMembers = this.getAllProjectMembersForJira();
+                const activeMemberIds = new Set(projectMembers.map(member => String(member.id)));
+                const optionsByKey = new Map(); // key is email (lower) or accountId when email is missing
+
+                const addCandidate = (user, projectNames = [], markAsProjectMember = false) => {
+                    const email = user?.jiraEmail || user?.email || '';
+                    const accountId = user?.accountId || user?.jiraAccountId || '';
+                    if (!email && !accountId) {
+                        return; // Need at least one identifier
+                    }
+                    const key = email ? email.toLowerCase() : `acct:${accountId.toLowerCase()}`;
+                    if (!optionsByKey.has(key)) {
+                        optionsByKey.set(key, {
+                            email,
+                            accountId,
+                            name: user?.name || user?.displayName || email || accountId,
+                            projectNames: new Set(projectNames),
+                            isProjectMember: markAsProjectMember
+                        });
+                    } else {
+                        const entry = optionsByKey.get(key);
+                        projectNames.forEach(p => entry.projectNames.add(p));
+                        entry.isProjectMember = entry.isProjectMember || markAsProjectMember;
+                        if (entry.name === (entry.email || entry.accountId) && (user?.name || user?.displayName)) {
+                            entry.name = user.name || user.displayName;
+                        }
+                        // Prefer email if it arrives later
+                        if (!entry.email && email) {
+                            entry.email = email;
+                        }
+                        if (!entry.accountId && accountId) {
+                            entry.accountId = accountId;
+                        }
+                    }
+                };
+
+                projectMembers.forEach(member => addCandidate(member, [this.getProjectNameById(activeProjectId)], true));
+                allProjectMembers.forEach(entry => {
+                    addCandidate(entry.member, entry.projectNames, entry.projectNames.length > 0);
+                });
+                this.users.forEach(user => addCandidate(user, [], activeMemberIds.has(String(user.id))));
+                if (this.currentUser) {
+                    addCandidate({
+                        id: this.currentUser.id,
+                        name: this.currentUser.name,
+                        jiraEmail: this.currentUser.jiraEmail || '',
+                        email: this.currentUser.jiraEmail || '',
+                        accountId: this.currentUser.jiraAccountId || ''
+                    }, [], activeMemberIds.has(String(this.currentUser.id)));
+                }
+
+                // Jira assignable users fetched from the project
+                (this.jiraAssignableEmails || []).forEach(entry => {
+                    addCandidate(
+                        { name: entry.name || entry.displayName || entry.email || entry.accountId, jiraEmail: entry.email, email: entry.email, accountId: entry.accountId },
+                        [],
+                        true
+                    );
+                });
+
+                return Array.from(optionsByKey.values()).map(entry => ({
+                    email: entry.email,
+                    accountId: entry.accountId,
+                    name: entry.name,
+                    projectNames: Array.from(entry.projectNames),
+                    isProjectMember: entry.isProjectMember
+                }));
+            }
+
+            refreshJiraAssigneeDropdown() {
+                const assigneeSelect = document.getElementById('jiraDetailAssignee');
+                if (!assigneeSelect) return;
+
+                const currentAssignee = this.jiraSelectedTask?.assignee || null;
+                const selectedOption = assigneeSelect.selectedOptions?.[0];
+                const rawSelectedValue = assigneeSelect.value || '';
+                const currentAssigneeEmail =
+                    selectedOption?.getAttribute('data-email') ||
+                    (this.looksLikeEmail(rawSelectedValue) ? rawSelectedValue : '') ||
+                    currentAssignee?.email ||
+                    '';
+                const currentAssigneeAccountId =
+                    selectedOption?.getAttribute('data-account-id') ||
+                    (!this.looksLikeEmail(rawSelectedValue) && rawSelectedValue ? rawSelectedValue : '') ||
+                    currentAssignee?.accountId ||
+                    '';
+                const currentAssigneeLabel = this.getJiraAssigneeLabel(currentAssignee);
+                const assigneeOptions = this.getJiraAssigneeOptions();
+                const enrichedAssigneeOptions = [...assigneeOptions];
+                const assigneeExists = assigneeOptions.some(option =>
+                    (currentAssigneeEmail && option.email === currentAssigneeEmail) ||
+                    (currentAssigneeAccountId && option.accountId === currentAssigneeAccountId)
+                );
+
+                if ((currentAssigneeEmail || currentAssigneeAccountId) && !assigneeOptions.some(option =>
+                    (currentAssigneeEmail && option.email === currentAssigneeEmail) ||
+                    (currentAssigneeAccountId && option.accountId === currentAssigneeAccountId)
+                )) {
+                    enrichedAssigneeOptions.unshift({
+                        email: currentAssigneeEmail,
+                        accountId: currentAssigneeAccountId,
+                        name: currentAssigneeLabel || currentAssigneeEmail,
+                        projectNames: [],
+                        isProjectMember: false
+                    });
+                }
+
+                const options = [
+                    `<option value="" ${!currentAssigneeEmail && !currentAssigneeAccountId ? 'selected' : ''}>Unassigned</option>`,
+                ];
+
+                if (!assigneeExists && !currentAssigneeEmail && currentAssignee) {
+                    options.push(`<option value="${currentAssigneeAccountId || ''}" data-email="${currentAssigneeEmail}" data-account-id="${currentAssigneeAccountId || ''}" selected>${currentAssigneeLabel} (view only)</option>`);
+                }
+
+                options.push(
+                    ...enrichedAssigneeOptions.map(option => {
+                        const projectsLabel = option.projectNames && option.projectNames.length
+                            ? ` — ${option.projectNames.join(', ')}`
+                            : '';
+                        const identifier = option.email || option.accountId || '';
+                        const labelId = option.email ? `(${option.email})` : '';
+                        const label = `${option.name} ${labelId}${projectsLabel}${option.isProjectMember ? ' — Project teammate' : ''}`;
+                        const isSelected =
+                            (currentAssigneeEmail && option.email && currentAssigneeEmail === option.email) ||
+                            (!currentAssigneeEmail && currentAssigneeAccountId && option.accountId && currentAssigneeAccountId === option.accountId);
+                        return `<option value="${identifier}" data-email="${option.email || ''}" data-account-id="${option.accountId || ''}" ${isSelected ? 'selected' : ''}>${label}</option>`;
+                    })
+                );
+
+                assigneeSelect.innerHTML = options.join('');
             }
 
             removeUser(userId) {
@@ -1945,11 +3964,11 @@
                 // This method is kept for backward compatibility but now calls backend
                 const project = this.projects.find(p => p.id === projectId);
                 if (!project) return;
-                
+
                 const currentUserId = this.currentUser ? String(this.currentUser.id) : null;
                 const projectOwnerId = project.owner_id ? String(project.owner_id) : null;
                 const isOwner = currentUserId && projectOwnerId && currentUserId === projectOwnerId;
-                
+
                 if (isOwner) {
                     // Owner deletes the project
                     vscode.postMessage({
@@ -1972,7 +3991,7 @@
                 const currentUserId = this.currentUser ? String(this.currentUser.id) : null;
                 const projectOwnerId = project.owner_id ? String(project.owner_id) : null;
                 const isOwner = currentUserId && projectOwnerId && currentUserId === projectOwnerId;
-                
+
                 // Populate form
                 document.getElementById('editProjectId').value = project.id;
                 document.getElementById('editProjectName').value = project.name;
@@ -1983,10 +4002,14 @@
                 // Populate members list (only show if owner)
                 const membersSection = document.getElementById('memberManagementSection');
                 const membersContainer = document.getElementById('editProjectMembers');
-                
+
                 if (isOwner) {
                     membersSection.style.display = 'block';
-                    const teamMembers = this.users.filter(user => project.selectedMemberIds && project.selectedMemberIds.includes(user.id));
+                    // Create a set of valid user IDs for efficient lookup
+                    const validUserIds = new Set(this.users.map(u => String(u.id)));
+                    // Filter to only valid member IDs and then get corresponding users
+                    const validMemberIds = (project.selectedMemberIds || []).filter(id => validUserIds.has(String(id)));
+                    const teamMembers = this.users.filter(user => validMemberIds.includes(String(user.id)));
                     membersContainer.innerHTML = teamMembers.map(member => `
                         <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; margin: 5px 0; background: #f1f5f9; border-radius: 8px;">
                             <div>
@@ -2005,7 +4028,10 @@
             }
 
             closeEditModal() {
-                document.getElementById('editProjectModal').style.display = 'none';
+                const modal = document.getElementById('editProjectModal');
+                if (modal) {
+                    modal.style.display = 'none';
+                }
             }
         }
 
@@ -2288,7 +4314,7 @@
         // Render AI Analysis Visualization
         function renderAnalysisVisualization(data, projectName) {
             if (!data) return '<p>No analysis data available</p>';
-            
+
             let html = `<div style="margin-bottom: 20px;">
                 <h2 style="color: #1e293b; font-size: 1.8rem; margin-bottom: 5px;">${projectName || 'Project'} Analysis</h2>
                 <p style="color: #64748b; font-size: 0.9rem;">AI-powered team analysis and task delegation</p>
@@ -2458,7 +4484,12 @@
                     vscode.postMessage({ type: 'loadData' });
                     break;
                 case 'dataLoaded':
-                    app.loadData(message.payload); // This will re-render everything
+                    try {
+                        app.loadData(message.payload); // This will re-render everything
+                    } catch (error) {
+                        console.error('Error handling dataLoaded message:', error);
+                        showStatus('userStatus', 'Error loading data. Please try again.', 'error');
+                    }
                     break;
                 case 'profileUpdated':
                     showStatus('userStatus', '✅ Profile updated successfully!', 'success');
@@ -2470,9 +4501,18 @@
                     break;
                 case 'jiraCreated':
                     showStatus('jiraStatus', message.payload?.message || '✅ Jira tasks created!', 'success');
+                    app.unlockJiraTab(true);
                     break;
                 case 'jiraError':
                     showStatus('jiraStatus', `❌ ${message.payload?.message || 'Failed to create Jira tasks.'}`, 'error');
+                    break;
+                case 'jiraAssignableLoaded':
+                    app.jiraAssignableEmails = message.payload?.users || [];
+                    app.renderAssignableEmails();
+                    app.refreshJiraAssigneeDropdown(); // Update the assignee dropdown with freshly fetched Jira users
+                    break;
+                case 'jiraAssignableError':
+                    showStatus('jiraStatus', `❌ ${message.payload?.message || 'Failed to load assignable users.'}`, 'error');
                     break;
                 case 'promptGeneratedFromExtension': // NEW: Listen for generated prompt from extension
                     document.getElementById('promptOutput').textContent = message.payload.prompt;
@@ -2482,15 +4522,20 @@
                     setPromptLoading(false); // restore button + cursor
                     const promptOutput = document.getElementById('promptOutput');
                     const visualization = document.getElementById('aiAnalysisVisualization');
-                    
-                    if (message.payload.parsed) {
+                    const { parsed, projectId } = message.payload;
+
+                    if (projectId && parsed) {
+                        app.storeAiAnalysis(projectId, parsed);
+                    }
+
+                    if (parsed) {
                         // Hide text output, show visualization
                         if (promptOutput) {
                             promptOutput.style.display = 'none';
                         }
                         if (visualization) {
                             visualization.style.display = 'block';
-                            visualization.innerHTML = renderAnalysisVisualization(message.payload.parsed, message.payload.projectName);
+                            visualization.innerHTML = renderAnalysisVisualization(parsed, message.payload.projectName);
                         }
                     } else {
                         // Fallback to text output if no parsed data
@@ -2557,6 +4602,57 @@
                     vscode.window.showErrorMessage(message.payload.message);
                     break;
                 }
+                case 'jiraTasksLoaded': {
+                    const requestId = message.payload?.requestId;
+                    if (requestId && requestId !== app.jiraActiveRequestId) {
+                        console.log('Ignoring stale jiraTasksLoaded response', { requestId, active: app.jiraActiveRequestId });
+                        break;
+                    }
+                    app.jiraLoading = false;
+                    const previouslySelectedId = app.jiraSelectedTask?.id || null;
+                    app.jiraTasks = message.payload.tasks || [];
+                    app.jiraStatuses = message.payload.statuses || [];
+                    if (previouslySelectedId) {
+                        app.jiraSelectedTask = app.jiraTasks.find((task) => task.id === previouslySelectedId) || null;
+                    } else {
+                        app.jiraSelectedTask = null;
+                    }
+                    app.renderJiraBoard();
+                    break;
+                }
+                case 'jiraTasksError': {
+                    const requestId = message.payload?.requestId;
+                    if (requestId && requestId !== app.jiraActiveRequestId) {
+                        console.log('Ignoring stale jiraTasksError response', { requestId, active: app.jiraActiveRequestId });
+                        break;
+                    }
+                    app.jiraLoading = false;
+                    app.showJiraStatus(message.payload?.message || 'Failed to load Jira tasks.', 'error');
+                    app.renderJiraTaskList();
+                    break;
+                }
+                case 'jiraOperationResult':
+                    app.showJiraStatus(message.payload?.message || 'Operation complete.', 'success');
+                    app.isCreatingJiraTask = false;
+                    // Clear filters to avoid hiding the updated task after status/assignee changes
+                    app.jiraFilters = { status: '', search: '' };
+                    const statusFilter = document.getElementById('jiraFilterStatus');
+                    const searchFilter = document.getElementById('jiraSearchInput');
+                    if (statusFilter) statusFilter.value = '';
+                    if (searchFilter) searchFilter.value = '';
+                    app.loadJiraTasks();
+                    break;
+                case 'jiraOperationError':
+                    app.showJiraStatus(message.payload?.message || 'Operation failed.', 'error');
+                    break;
+                case 'jiraTransitionsLoaded':
+                    if (message.payload?.issueId) {
+                        app.jiraTransitions[message.payload.issueId] = message.payload.transitions || [];
+                        if (app.jiraSelectedTask && app.jiraSelectedTask.id === message.payload.issueId) {
+                            app.renderJiraTaskDetail();
+                        }
+                    }
+                    break;
             }
         });
 
@@ -2597,8 +4693,29 @@
         function addUser() {
             try {
                 const name = document.getElementById('userName').value.trim();
-                const skills = document.getElementById('userSkills').value.trim();
-                const languages = document.getElementById('userLanguages').value.trim();
+
+                // Collect skills from checkboxes
+                const selectedSkills = Array.from(document.querySelectorAll('input[name="skills"]:checked'))
+                    .map(checkbox => checkbox.value);
+                const otherSkills = (document.getElementById('userSkillsOther')?.value || '').trim();
+                const allSkills = [...selectedSkills];
+                if (otherSkills) {
+                    const otherSkillsList = otherSkills.split(',').map(s => s.trim()).filter(s => s);
+                    allSkills.push(...otherSkillsList);
+                }
+                const skills = allSkills.join(', ');
+
+                // Collect languages from checkboxes
+                const selectedLanguages = Array.from(document.querySelectorAll('input[name="languages"]:checked'))
+                    .map(checkbox => checkbox.value);
+                const otherLanguages = (document.getElementById('userLanguagesOther')?.value || '').trim();
+                const allLanguages = [...selectedLanguages];
+                if (otherLanguages) {
+                    const otherLanguagesList = otherLanguages.split(',').map(l => l.trim()).filter(l => l);
+                    allLanguages.push(...otherLanguagesList);
+                }
+                const languages = allLanguages.join(', ');
+
                 const willing = document.getElementById('userWilling').value.trim();
 
                 const user = app.addUser(name, skills, languages, willing);
@@ -2611,8 +4728,12 @@
 
         function clearUserForm() {
             document.getElementById('userName').value = '';
-            document.getElementById('userSkills').value = '';
-            document.getElementById('userLanguages').value = '';
+            // Clear all skill checkboxes
+            document.querySelectorAll('input[name="skills"]').forEach(cb => cb.checked = false);
+            document.getElementById('userSkillsOther').value = '';
+            // Clear all language checkboxes
+            document.querySelectorAll('input[name="languages"]').forEach(cb => cb.checked = false);
+            document.getElementById('userLanguagesOther').value = '';
             document.getElementById('userWilling').value = '';
         }
 
@@ -2747,6 +4868,34 @@
             }
         }
 
+        // Profile dropdown helpers
+        function updateProfileDropdown() {
+            const dropdownName = document.getElementById('dropdownUserName');
+            const dropdownSkills = document.getElementById('dropdownSkills');
+            const dropdownLanguages = document.getElementById('dropdownLanguages');
+            const dropdownWilling = document.getElementById('dropdownWilling');
+            const profileBtnName = document.getElementById('profileBtnName');
+
+            const profile = app?.currentUser;
+
+            const name = profile?.name || 'User';
+            if (dropdownName) dropdownName.textContent = name;
+            if (profileBtnName) profileBtnName.textContent = name;
+            if (dropdownSkills) dropdownSkills.textContent = profile?.skills || 'Not specified';
+            if (dropdownLanguages) dropdownLanguages.textContent = profile?.programmingLanguages || 'Not specified';
+            if (dropdownWilling) dropdownWilling.textContent = profile?.willingToWorkOn || 'Not specified';
+        }
+
+        function toggleProfileDropdown() {
+            const dropdown = document.getElementById('profileDropdown');
+            dropdown?.classList.toggle('show');
+        }
+
+        function closeProfileDropdown() {
+            const dropdown = document.getElementById('profileDropdown');
+            dropdown?.classList.remove('show');
+        }
+
         // Add form validation animations
         document.addEventListener('input', (e) => {
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
@@ -2763,8 +4912,8 @@
             }
         });
 
-        // Centralized Event Handling & Initialization
-        document.addEventListener('DOMContentLoaded', () => { // Ensure DOM is loaded
+            // Centralized Event Handling & Initialization
+            document.addEventListener('DOMContentLoaded', () => { // Ensure DOM is loaded
             document.getElementById('update-profile-btn')?.addEventListener('click', () => app.updateProfile());
             document.getElementById('clear-profile-form-btn')?.addEventListener('click', () => app.resetProfileForm());
             document.getElementById('create-project-btn')?.addEventListener('click', createProject);
@@ -2773,6 +4922,22 @@
             document.getElementById('generate-prompt-btn')?.addEventListener('click', generatePrompt);
             document.getElementById('copy-prompt-btn')?.addEventListener('click', copyPrompt);
             document.getElementById('start-project')?.addEventListener('click', startProject);
+            document.getElementById('promptProject')?.addEventListener('change', () => {
+                app.renderJiraTaskDetail();
+            });
+            document.getElementById('profileBtn')?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                toggleProfileDropdown();
+            });
+            document.getElementById('editProfileLink')?.addEventListener('click', () => {
+                closeProfileDropdown();
+                showTab('users');
+            });
+            document.addEventListener('click', (event) => {
+                if (!event.target.closest('.profile-dropdown-container')) {
+                    closeProfileDropdown();
+                }
+            });
             document.getElementById('signOutBtn')?.addEventListener('click', () => {
                 vscode.postMessage({ type: 'signOut' });
             });
@@ -2782,85 +4947,184 @@
             });
 
             document.getElementById('jira-profile-create-btn')?.addEventListener('click', () => app.createJiraTasksFromProfile());
+            document.getElementById('jira-use-ai-prompt-btn')?.addEventListener('click', () => app.useAiAnalysisForJira());
             const jiraToggleBtn = document.getElementById('toggle-jira-credentials-btn');
             const jiraCredentialsCard = document.getElementById('jiraCredentialsCard');
+            const jiraCredentialsBody = document.getElementById('jiraCredentialsBody');
             jiraToggleBtn?.addEventListener('click', () => {
-                if (!jiraCredentialsCard) return;
-                const isHidden = jiraCredentialsCard.classList.toggle('hidden');
-                jiraToggleBtn.textContent = isHidden ? 'Generate Jira Tasks' : 'Hide Jira Credentials';
-                jiraToggleBtn.setAttribute('aria-expanded', String(!isHidden));
-                if (!isHidden) {
+                if (!jiraCredentialsCard || !jiraCredentialsBody) return;
+                const collapsed = jiraCredentialsCard.classList.toggle('collapsed');
+                jiraCredentialsBody.classList.toggle('hidden', collapsed);
+                jiraToggleBtn.textContent = collapsed ? 'Show Jira setup' : 'Hide Jira setup';
+                jiraToggleBtn.setAttribute('aria-expanded', String(!collapsed));
+                if (!collapsed) {
                     document.getElementById('jiraBaseUrl')?.focus();
+                }
+            });
+            document.getElementById('jiraQuickRefreshBtn')?.addEventListener('click', () => app.loadJiraTasks());
+            document.getElementById('jiraJumpToBoardBtn')?.addEventListener('click', () => {
+                const board = document.getElementById('jiraBoard');
+                if (board) {
+                    board.classList.remove('hidden');
+                    board.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+            const toggleAssignableCardBtn = document.getElementById('toggleAssignableCardBtn');
+            const jiraAssignableCard = document.getElementById('jiraAssignableCard');
+            toggleAssignableCardBtn?.addEventListener('click', () => {
+                if (!jiraAssignableCard) return;
+                const collapsed = jiraAssignableCard.classList.toggle('collapsed');
+                toggleAssignableCardBtn.textContent = collapsed ? 'Show' : 'Hide';
+                toggleAssignableCardBtn.setAttribute('aria-expanded', String(!collapsed));
+            });
+            document.getElementById('jiraRefreshBtn')?.addEventListener('click', () => app.loadJiraTasks());
+            document.getElementById('jiraNewTaskBtn')?.addEventListener('click', () => {
+                const jiraTabBtn = document.querySelector('.tab-button[data-tab="jira"]');
+                showTab('jira', jiraTabBtn);
+                if (!app.hasJiraCredentials()) {
+                    app.showJiraStatus('Add Jira credentials in the setup card first.', 'error');
+                    return;
+                }
+                app.startCreatingJiraTask();
+            });
+            document.getElementById('jiraSaveAssignableBtn')?.addEventListener('click', () => app.refreshAssignableFromJira());
+            document.getElementById('jiraClearAssignableBtn')?.addEventListener('click', () => app.clearAssignableList());
+            document.getElementById('jiraRefreshAssignableBtn')?.addEventListener('click', () => app.fetchAssignableFromJira());
+            document.getElementById('jiraFilterStatus')?.addEventListener('change', (event) => {
+                app.jiraFilters.status = event.target.value;
+                app.loadJiraTasks();
+            });
+            let jiraSearchTimer = null;
+            document.getElementById('jiraSearchInput')?.addEventListener('input', (event) => {
+                const value = event.target.value;
+                if (jiraSearchTimer) {
+                    clearTimeout(jiraSearchTimer);
+                }
+                jiraSearchTimer = setTimeout(() => {
+                    app.jiraFilters.search = value.trim();
+                    app.loadJiraTasks();
+                }, 400);
+            });
+            document.getElementById('jiraTaskList')?.addEventListener('click', (event) => {
+                const row = event.target.closest('.jira-task-row');
+                if (row?.dataset?.issueId) {
+                    app.selectJiraTask(row.dataset.issueId);
                 }
             });
 
             document.body.addEventListener('click', (event) => {
-                const target = event.target;
+                try {
+                    const target = event.target;
 
-                if (target.matches('.tab-button')) {
-                    showTab(target.dataset.tab, target);
-                }
-
-                if (target.matches('.remove-user-btn')) {
-                    const userId = target.dataset.userId;
-                    if (userId) {
-                        app.removeUser(userId);
+                    if (target.matches('.tab-button')) {
+                        showTab(target.dataset.tab, target);
+                        return;
                     }
-                }
 
-                // Handle delete/leave project buttons - use closest() to handle nested elements
-                const deleteBtn = target.closest('.delete-project-btn');
-                const leaveBtn = target.closest('.leave-project-btn');
-                const removeBtn = target.closest('.remove-project-btn');
-                
-                if (deleteBtn || leaveBtn || removeBtn) {
-                    const button = deleteBtn || leaveBtn || removeBtn;
-                    const projectId = button.dataset.projectId;
-                    console.log('Button clicked:', { type: deleteBtn ? 'delete' : leaveBtn ? 'leave' : 'remove', projectId });
-                    
-                    if (projectId) {
-                        if (deleteBtn) {
-                            // Send message directly - extension will handle confirmation
-                            console.log('Sending deleteProject message:', { projectId });
-                            vscode.postMessage({
-                                type: 'deleteProject',
-                                payload: { projectId }
-                            });
-                        } else if (leaveBtn) {
-                            // Send message directly - extension will handle confirmation
-                            console.log('Sending leaveProject message:', { projectId });
-                            vscode.postMessage({
-                                type: 'leaveProject',
-                                payload: { projectId }
-                            });
-                        } else if (removeBtn) {
-                            // Fallback for old remove-project-btn
-                            app.removeProject(projectId);
+                    if (target.matches('.remove-user-btn')) {
+                        const userId = target.dataset.userId;
+                        if (userId) {
+                            app.removeUser(userId);
                         }
-                    } else {
-                        console.error('No projectId found on button:', button);
+                        return;
                     }
+
+                    // Handle remove member button FIRST - use closest() to handle nested elements
+                    // This must be checked before other handlers to prevent event bubbling issues
+                    const removeMemberBtn = target.closest('.remove-member-btn');
+                    if (removeMemberBtn) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        event.stopImmediatePropagation(); // Prevent any other handlers from running
+                        
+                        // Ensure modal stays open
+                        const modal = document.getElementById('editProjectModal');
+                        if (modal) {
+                            modal.style.display = 'block';
+                        }
+                        
+                        const projectId = removeMemberBtn.dataset.projectId;
+                        const memberId = removeMemberBtn.dataset.memberId;
+                        if (projectId && memberId) {
+                            // Send message directly - extension will handle confirmation
+                            console.log('Sending removeProjectMember message:', { projectId, memberId });
+                            try {
+                                vscode.postMessage({
+                                    type: 'removeProjectMember',
+                                    payload: { projectId, memberId }
+                                });
+                                // Keep modal open - don't close it here
+                            } catch (err) {
+                                console.error('Error posting message:', err);
+                                showStatus('userStatus', 'Error sending request. Please try again.', 'error');
+                            }
+                        } else {
+                            console.error('Missing projectId or memberId:', { projectId, memberId });
+                            showStatus('userStatus', 'Error: Missing project or member information.', 'error');
+                        }
+                        return false; // Important: stop processing other handlers
+                    }
+
+                    // Handle delete/leave project buttons - use closest() to handle nested elements
+                    const deleteBtn = target.closest('.delete-project-btn');
+                    const leaveBtn = target.closest('.leave-project-btn');
+                    const removeBtn = target.closest('.remove-project-btn');
+                    
+                    if (deleteBtn || leaveBtn || removeBtn) {
+                        const button = deleteBtn || leaveBtn || removeBtn;
+                        const projectId = button.dataset.projectId;
+                        console.log('Button clicked:', { type: deleteBtn ? 'delete' : leaveBtn ? 'leave' : 'remove', projectId });
+                        
+                        if (projectId) {
+                            if (deleteBtn) {
+                                // Send message directly - extension will handle confirmation
+                                console.log('Sending deleteProject message:', { projectId });
+                                vscode.postMessage({
+                                    type: 'deleteProject',
+                                    payload: { projectId }
+                                });
+                            } else if (leaveBtn) {
+                                // Send message directly - extension will handle confirmation
+                                console.log('Sending leaveProject message:', { projectId });
+                                vscode.postMessage({
+                                    type: 'leaveProject',
+                                    payload: { projectId }
+                                });
+                            } else if (removeBtn) {
+                                // Fallback for old remove-project-btn
+                                app.removeProject(projectId);
+                            }
+                        } else {
+                            console.error('No projectId found on button:', button);
+                        }
+                        return;
+                    }
+
+                    if (target.matches('.edit-project-btn')) {
+                        const projectId = target.dataset.projectId;
+                        if (projectId) {
+                            app.openEditModal(projectId);
+                        }
+                        return;
+                    }
+                } catch (error) {
+                    console.error('Error in click handler:', error);
+                    // Don't let errors crash the UI
                 }
 
-                if (target.matches('.edit-project-btn')) {
-                    const projectId = target.dataset.projectId;
-                    if (projectId) {
-                        app.openEditModal(projectId);
-                    }
+                if (target.id === 'jiraSaveTaskBtn' || target.id === 'jiraCreateTaskBtn') {
+                    app.submitJiraTaskForm();
                 }
 
-                if (target.matches('.remove-member-btn')) {
-                    const projectId = target.dataset.projectId;
-                    const memberId = target.dataset.memberId;
-                    if (projectId && memberId) {
-                        // Send message directly - extension will handle confirmation
-                        console.log('Sending removeProjectMember message:', { projectId, memberId });
-                        vscode.postMessage({
-                            type: 'removeProjectMember',
-                            payload: { projectId, memberId }
-                        });
-                    }
+                if (target.id === 'jiraDeleteTaskBtn') {
+                    app.deleteSelectedJiraTask();
                 }
+
+                if (target.id === 'jiraCancelCreateBtn') {
+                    app.isCreatingJiraTask = false;
+                    app.renderJiraTaskDetail();
+                }
+
             });
 
             // Edit modal handlers
@@ -2919,7 +5183,13 @@
             // === END TIMELINE EVENT LISTENERS ===
 
             // Close modal when clicking outside
+            // Close modal when clicking outside (but not on buttons or interactive elements)
             document.getElementById('editProjectModal')?.addEventListener('click', (e) => {
+                // Don't close if clicking on buttons, inputs, or other interactive elements
+                if (e.target.closest('button') || e.target.closest('input') || e.target.closest('textarea') || e.target.closest('.modal-content')) {
+                    return;
+                }
+                // Only close if clicking directly on the modal backdrop
                 if (e.target === document.getElementById('editProjectModal')) {
                     app.closeEditModal();
                 }
@@ -2933,15 +5203,29 @@
                 if (e.target === this) {
                     closeDiffViewer();
                 }
+            // Global error handler to prevent blank screens
+            window.addEventListener('error', (event) => {
+                console.error('Global error caught:', event.error, event.message, event.filename, event.lineno);
+                // Don't let errors crash the UI
+                event.preventDefault();
+                showStatus('userStatus', 'An error occurred. Please refresh if needed.', 'error');
+                return true;
+            });
+
+            window.addEventListener('unhandledrejection', (event) => {
+                console.error('Unhandled promise rejection:', event.reason);
+                event.preventDefault();
+                showStatus('userStatus', 'An error occurred. Please refresh if needed.', 'error');
             });
 
             // Initial UI setup and tab selection
             app.updateUI();
-            showTab('users', document.querySelector('.tab-button[data-tab="users"]'));
+            showTab('projects', document.querySelector('.tab-button[data-tab="projects"]'));
 
             // Load workspace files on startup
             vscode.postMessage({ type: 'getWorkspaceFiles' });
             console.log('🚀 AI Collab Agent - Team Platform initialized!');
+            console.log('Pallas AI - Team Platform initialized!');
         });
     </script>
 </body>

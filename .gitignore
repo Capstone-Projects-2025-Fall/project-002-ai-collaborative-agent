@@ -1,15 +1,32 @@
 # Generated files
 .docusaurus
 
-# Misc
-.DS_Store
+# Environment files
+.env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
-.env
 
-node_modules/
+# Dependencies
+/node_modules/
+/vscode-extension/node_modules/
+
+# Build output
 dist/
 build/
 out/
+package-lock.json
+
+# Testing
+coverage/
+.nyc_output/
+
+# VS Code extension build artifacts
+/vscode-extension/out/
+/vscode-extension/dist/
+/vscode-extension/coverage/
+*.vsix
+
+# Misc
+.DS_Store
