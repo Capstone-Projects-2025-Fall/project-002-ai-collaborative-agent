@@ -863,20 +863,253 @@
 
         .empty-state-message {
             color: #e2e8f0;
-            line-height: 1.6;
+            line-height: 1.4;
+            font-size: 0.9rem;
+            padding: 15px;
+        }
+
+        .empty-state-message p {
+            margin: 0 0 8px 0;
         }
 
         .empty-state-message ul {
-            margin: 10px 0 0 20px;
+            margin: 5px 0 0 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px 10px;
         }
 
         .empty-state-message li {
-            margin: 5px 0;
+            margin: 0;
+            font-size: 0.85rem;
+        }
+
+        /* Terminal-like Status Display */
+        .terminal-output {
+            background: #0f172a;
+            color: #94a3b8;
+            border-radius: 12px;
+            padding: 15px;
+            margin: 15px 0;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 0.8rem;
+            line-height: 1.6;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #1e293b;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        .terminal-line {
+            margin: 2px 0;
+            padding: 2px 0;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .terminal-timestamp {
+            color: #94a3b8;
+            font-size: 0.75rem;
+            flex-shrink: 0;
+            min-width: 50px;
+        }
+
+        .terminal-icon {
+            flex-shrink: 0;
+            font-size: 0.75rem;
+            font-weight: bold;
+            min-width: 50px;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+        }
+
+        .terminal-message {
+            flex: 1;
+            word-break: break-word;
+        }
+
+        .terminal-line.info .terminal-message {
+            color: #60a5fa;
+        }
+
+        .terminal-line.success .terminal-message {
+            color: #34d399;
+        }
+
+        .terminal-line.warning .terminal-message {
+            color: #fbbf24;
+        }
+
+        .terminal-line.error .terminal-message {
+            color: #f87171;
+        }
+
+        .terminal-line.processing .terminal-message {
+            color: #a78bfa;
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+
+        .terminal-cursor {
+            display: inline-block;
+            width: 8px;
+            height: 14px;
+            background: #60a5fa;
+            margin-left: 4px;
+            animation: blink 1s infinite;
         }
 
         /* AI Analysis Visualization Styles */
         #aiAnalysisVisualization {
             margin-top: 20px;
+        }
+
+        /* Past Analysis Styles */
+        .past-analysis-item {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 12px 15px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .past-analysis-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateX(5px);
+        }
+
+        .past-analysis-item.selected {
+            background: rgba(102, 126, 234, 0.2);
+            border-color: #667eea;
+        }
+
+        .past-analysis-date {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            margin-bottom: 4px;
+        }
+
+        .past-analysis-preview {
+            color: #e2e8f0;
+            font-size: 0.85rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* RAG Toggle Switch */
+        .rag-toggle {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+
+        .rag-toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .rag-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(148, 163, 184, 0.3);
+            transition: 0.3s;
+            border-radius: 24px;
+        }
+
+        .rag-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+
+        .rag-toggle input:checked + .rag-slider {
+            background-color: #10b981;
+        }
+
+        .rag-toggle input:checked + .rag-slider:before {
+            transform: translateX(20px);
+        }
+
+        .rag-toggle input:disabled + .rag-slider {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* RAG Info Icon */
+        .info-icon-rag {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: rgba(148, 163, 184, 0.3);
+            color: #cbd5e1;
+            font-size: 0.7rem;
+            font-weight: bold;
+            cursor: help;
+            position: relative;
+        }
+
+        .info-icon-rag:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            top: 120%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 280px;
+            background: #1e293b;
+            color: #f1f5f9;
+            padding: 12px 14px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            line-height: 1.5;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            white-space: pre-line;
+            z-index: 1000;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            font-weight: normal;
+        }
+
+        /* Minimal Button */
+        .btn-minimal {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #e2e8f0;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-minimal:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-minimal:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
 
         .analysis-section {
@@ -1694,6 +1927,7 @@
         <div id="prompts" class="tab-content">
             <div class="section-title">AI Prompt Generator</div>
 
+            <!-- Project Selection -->
             <div class="form-group">
                 <label for="promptProject">Select Project</label>
                 <select id="promptProject">
@@ -1701,34 +1935,113 @@
                 </select>
             </div>
 
-            <div class="button-group">
-                <button id="generate-prompt-btn" class="btn btn-primary">Generate AI Prompt</button>
-                <button id="copy-prompt-btn" class="btn btn-secondary">Copy Prompt</button>
+            <!-- Workspace Link Info (moved above analysis mode) -->
+            <div id="workspace-link-info" style="display: none; padding: 12px 16px; background: #1e3a5f; border-left: 3px solid #3b82f6; border-radius: 8px; margin: 15px 0; border: 1px solid #2563eb;">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <div style="flex: 1;">
+                        <div style="color: #ffffff; font-size: 0.9rem; font-weight: 600; margin-bottom: 4px;">
+                            Workspace Linked
+                        </div>
+                        <div id="workspace-link-text" style="color: #dbeafe; font-size: 0.8rem;">
+                            <!-- Will be populated dynamically -->
+                        </div>
+                    </div>
+                    <button id="unlink-workspace-btn" class="btn-minimal" style="font-size: 0.8rem; padding: 6px 12px; color: #fca5a5; font-weight: 500; margin-left: 15px;" title="Unlink this workspace from the project">
+                        Unlink
+                    </button>
+                </div>
+            </div>
+
+            <!-- Link Workspace Button -->
+            <div id="link-workspace-container" style="display: none; margin: 15px 0;">
+                <button id="link-workspace-btn" class="btn-minimal" style="font-size: 0.85rem; padding: 8px 14px; background: #1e3a5f; color: #93c5fd; font-weight: 500; border: 1px solid #2563eb;" title="Link this workspace folder to the selected project for persistence">
+                    Link to Workspace
+                </button>
+            </div>
+
+            <!-- Analysis Mode Selection -->
+            <div class="form-group">
+                <label for="analysis-mode">Analysis Mode</label>
+                <select id="analysis-mode">
+                    <option value="initial">Initial Planning - New project task delegation</option>
+                    <option value="progress">Progress Update - Agentic code analysis</option>
+                </select>
+                
+                <!-- Mode Description Box -->
+                <div id="mode-description" style="margin-top: 12px; padding: 15px; background: #334155; border-radius: 8px; border-left: 3px solid #60a5fa; border: 1px solid #475569;">
+                    <div style="color: #ffffff; font-size: 0.9rem; line-height: 1.7; font-weight: 400;" id="mode-desc-text">
+                        <!-- Will be populated dynamically -->
+                    </div>
+                    <div id="mode-rag-requirement" style="display: none; color: #ffffff; font-size: 0.85rem; margin-top: 10px; padding: 10px 12px; background: #065f46; border-radius: 6px; font-weight: 500; border: 1px solid #059669;">
+                        <strong>Uses Smart Context:</strong> AI will analyze your actual codebase
+                    </div>
+                </div>
+            </div>
+
+            <!-- Smart Context Control -->
+            <div id="rag-control" style="padding: 15px; background: #334155; border-radius: 8px; margin: 20px 0; border: 1px solid #475569;">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="color: #ffffff; font-size: 0.95rem; font-weight: 600;">Smart Context</span>
+                        <div class="info-icon-rag" data-tooltip="Smart Context scans your code once, then sends only relevant snippets to AI.
+
+Saves 60-80% of AI tokens
+Faster responses
+
+Toggle ON → Click 'Index' → Done!">ⓘ</div>
+                    </div>
+                    
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <div id="rag-status-badge" style="font-size: 0.8rem; color: #e2e8f0; font-weight: 500;">Not indexed</div>
+                        
+                        <!-- Toggle Switch -->
+                        <label class="rag-toggle">
+                            <input type="checkbox" id="rag-toggle-switch" disabled>
+                            <span class="rag-slider"></span>
+                        </label>
+                        
+                        <button id="index-workspace-btn" class="btn-minimal" style="display: none; padding: 8px 16px;">Index</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Generate Button (normal size) -->
+            <div style="margin: 20px 0;">
+                <button id="generate-prompt-btn" class="btn btn-primary">Generate AI Analysis</button>
             </div>
 
             <div id="promptStatus" class="status-message" style="display: none;"></div>
 
-            <div class="section-title">AI Analysis & Task Delegation</div>
-            <div id="promptOutput" class="prompt-output">
-                <div class="empty-state-message">
-                    <p>Select a project above to generate an AI-optimized analysis and task allocation.</p>
-                    <p>The analysis will include:</p>
-                    <ul>
-                        <li>Team composition analysis</li>
-                        <li>Project feasibility assessment</li>
-                        <li>Role assignments for each team member</li>
-                        <li>Task breakdown (immediate & future)</li>
-                        <li>Optimization recommendations</li>
-                        <li>Risk assessment</li>
-                        <li>Deliverables mapping</li>
-                    </ul>
+            <!-- Terminal output appears right here when analysis runs -->
+            <div id="promptOutput" class="prompt-output" style="display: none;"></div>
+
+            <!-- Results Section -->
+            <div id="results-section" style="display: none;">
+                <div class="section-title" style="margin-top: 30px;">AI Analysis & Task Delegation</div>
+                
+                <!-- Analysis results visualization -->
+                <div id="aiAnalysisVisualization"></div>
+                
+                <div class="button-group" style="justify-content: right; margin-top: 20px;">
+                    <button id="start-project" class="btn btn-primary">Start Project</button>
                 </div>
             </div>
 
-            <!-- New structured visualization container -->
-            <div id="aiAnalysisVisualization" style="display: none;"></div>
-            <div class="button-group" style="justify-content: right">
-                <button id="start-project" class="btn btn-primary">Start Project</button>
+            <!-- Past AI Analyses Section -->
+            <div style="margin-top: 40px; padding-top: 30px; border-top: 2px solid rgba(255,255,255,0.1);">
+                <div class="section-title">Past AI Analyses</div>
+                <p style="color: #000000; font-size: 0.9rem; margin-bottom: 15px;">View previously generated task delegations for the selected project</p>
+
+                <div id="pastAnalysisList" style="display: none; margin-top: 15px;">
+                    <label style="color: #000000; font-size: 0.95rem; font-weight: 600; margin-bottom: 10px; display: block;">Analysis History</label>
+                    <div id="pastAnalysisItems" style="max-height: 300px; overflow-y: auto; background: #334155; border-radius: 8px; padding: 10px; border: 1px solid #475569;">
+                        <!-- Will be populated dynamically -->
+                    </div>
+                </div>
+
+                <div id="pastAnalysisView" style="display: none; margin-top: 20px;">
+                    <!-- Selected analysis will be displayed here -->
+                </div>
             </div>
         </div>
 
@@ -3025,22 +3338,28 @@
             }
 
             // Webview now only requests prompt generation from extension
-            generateAIPrompt(projectId) {
+            generateAIPrompt(projectId, modeConfig) {
                 // Set active project first
                 vscode.postMessage({
                     type: 'setActiveProject',
                     payload: { projectId: projectId }
                 });
 
-                // Send projectId to the extension
+                // Send projectId and mode configuration to the extension
                 vscode.postMessage({
                     type: 'generatePrompt',
-                    payload: { projectId: projectId }
+                    payload: { 
+                        projectId: projectId,
+                        analysisMode: modeConfig
+                    }
                 });
 
-                // Update UI to show "generating" state
-                document.getElementById('promptOutput').textContent = 'Generating AI prompt... Please wait.';
-                showStatus('promptStatus', 'Generating AI prompt...', 'success');
+                // Initialize terminal display
+                initTerminalDisplay();
+                const modeName = modeConfig?.name || 'Analysis';
+                addTerminalLine(`Starting ${modeName}`, 'info', 'START');
+                addTerminalLine(`Project ID: ${projectId}`, 'info', 'INFO');
+                showStatus('promptStatus', `Generating ${modeName}...`, 'info');
             }
 
             // Removed createComprehensivePrompt from webview as extension handles it
@@ -3197,6 +3516,9 @@
                         payload: { projectId: selectedProjectId }
                     });
                 };
+
+                // Request workspace info after projects are loaded to enable auto-restoration
+                requestWorkspaceInfo();
             }
 
             getActiveProjectIdForJira() {
@@ -3477,8 +3799,8 @@
             if (!data) return '<p>No analysis data available</p>';
 
             let html = `<div style="margin-bottom: 20px;">
-                <h2 style="color: #1e293b; font-size: 1.8rem; margin-bottom: 5px;">${projectName || 'Project'} Analysis</h2>
-                <p style="color: #64748b; font-size: 0.9rem;">AI-powered team analysis and task delegation</p>
+                <h2 style="color: #ffffff; font-size: 1.8rem; margin-bottom: 5px;">${projectName || 'Project'} Analysis</h2>
+                <p style="color: #cbd5e1; font-size: 0.9rem;">AI-powered team analysis and task delegation</p>
             </div>`;
 
             // Team Analysis Section
@@ -3634,6 +3956,155 @@
                 </div>`;
             }
 
+            // ============================================================================
+            // PROGRESS MODE SECTIONS (Agentic Analysis)
+            // ============================================================================
+
+            // Summary Section (if available)
+            if (data.summary) {
+                html += `<div class="analysis-section" style="background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); border-left: 4px solid #3b82f6;">
+                    <h3>📋 Analysis Summary</h3>
+                    <p style="line-height: 1.8; white-space: pre-wrap; margin: 0;">${data.summary}</p>
+                </div>`;
+            }
+
+            // Completion Status Section
+            if (data.completionStatus) {
+                const percent = data.completionStatus.percentComplete || 0;
+                html += `<div class="analysis-section">
+                    <h3>📊 Completion Status</h3>
+                    <div style="margin-bottom: 20px;">
+                        <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                            <div style="flex: 1; background: #e2e8f0; border-radius: 8px; height: 24px; overflow: hidden;">
+                                <div style="background: linear-gradient(90deg, #10b981, #059669); height: 100%; width: ${percent}%; transition: width 0.3s;"></div>
+                            </div>
+                            <span style="margin-left: 12px; font-weight: 600; color: #10b981; font-size: 1.1rem;">${percent}%</span>
+                        </div>
+                        ${data.completionStatus.completedAreas && data.completionStatus.completedAreas.length > 0 ? `
+                            <div style="margin-top: 15px;">
+                                <strong style="color: #10b981;">✓ Completed:</strong>
+                                <ul style="margin-top: 8px; padding-left: 20px;">
+                                    ${data.completionStatus.completedAreas.map(area => `<li style="margin: 5px 0;">${area}</li>`).join('')}
+                                </ul>
+                            </div>
+                        ` : ''}
+                        ${data.completionStatus.inProgress && data.completionStatus.inProgress.length > 0 ? `
+                            <div style="margin-top: 15px;">
+                                <strong style="color: #3b82f6;">⏳ In Progress:</strong>
+                                <ul style="margin-top: 8px; padding-left: 20px;">
+                                    ${data.completionStatus.inProgress.map(area => `<li style="margin: 5px 0;">${area}</li>`).join('')}
+                                </ul>
+                            </div>
+                        ` : ''}
+                        ${data.completionStatus.notStarted && data.completionStatus.notStarted.length > 0 ? `
+                            <div style="margin-top: 15px;">
+                                <strong style="color: #94a3b8;">○ Not Started:</strong>
+                                <ul style="margin-top: 8px; padding-left: 20px;">
+                                    ${data.completionStatus.notStarted.map(area => `<li style="margin: 5px 0;">${area}</li>`).join('')}
+                                </ul>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>`;
+            }
+
+            // Code Quality Section
+            if (data.codeQuality) {
+                const score = data.codeQuality.overallScore || 5;
+                const scoreColor = score >= 8 ? '#10b981' : score >= 6 ? '#3b82f6' : score >= 4 ? '#f59e0b' : '#ef4444';
+                html += `<div class="analysis-section">
+                    <h3>✨ Code Quality</h3>
+                    <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                        <span style="font-size: 2rem; font-weight: bold; color: ${scoreColor};">${score}/10</span>
+                        <span style="margin-left: 10px; color: #cbd5e1;">Overall Score</span>
+                    </div>
+                    ${data.codeQuality.strengths && data.codeQuality.strengths.length > 0 ? `
+                        <div style="margin-bottom: 15px;">
+                            <strong style="color: #10b981;">Strengths:</strong>
+                            <ul style="margin-top: 8px; padding-left: 20px;">
+                                ${data.codeQuality.strengths.map(s => `<li style="margin: 5px 0;">${s}</li>`).join('')}
+                            </ul>
+                        </div>
+                    ` : ''}
+                    ${data.codeQuality.concerns && data.codeQuality.concerns.length > 0 ? `
+                        <div>
+                            <strong style="color: #f59e0b;">Concerns:</strong>
+                            <ul style="margin-top: 8px; padding-left: 20px;">
+                                ${data.codeQuality.concerns.map(c => `<li style="margin: 5px 0;">${c}</li>`).join('')}
+                            </ul>
+                        </div>
+                    ` : ''}
+                </div>`;
+            }
+
+            // Team Performance Section
+            if (data.teamPerformance && data.teamPerformance.length > 0) {
+                html += `<div class="analysis-section">
+                    <h3>👥 Team Performance</h3>
+                    ${data.teamPerformance.map(member => `
+                        <div class="member-card">
+                            <div class="member-header">
+                                <div class="member-name">${member.memberName || 'Team Member'}</div>
+                            </div>
+                            ${member.contributions ? `
+                                <div style="margin-top: 10px;">
+                                    <strong style="color: #10b981;">Contributions:</strong>
+                                    <p style="margin: 5px 0; line-height: 1.6;">${member.contributions}</p>
+                                </div>
+                            ` : ''}
+                            ${member.suggestions ? `
+                                <div style="margin-top: 10px;">
+                                    <strong style="color: #3b82f6;">Suggestions:</strong>
+                                    <p style="margin: 5px 0; line-height: 1.6;">${member.suggestions}</p>
+                                </div>
+                            ` : ''}
+                            ${member.supportNeeded ? `
+                                <div style="margin-top: 10px; padding: 10px; background: #fef3c7; border-radius: 6px; border-left: 4px solid #f59e0b;">
+                                    <strong style="color: #f59e0b;">Support Needed:</strong>
+                                    <p style="margin: 5px 0; line-height: 1.6;">${member.supportNeeded}</p>
+                                </div>
+                            ` : ''}
+                        </div>
+                    `).join('')}
+                </div>`;
+            }
+
+            // Blockers Section
+            if (data.blockers && data.blockers.length > 0) {
+                html += `<div class="analysis-section">
+                    <h3>🚧 Blockers</h3>
+                    ${data.blockers.map(blocker => `
+                        <div class="risk-item" style="background: #fee2e2; border-left-color: #ef4444;">
+                            <strong>${blocker.issue || 'Issue'}</strong>
+                            ${blocker.affectedMembers && blocker.affectedMembers.length > 0 ? `
+                                <p style="margin: 8px 0 0 0; color: #cbd5e1;">Affected: ${blocker.affectedMembers.join(', ')}</p>
+                            ` : ''}
+                            ${blocker.suggestedSolution ? `
+                                <div style="margin-top: 8px; padding: 8px; background: #dbeafe; border-radius: 4px;">
+                                    <strong style="color: #3b82f6;">Suggested Solution:</strong> ${blocker.suggestedSolution}
+                                </div>
+                            ` : ''}
+                        </div>
+                    `).join('')}
+                </div>`;
+            }
+
+            // Next Priorities Section
+            if (data.nextPriorities && data.nextPriorities.length > 0) {
+                html += `<div class="analysis-section">
+                    <h3>🎯 Next Priorities</h3>
+                    <div style="display: flex; flex-direction: column; gap: 12px;">
+                        ${data.nextPriorities.map((priority, idx) => `
+                            <div style="padding: 15px; background: #334155; border-left: 4px solid #6366f1; border-radius: 8px;">
+                                <div style="font-weight: 600; color: #ffffff; margin-bottom: 5px;">${idx + 1}. ${priority.priority || 'Priority'}</div>
+                                ${priority.assignTo ? `<p style="margin: 5px 0; color: #cbd5e1;">👤 Assigned to: ${priority.assignTo}</p>` : ''}
+                                ${priority.reasoning ? `<p style="margin: 5px 0; color: #cbd5e1;">💡 ${priority.reasoning}</p>` : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>`;
+            }
+
             return html;
         }
 
@@ -3681,8 +4152,14 @@
                     break;
                 case 'aiResponseReceived': // NEW: Handle AI response with task delegation
                     setPromptLoading(false); // restore button + cursor
+                    
+                    // Complete terminal display
+                    addTerminalLine('Analysis complete', 'success', 'DONE');
+                    completeTerminal(true);
+                    
                     const promptOutput = document.getElementById('promptOutput');
                     const visualization = document.getElementById('aiAnalysisVisualization');
+                    const resultsSection = document.getElementById('results-section');
                     const { parsed, projectId } = message.payload;
 
                     if (projectId && parsed) {
@@ -3690,13 +4167,57 @@
                     }
 
                     if (parsed) {
-                        // Hide text output, show visualization
-                        if (promptOutput) {
-                            promptOutput.style.display = 'none';
+                        // Hide terminal after a moment, show results section
+                        setTimeout(() => {
+                            if (promptOutput) {
+                                promptOutput.style.display = 'none';
+                            }
+                        }, 2000);
+                        
+                        if (resultsSection) {
+                            resultsSection.style.display = 'block';
                         }
+                        
                         if (visualization) {
                             visualization.style.display = 'block';
-                            visualization.innerHTML = renderAnalysisVisualization(parsed, message.payload.projectName);
+                            
+                            // Determine analysis type badge
+                            const isProgressUpdate = parsed.completionStatus || parsed.codeQuality || parsed.teamPerformance;
+                            const mode = message.payload.mode || 'initial';
+                            const typeBadge = (mode === 'progress' || isProgressUpdate)
+                                ? '<span style="display: inline-block; padding: 4px 12px; background: #3b82f6; color: white; border-radius: 6px; font-size: 0.8rem; font-weight: 600; margin-left: 12px;">Progress Update</span>'
+                                : '<span style="display: inline-block; padding: 4px 12px; background: #8b5cf6; color: white; border-radius: 6px; font-size: 0.8rem; font-weight: 600; margin-left: 12px;">Initial Planning</span>';
+                            
+                            // Add RAG indicator if used
+                            let ragBadge = '';
+                            if (message.payload.ragUsed && message.payload.ragStats) {
+                                ragBadge = `<div style="display: inline-block; padding: 4px 10px; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 12px; font-size: 0.75rem; color: #10b981; margin-bottom: 10px;">
+                                    ✓ Powered by ${message.payload.ragStats.filesUsed} indexed files
+                                </div>`;
+                            }
+                            
+                            // Use the same dark container as past analyses
+                            const projectName = message.payload.projectName || 'Project';
+                            let analysisHTML = '';
+                            
+                            if (mode === 'progress' || isProgressUpdate) {
+                                analysisHTML = renderProgressAnalysisVisualization(parsed, projectName);
+                            } else {
+                                analysisHTML = renderAnalysisVisualization(parsed, projectName);
+                            }
+                            
+                            visualization.innerHTML = `
+                                <div style="background: #334155; border-radius: 12px; padding: 20px; border: 1px solid #475569;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid #475569;">
+                                        <div>
+                                            <h3 style="color: #ffffff; margin: 0; font-size: 1.3rem; display: inline-block;">Latest Analysis</h3>
+                                            ${typeBadge}
+                                        </div>
+                                    </div>
+                                    ${ragBadge}
+                                    ${analysisHTML}
+                                </div>
+                            `;
                         }
                     } else {
                         // Fallback to text output if no parsed data
@@ -3708,12 +4229,80 @@
                             visualization.style.display = 'none';
                         }
                     }
-                    showStatus('promptStatus', '✅ AI analysis complete! Tasks delegated to team members.', 'success');
+                    
+                    const statusMsg = message.payload.ragUsed 
+                        ? `✅ AI analysis complete with workspace context! (${message.payload.ragStats?.filesUsed} files used)`
+                        : '✅ AI analysis complete! Tasks delegated to team members.';
+                    showStatus('promptStatus', statusMsg, 'success');
                     break;
                 case 'promptGenerationError': // NEW: Handle errors from extension
                     setPromptLoading(false); // restore button + cursor
+                    addTerminalLine(message.payload.message, 'error', 'ERROR');
+                    completeTerminal(false);
                     showStatus('promptStatus', `Error: ${message.payload.message}`, 'error');
                     break;
+                
+                case 'analysisStatusUpdate': // NEW: Handle real-time status updates
+                    const updateMsg = message.payload.message;
+                    const statusType = message.payload.type || 'info';
+                    const statusIcon = message.payload.icon || '';
+                    addTerminalLine(updateMsg, statusType, statusIcon);
+                    break;
+                
+                case 'ragStatsUpdate':
+                    console.log('Webview: Received RAG stats:', message.payload);
+                    updateRAGStatus(message.payload);
+                    updateRAGTooltipContent(message.payload);
+                    break;
+                
+                case 'ragIndexingProgress':
+                    const ragStatusBadge = document.getElementById('rag-status-badge');
+                    if (ragStatusBadge) {
+                        ragStatusBadge.textContent = `Indexing... ${Math.round(message.payload.percent || 0)}%`;
+                    }
+                    break;
+                
+                case 'ragIndexingComplete':
+                    console.log('Indexing complete:', message.payload);
+                    updateRAGStatus(message.payload);
+                    showStatus('promptStatus', '✅ Workspace indexed successfully!', 'success');
+                    const indexBtn = document.getElementById('index-workspace-btn');
+                    if (indexBtn) {
+                        indexBtn.disabled = false;
+                        indexBtn.textContent = 'Re-index';
+                    }
+                    break;
+                
+                case 'ragIndexingError':
+                    const btn = document.getElementById('index-workspace-btn');
+                    if (btn) {
+                        btn.textContent = 'Index';
+                        btn.disabled = false;
+                    }
+                    showStatus('promptStatus', `Error: ${message.payload.message}`, 'error');
+                    break;
+                
+                case 'pastAnalysesLoaded':
+                    console.log('Past analyses loaded:', message.payload.analyses);
+                    displayPastAnalyses(message.payload.analyses);
+                    break;
+                
+                case 'workspaceInfo':
+                    handleWorkspaceInfo(message.payload);
+                    break;
+                
+                case 'workspaceLinked':
+                    console.log('Workspace linked:', message.payload);
+                    currentWorkspaceInfo.linkedProjectId = message.payload.projectId;
+                    updateWorkspaceUI();
+                    break;
+                
+                case 'workspaceUnlinked':
+                    console.log('Workspace unlinked');
+                    currentWorkspaceInfo.linkedProjectId = null;
+                    updateWorkspaceUI();
+                    break;
+                
                 case 'jiraTasksLoaded': {
                     const requestId = message.payload?.requestId;
                     if (requestId && requestId !== app.jiraActiveRequestId) {
@@ -3929,14 +4518,114 @@
             }
         }
 
+        // Terminal-like status display functions
+        let terminalContainer = null;
+
+        function initTerminalDisplay() {
+            const promptOutput = document.getElementById('promptOutput');
+            if (!promptOutput) return;
+
+            // Clear existing content and create terminal
+            promptOutput.innerHTML = '';
+            promptOutput.style.display = 'block';
+            
+            terminalContainer = document.createElement('div');
+            terminalContainer.className = 'terminal-output';
+            terminalContainer.id = 'terminalContainer';
+            promptOutput.appendChild(terminalContainer);
+            
+            return terminalContainer;
+        }
+
+        function addTerminalLine(message, type = 'info', icon = '') {
+            if (!terminalContainer) {
+                terminalContainer = document.getElementById('terminalContainer');
+                if (!terminalContainer) {
+                    initTerminalDisplay();
+                }
+            }
+
+            const line = document.createElement('div');
+            line.className = `terminal-line ${type}`;
+            
+            const timestamp = document.createElement('span');
+            timestamp.className = 'terminal-timestamp';
+            const now = new Date();
+            timestamp.textContent = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+            
+            const iconSpan = document.createElement('span');
+            iconSpan.className = 'terminal-icon';
+            iconSpan.textContent = icon || getIconForType(type);
+            
+            const messageSpan = document.createElement('span');
+            messageSpan.className = 'terminal-message';
+            messageSpan.textContent = message;
+            
+            line.appendChild(timestamp);
+            line.appendChild(iconSpan);
+            line.appendChild(messageSpan);
+            
+            terminalContainer.appendChild(line);
+            
+            // Auto-scroll to bottom
+            terminalContainer.scrollTop = terminalContainer.scrollHeight;
+        }
+
+        function getIconForType(type) {
+            const icons = {
+                'info': '>>',
+                'success': 'OK',
+                'warning': '!!',
+                'error': 'XX',
+                'processing': '..'
+            };
+            return icons[type] || '>>';
+        }
+
+        function clearTerminal() {
+            if (terminalContainer) {
+                terminalContainer.innerHTML = '';
+            }
+        }
+
+        function completeTerminal(success = true) {
+            if (!terminalContainer) return;
+            
+            const line = document.createElement('div');
+            line.className = `terminal-line ${success ? 'success' : 'error'}`;
+            line.style.marginTop = '10px';
+            line.style.paddingTop = '10px';
+            line.style.borderTop = '1px solid #334155';
+            
+            const messageSpan = document.createElement('span');
+            messageSpan.className = 'terminal-message';
+            messageSpan.style.fontWeight = 'bold';
+            messageSpan.textContent = success 
+                ? '>>> ANALYSIS COMPLETE <<<'
+                : '>>> ANALYSIS FAILED <<<';
+            
+            line.appendChild(messageSpan);
+            terminalContainer.appendChild(line);
+            terminalContainer.scrollTop = terminalContainer.scrollHeight;
+        }
+
         function generatePrompt() {
             try {
                 const projectId = document.getElementById('promptProject').value;
                 if (!projectId) {
                     throw new Error('Please select a project');
                 }
+                
+                // Get analysis mode configuration
+                const modeConfig = getAnalysisModeConfig();
+                
                 setPromptLoading(true); // disable button + loading cursor
-                app.generateAIPrompt(projectId); // No longer returns prompt directly
+                
+                // Update status message with mode
+                showStatus('promptStatus', `${modeConfig.icon} Generating ${modeConfig.name}...`, 'info');
+                
+                // Send with mode configuration
+                app.generateAIPrompt(projectId, modeConfig);
             } catch (error) {
                 showStatus('promptStatus', 'Error: ' + error.message, 'error');
                 setPromptLoading(false); // restore if something fails
@@ -3977,6 +4666,594 @@
                 showStatus('promptStatus', 'Starting ' + (project ? project.name : 'Unknown Project'), 'success');
             } catch (error) {
                 showStatus('promptStatus', 'Error: ' + error.message, 'error');
+            }
+        }
+
+        // Analysis Mode System
+        const analysisModes = {
+            'initial': {
+                name: 'Initial Planning',
+                icon: '',
+                description: 'Perfect for <strong>new projects</strong>. Analyzes requirements, breaks down tasks, and assigns roles based on team member skills.',
+                features: ['Team composition analysis', 'Task breakdown & priorities', 'Role assignments', 'Deliverables mapping', 'Feasibility assessment'],
+                usesRAG: false,
+                requiresWorkspace: false
+            },
+            'progress': {
+                name: 'Progress Update',
+                icon: '',
+                description: 'Agentic AI that <strong>reads your actual codebase</strong>. Analyzes what\'s been built, compares against plan, identifies blockers, and recommends next steps.',
+                features: ['Live code analysis', 'Completion status', 'Quality assessment', 'Blocker identification', 'Team performance review', 'Next priorities'],
+                usesRAG: true,
+                requiresWorkspace: true
+            }
+        };
+
+        let currentAnalysisMode = 'initial';
+
+        function updateModeDescription() {
+            const modeSelect = document.getElementById('analysis-mode');
+            const descText = document.getElementById('mode-desc-text');
+            const ragRequirement = document.getElementById('mode-rag-requirement');
+            
+            if (!modeSelect || !descText) return;
+            
+            const mode = analysisModes[modeSelect.value];
+            currentAnalysisMode = modeSelect.value;
+            
+            // Update description without icon
+            let html = `<div style="margin-bottom: 12px; color: #ffffff;"><strong style="font-size: 0.95rem;">${mode.name}:</strong> ${mode.description}</div>`;
+            html += '<div style="font-size: 0.85rem; color: #f1f5f9; margin-top: 12px; line-height: 1.8;"><strong>Includes:</strong><br>';
+            html += mode.features.map(f => `• ${f}`).join('<br>');
+            html += '</div>';
+            descText.innerHTML = html;
+            
+            // Show RAG requirement
+            if (ragRequirement) {
+                ragRequirement.style.display = mode.usesRAG ? 'block' : 'none';
+            }
+        }
+
+        function getAnalysisModeConfig() {
+            const mode = analysisModes[currentAnalysisMode];
+            return {
+                mode: currentAnalysisMode,
+                name: mode.name,
+                icon: mode.icon,
+                usesRAG: mode.usesRAG,
+                requiresWorkspace: mode.requiresWorkspace
+            };
+        }
+
+        // RAG Functions
+        function updateRAGStatus(stats) {
+            const toggle = document.getElementById('rag-toggle-switch');
+            const statusBadge = document.getElementById('rag-status-badge');
+            const indexBtn = document.getElementById('index-workspace-btn');
+            
+            if (!stats) {
+                if (toggle) toggle.disabled = true;
+                if (statusBadge) statusBadge.textContent = 'Not indexed';
+                if (indexBtn) indexBtn.style.display = 'none';
+                updateRAGAnalysisBadge(null);
+                return;
+            }
+            
+            if (toggle) {
+                toggle.disabled = false;
+                toggle.checked = stats.enabled || false;
+            }
+            
+            if (statusBadge) {
+                if (stats.totalFiles > 0) {
+                    statusBadge.textContent = `Indexed (${stats.totalFiles} files)`;
+                    statusBadge.style.color = '#10b981';
+                } else if (stats.enabled) {
+                    statusBadge.textContent = 'Not indexed';
+                    statusBadge.style.color = '#f59e0b';
+                } else {
+                    statusBadge.textContent = 'Disabled';
+                    statusBadge.style.color = '#94a3b8';
+                }
+            }
+            
+            if (indexBtn) {
+                if (stats.enabled && stats.totalFiles === 0) {
+                    indexBtn.style.display = 'block';
+                    indexBtn.textContent = 'Index';
+                } else if (stats.enabled && stats.totalFiles > 0) {
+                    indexBtn.style.display = 'block';
+                    indexBtn.textContent = 'Re-index';
+                } else {
+                    indexBtn.style.display = 'none';
+                }
+            }
+            
+            // Update the analysis badge
+            updateRAGAnalysisBadge(stats);
+        }
+
+        // Update the RAG status badge near "Generate AI Analysis" button
+        function updateRAGAnalysisBadge(stats) {
+            const badge = document.getElementById('rag-analysis-badge');
+            const icon = document.getElementById('rag-analysis-icon');
+            const text = document.getElementById('rag-analysis-text');
+            const quickToggle = document.getElementById('rag-quick-toggle');
+            
+            if (!stats || !stats.enabled) {
+                // RAG is disabled or no stats
+                if (badge) badge.style.display = 'none';
+                return;
+            }
+            
+            // Show badge if RAG is enabled
+            if (badge) badge.style.display = 'flex';
+            
+            // Update badge appearance based on status
+            if (stats.totalFiles > 0) {
+                // RAG is active and will be used
+                if (icon) icon.textContent = '✨';
+                if (text) {
+                    text.textContent = 'Smart Context ON';
+                    text.style.color = '#10b981';
+                }
+                badge.querySelector('.rag-analysis-indicator').style.background = 'rgba(16, 185, 129, 0.1)';
+                badge.querySelector('.rag-analysis-indicator').style.borderColor = 'rgba(16, 185, 129, 0.3)';
+            } else {
+                // RAG is enabled but not indexed
+                if (icon) icon.textContent = '⚠️';
+                if (text) {
+                    text.textContent = 'Not Indexed';
+                    text.style.color = '#f59e0b';
+                }
+                badge.querySelector('.rag-analysis-indicator').style.background = 'rgba(245, 158, 11, 0.1)';
+                badge.querySelector('.rag-analysis-indicator').style.borderColor = 'rgba(245, 158, 11, 0.3)';
+            }
+            
+            // Sync quick toggle with current state
+            if (quickToggle) {
+                quickToggle.checked = stats.enabled || false;
+            }
+        }
+
+        // Show/hide RAG analysis tooltip
+        let ragTooltipVisible = false;
+        function toggleRAGAnalysisTooltip() {
+            const tooltip = document.getElementById('rag-analysis-tooltip');
+            const content = document.getElementById('rag-tooltip-content');
+            const projectId = document.getElementById('promptProject')?.value;
+            
+            if (!tooltip || !projectId) return;
+            
+            ragTooltipVisible = !ragTooltipVisible;
+            tooltip.style.display = ragTooltipVisible ? 'block' : 'none';
+            
+            if (ragTooltipVisible && content) {
+                // Get current RAG stats
+                vscode.postMessage({
+                    type: 'getRAGStats',
+                    payload: { projectId }
+                });
+                
+                // Show loading state
+                content.innerHTML = '<div style="color: #94a3b8;">Loading...</div>';
+            }
+        }
+
+        function updateRAGTooltipContent(stats) {
+            const content = document.getElementById('rag-tooltip-content');
+            if (!content) return;
+            
+            if (!stats || !stats.enabled) {
+                content.innerHTML = `
+                    <div style="color: #94a3b8;">
+                        Smart Context is <strong style="color: #ef4444;">disabled</strong> for this project.
+                        <br><br>
+                        Enable it below to send relevant code snippets to AI.
+                    </div>
+                `;
+                return;
+            }
+            
+            if (stats.totalFiles === 0) {
+                content.innerHTML = `
+                    <div style="color: #f59e0b;">
+                        ⚠️ Smart Context is enabled but <strong>not indexed</strong>.
+                        <br><br>
+                        Click the <strong>"Index"</strong> button above to scan your workspace.
+                    </div>
+                `;
+            } else {
+                const lastIndexed = stats.lastIndexed ? new Date(stats.lastIndexed).toLocaleString() : 'Unknown';
+                content.innerHTML = `
+                    <div style="color: #10b981;">
+                        ✨ Smart Context is <strong>active</strong>!
+                        <br><br>
+                        <div style="color: #cbd5e1; margin-top: 8px;">
+                            📁 <strong>${stats.totalFiles}</strong> files indexed<br>
+                            📦 <strong>${stats.totalChunks}</strong> code chunks<br>
+                            🕒 Last indexed: <span style="font-size: 0.7rem;">${lastIndexed}</span>
+                        </div>
+                        <br>
+                        <div style="color: #94a3b8; font-size: 0.7rem;">
+                            Your AI analysis will include relevant code context from your workspace.
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function indexWorkspace() {
+            try {
+                const projectId = document.getElementById('promptProject').value;
+                if (!projectId) {
+                    throw new Error('Please select a project first');
+                }
+
+                // Show loading state
+                const btn = document.getElementById('index-workspace-btn');
+                const statusBadge = document.getElementById('rag-status-badge');
+                
+                if (btn) {
+                    btn.disabled = true;
+                    btn.textContent = 'Indexing...';
+                }
+                if (statusBadge) {
+                    statusBadge.textContent = 'Indexing...';
+                    statusBadge.style.color = '#3b82f6';
+                }
+
+                // Send message to extension
+                vscode.postMessage({
+                    type: 'indexWorkspace',
+                    payload: { projectId }
+                });
+
+            } catch (error) {
+                showStatus('promptStatus', 'Error: ' + error.message, 'error');
+            }
+        }
+
+        function toggleRAG(enabled) {
+            const projectId = document.getElementById('promptProject').value;
+            
+            if (!projectId) {
+                showStatus('promptStatus', 'Please select a project first', 'error');
+                const toggle = document.getElementById('rag-toggle-switch');
+                if (toggle) toggle.checked = !enabled;
+                return;
+            }
+
+            vscode.postMessage({
+                type: 'toggleRAG',
+                payload: { projectId, enabled }
+            });
+        }
+
+        // Past Analyses Functions
+        function loadPastAnalyses(projectId) {
+            console.log('loadPastAnalyses called with projectId:', projectId);
+            // Request past analyses from extension
+            vscode.postMessage({
+                type: 'loadPastAnalyses',
+                payload: { projectId }
+            });
+        }
+
+        function displayPastAnalyses(analyses) {
+            console.log('displayPastAnalyses called with:', analyses);
+            const listContainer = document.getElementById('pastAnalysisList');
+            const itemsContainer = document.getElementById('pastAnalysisItems');
+            
+            console.log('Elements found:', { listContainer: !!listContainer, itemsContainer: !!itemsContainer });
+            
+            if (!analyses || analyses.length === 0) {
+                console.log('No analyses to display');
+                if (listContainer) listContainer.style.display = 'none';
+                return;
+            }
+
+            console.log('Displaying', analyses.length, 'analyses');
+            if (listContainer) listContainer.style.display = 'block';
+            
+            if (itemsContainer) {
+                itemsContainer.innerHTML = analyses.map((analysis, index) => {
+                    const date = new Date(analysis.created_at);
+                    const dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    
+                    // Try to parse the response to get a better preview
+                    let preview = '';
+                    try {
+                        const parsed = JSON.parse(analysis.ai_response);
+                        if (parsed.summary) {
+                            preview = parsed.summary.substring(0, 100);
+                        } else if (parsed.teamAnalysis && parsed.teamAnalysis.summary) {
+                            preview = parsed.teamAnalysis.summary.substring(0, 100);
+                        } else {
+                            preview = analysis.ai_response.substring(0, 100).replace(/\n/g, ' ');
+                        }
+                    } catch (e) {
+                        preview = analysis.ai_response.substring(0, 100).replace(/\n/g, ' ');
+                    }
+                    
+                    return `
+                        <div class="past-analysis-item" data-analysis-id="${analysis.id}" style="padding: 12px; margin-bottom: 8px; background: #1e293b; border-radius: 6px; cursor: pointer; border: 1px solid transparent; transition: all 0.2s;">
+                            <div style="color: #60a5fa; font-size: 0.8rem; font-weight: 600; margin-bottom: 4px;">${dateStr}</div>
+                            <div style="color: #e2e8f0; font-size: 0.85rem; line-height: 1.5;">${preview}...</div>
+                        </div>
+                    `;
+                }).join('');
+
+                // Add click handlers
+                itemsContainer.querySelectorAll('.past-analysis-item').forEach((item, index) => {
+                    item.addEventListener('click', () => {
+                        // Remove selected class from all
+                        itemsContainer.querySelectorAll('.past-analysis-item').forEach(i => {
+                            i.style.borderColor = 'transparent';
+                            i.style.background = '#1e293b';
+                        });
+                        // Add to clicked
+                        item.style.borderColor = '#3b82f6';
+                        item.style.background = '#1e3a5f';
+                        // Display the analysis
+                        displaySelectedAnalysis(analyses[index]);
+                    });
+                    
+                    // Hover effect
+                    item.addEventListener('mouseenter', () => {
+                        if (item.style.borderColor !== 'rgb(59, 130, 246)') {
+                            item.style.background = '#2d3748';
+                        }
+                    });
+                    item.addEventListener('mouseleave', () => {
+                        if (item.style.borderColor !== 'rgb(59, 130, 246)') {
+                            item.style.background = '#1e293b';
+                        }
+                    });
+                });
+            }
+        }
+
+        function displaySelectedAnalysis(analysis) {
+            const viewContainer = document.getElementById('pastAnalysisView');
+            if (!viewContainer) return;
+            
+            viewContainer.style.display = 'block';
+            
+            // Try to parse the analysis response
+            let parsed = null;
+            let isProgressUpdate = false;
+            try {
+                parsed = JSON.parse(analysis.ai_response);
+                // Detect if it's a progress update by checking for progress-specific fields
+                isProgressUpdate = parsed.completionStatus || parsed.codeQuality || parsed.teamPerformance;
+            } catch (e) {
+                console.log('Could not parse analysis as JSON, displaying as text');
+            }
+            
+            // Determine analysis type badge
+            const typeBadge = isProgressUpdate 
+                ? '<span style="display: inline-block; padding: 4px 12px; background: #3b82f6; color: white; border-radius: 6px; font-size: 0.8rem; font-weight: 600; margin-left: 12px;">Progress Update</span>'
+                : '<span style="display: inline-block; padding: 4px 12px; background: #8b5cf6; color: white; border-radius: 6px; font-size: 0.8rem; font-weight: 600; margin-left: 12px;">Initial Planning</span>';
+            
+            // Use the same rendering logic as live results
+            if (parsed) {
+                const projectName = analysis.project_name || 'Project';
+                
+                // Use appropriate rendering based on analysis type
+                if (isProgressUpdate) {
+                    // Render progress update
+                    viewContainer.innerHTML = `
+                        <div style="background: #334155; border-radius: 12px; padding: 20px; border: 1px solid #475569;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid #475569;">
+                                <div>
+                                    <h3 style="color: #ffffff; margin: 0; font-size: 1.3rem; display: inline-block;">Analysis from ${new Date(analysis.created_at).toLocaleString()}</h3>
+                                    ${typeBadge}
+                                </div>
+                            </div>
+                            ${renderProgressAnalysisVisualization(parsed, projectName)}
+                        </div>
+                    `;
+                } else {
+                    // Render initial planning
+                    viewContainer.innerHTML = `
+                        <div style="background: #334155; border-radius: 12px; padding: 20px; border: 1px solid #475569;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid #475569;">
+                                <div>
+                                    <h3 style="color: #ffffff; margin: 0; font-size: 1.3rem; display: inline-block;">Analysis from ${new Date(analysis.created_at).toLocaleString()}</h3>
+                                    ${typeBadge}
+                                </div>
+                            </div>
+                            ${renderAnalysisVisualization(parsed, projectName)}
+                        </div>
+                    `;
+                }
+            } else {
+                // Fallback to text display with better styling
+                viewContainer.innerHTML = `
+                    <div style="background: #334155; border-radius: 12px; padding: 20px; border: 1px solid #475569;">
+                        <h3 style="color: #ffffff; margin-bottom: 15px; font-size: 1.3rem;">Analysis from ${new Date(analysis.created_at).toLocaleString()}</h3>
+                        <div style="background: #0f172a; color: #f1f5f9; padding: 15px; border-radius: 8px; white-space: pre-wrap; max-height: 500px; overflow-y: auto; font-family: monospace; font-size: 0.9rem; line-height: 1.6; border: 1px solid #1e293b;">
+${analysis.ai_response}
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // Render progress analysis visualization (for progress updates)
+        function renderProgressAnalysisVisualization(data, projectName) {
+            if (!data) return '<p>No analysis data available</p>';
+
+            let html = `<div style="margin-bottom: 20px;">
+                <h2 style="color: #ffffff; font-size: 1.8rem; margin-bottom: 5px;">${projectName || 'Project'} Progress Update</h2>
+                <p style="color: #cbd5e1; font-size: 0.9rem;">Real-time codebase analysis and progress tracking</p>
+            </div>`;
+
+            // Completion Status Section
+            if (data.completionStatus) {
+                const percent = data.completionStatus.percentComplete || 0;
+                const percentColor = percent >= 75 ? '#10b981' : percent >= 50 ? '#f59e0b' : percent >= 25 ? '#3b82f6' : '#ef4444';
+                
+                html += `<div class="analysis-section">
+                    <h3>📊 Completion Status</h3>
+                    <div style="margin-bottom: 20px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                            <span style="font-size: 2rem; font-weight: bold; color: ${percentColor};">${percent}%</span>
+                            <span style="color: #cbd5e1;">Complete</span>
+                        </div>
+                        <div style="width: 100%; background: #1e293b; border-radius: 8px; height: 12px; overflow: hidden;">
+                            <div style="width: ${percent}%; background: ${percentColor}; height: 100%; transition: width 0.3s;"></div>
+                        </div>
+                    </div>
+                    ${data.completionStatus.completedAreas && data.completionStatus.completedAreas.length > 0 ? `
+                        <div style="margin-top: 15px;">
+                            <strong style="color: #10b981;">✓ Completed:</strong>
+                            <ul style="margin-top: 8px; padding-left: 20px;">
+                                ${data.completionStatus.completedAreas.map(area => `<li style="margin: 5px 0;">${area}</li>`).join('')}
+                            </ul>
+                        </div>
+                    ` : ''}
+                    ${data.completionStatus.inProgress && data.completionStatus.inProgress.length > 0 ? `
+                        <div style="margin-top: 15px;">
+                            <strong style="color: #3b82f6;">⚡ In Progress:</strong>
+                            <ul style="margin-top: 8px; padding-left: 20px;">
+                                ${data.completionStatus.inProgress.map(area => `<li style="margin: 5px 0;">${area}</li>`).join('')}
+                            </ul>
+                        </div>
+                    ` : ''}
+                    ${data.completionStatus.notStarted && data.completionStatus.notStarted.length > 0 ? `
+                        <div style="margin-top: 15px;">
+                            <strong style="color: #cbd5e1;">○ Not Started:</strong>
+                            <ul style="margin-top: 8px; padding-left: 20px;">
+                                ${data.completionStatus.notStarted.map(area => `<li style="margin: 5px 0;">${area}</li>`).join('')}
+                            </ul>
+                        </div>
+                    ` : ''}
+                </div>`;
+            }
+
+            // Use existing renderAnalysisVisualization for other sections (code quality, team performance, etc.)
+            // Since those sections have the same structure
+            if (data.codeQuality || data.teamPerformance || data.blockers || data.nextPriorities) {
+                html += renderAnalysisVisualization(data, projectName).replace(/<div style="margin-bottom: 20px;">[\s\S]*?<\/div>/, '');
+            }
+
+            return html;
+        }
+
+        // Workspace-Project Linking Functions
+        let currentWorkspaceInfo = {
+            workspacePath: null,
+            linkedProjectId: null,
+            lastSelectedProjectId: null,
+            hasWorkspace: false
+        };
+
+        function updateWorkspaceUI() {
+            const linkInfo = document.getElementById('workspace-link-info');
+            const linkContainer = document.getElementById('link-workspace-container');
+            const linkText = document.getElementById('workspace-link-text');
+            const projectSelect = document.getElementById('promptProject');
+            const selectedProjectId = projectSelect?.value?.trim();
+
+            if (!currentWorkspaceInfo.hasWorkspace) {
+                // No workspace folder open
+                if (linkInfo) linkInfo.style.display = 'none';
+                if (linkContainer) linkContainer.style.display = 'none';
+                return;
+            }
+
+            if (currentWorkspaceInfo.linkedProjectId) {
+                // Show linked info
+                if (linkInfo) {
+                    linkInfo.style.display = 'flex';
+                    if (linkText) {
+                        const projectName = getProjectNameById(currentWorkspaceInfo.linkedProjectId) || currentWorkspaceInfo.linkedProjectId;
+                        linkText.textContent = `This workspace is linked to "${projectName}"`;
+                    }
+                }
+                if (linkContainer) linkContainer.style.display = 'none';
+            } else if (selectedProjectId) {
+                // Show link button (only if a project is selected)
+                if (linkInfo) linkInfo.style.display = 'none';
+                if (linkContainer) linkContainer.style.display = 'block';
+            } else {
+                // No project selected, hide all
+                if (linkInfo) linkInfo.style.display = 'none';
+                if (linkContainer) linkContainer.style.display = 'none';
+            }
+        }
+
+        function getProjectNameById(projectId) {
+            // Helper to get project name from the projects list
+            if (!app.projects) return null;
+            const project = app.projects.find(p => p.id === projectId);
+            return project?.name || null;
+        }
+
+        function linkProjectToWorkspace() {
+            const projectSelect = document.getElementById('promptProject');
+            const projectId = projectSelect?.value?.trim();
+            
+            if (!projectId) {
+                alert('Please select a project first');
+                return;
+            }
+
+            vscode.postMessage({
+                type: 'linkProjectToWorkspace',
+                payload: { projectId }
+            });
+        }
+
+        function unlinkWorkspace() {
+            vscode.postMessage({
+                type: 'unlinkWorkspace',
+                payload: {}
+            });
+        }
+
+        function requestWorkspaceInfo() {
+            vscode.postMessage({
+                type: 'getWorkspaceInfo',
+                payload: {}
+            });
+        }
+
+        function handleWorkspaceInfo(info) {
+            currentWorkspaceInfo = info;
+            console.log('Workspace info received:', info);
+
+            // Auto-restore project selection if linked or last selected
+            const projectSelect = document.getElementById('promptProject');
+            
+            if (projectSelect && !projectSelect.value) {
+                // Priority: linked project > last selected
+                const projectToRestore = info.linkedProjectId || info.lastSelectedProjectId;
+                
+                if (projectToRestore) {
+                    console.log('Auto-restoring project:', projectToRestore);
+                    
+                    // Wait a tiny bit to ensure dropdown is populated
+                    setTimeout(() => {
+                        projectSelect.value = projectToRestore;
+                        console.log('Set project value to:', projectToRestore, 'Current value:', projectSelect.value);
+                        
+                        // Trigger change event to load RAG stats, past analyses, and other project-specific data
+                        const changeEvent = new Event('change', { bubbles: true });
+                        projectSelect.dispatchEvent(changeEvent);
+                        
+                        // Update workspace UI after restoration
+                        updateWorkspaceUI();
+                    }, 100);
+                } else {
+                    // No project to restore, just update UI
+                    updateWorkspaceUI();
+                }
+            } else {
+                // Project already selected or no dropdown, just update UI
+                updateWorkspaceUI();
             }
         }
 
@@ -4034,9 +5311,97 @@
             document.getElementById('generate-prompt-btn')?.addEventListener('click', generatePrompt);
             document.getElementById('copy-prompt-btn')?.addEventListener('click', copyPrompt);
             document.getElementById('start-project')?.addEventListener('click', startProject);
-            document.getElementById('promptProject')?.addEventListener('change', () => {
+            
+            // Analysis mode dropdown
+            document.getElementById('analysis-mode')?.addEventListener('change', updateModeDescription);
+            // Initialize mode description on load
+            setTimeout(() => updateModeDescription(), 100);
+            
+            document.getElementById('promptProject')?.addEventListener('change', (e) => {
+                const selectedProjectId = e.target.value;
+                
+                // Save the selected project
+                if (selectedProjectId) {
+                    vscode.postMessage({
+                        type: 'projectSelected',
+                        payload: { projectId: selectedProjectId }
+                    });
+                    
+                    // Request RAG stats for the selected project
+                    vscode.postMessage({
+                        type: 'getRAGStats',
+                        payload: { projectId: selectedProjectId }
+                    });
+                } else {
+                    // Reset RAG UI when no project selected
+                    updateRAGStatus(null);
+                }
+                
+                // Update workspace UI to show/hide link button
+                updateWorkspaceUI();
+                
                 app.renderJiraTaskDetail();
             });
+            
+            // RAG event listeners
+            document.getElementById('rag-toggle-switch')?.addEventListener('change', (e) => {
+                toggleRAG(e.target.checked);
+            });
+            
+            document.getElementById('index-workspace-btn')?.addEventListener('click', () => {
+                indexWorkspace();
+            });
+            
+            // RAG Analysis Badge event listeners
+            document.querySelector('.rag-analysis-indicator')?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                toggleRAGAnalysisTooltip();
+            });
+            
+            document.getElementById('rag-tooltip-close')?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                toggleRAGAnalysisTooltip();
+            });
+            
+            document.getElementById('rag-quick-toggle')?.addEventListener('change', (e) => {
+                toggleRAG(e.target.checked);
+            });
+            
+            // Close tooltip when clicking outside
+            document.addEventListener('click', (e) => {
+                const badge = document.getElementById('rag-analysis-badge');
+                const tooltip = document.getElementById('rag-analysis-tooltip');
+                if (ragTooltipVisible && badge && !badge.contains(e.target)) {
+                    ragTooltipVisible = false;
+                    if (tooltip) tooltip.style.display = 'none';
+                }
+            });
+            
+            // Main project dropdown - also load past analyses when project changes
+            document.getElementById('promptProject')?.addEventListener('change', (e) => {
+                const projectId = e.target.value;
+                if (projectId) {
+                    // Load past analyses for this project
+                    loadPastAnalyses(projectId);
+                } else {
+                    // Hide past analyses if no project selected
+                    document.getElementById('pastAnalysisList').style.display = 'none';
+                    document.getElementById('pastAnalysisView').style.display = 'none';
+                }
+            });
+            
+            // Workspace linking event listeners
+            document.getElementById('link-workspace-btn')?.addEventListener('click', () => {
+                linkProjectToWorkspace();
+            });
+            
+            document.getElementById('unlink-workspace-btn')?.addEventListener('click', () => {
+                unlinkWorkspace();
+            });
+            
+            // Request workspace info on load
+            requestWorkspaceInfo();
+            
             document.getElementById('profileBtn')?.addEventListener('click', (e) => {
                 e.stopPropagation();
                 toggleProfileDropdown();
