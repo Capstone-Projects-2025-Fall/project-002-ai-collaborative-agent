@@ -3163,7 +3163,6 @@
             updateProjectSelection() {
                 const projectSelect = document.getElementById('promptProject');
                 if (!projectSelect) {
-                    // Element doesn't exist, skip updating
                     return;
                 }
 
@@ -3173,12 +3172,14 @@
                 // Add change listener to send setActiveProject message
                 projectSelect.onchange = (e) => {
                     const selectedProjectId = e.target.value;
-                    if (selectedProjectId) {
-                        vscode.postMessage({
-                            type: 'setActiveProject',
-                            payload: { projectId: selectedProjectId }
-                        });
-                    }
+                    
+                    // BUG FIX: We removed "if (selectedProjectId)" 
+                    // We MUST send the message even if it is empty string (""), 
+                    // so the backend knows to clear the active project.
+                    vscode.postMessage({
+                        type: 'setActiveProject',
+                        payload: { projectId: selectedProjectId }
+                    });
                 };
             }
 
@@ -4227,5 +4228,4 @@
         });
     </script>
 </body>
-
 </html>
