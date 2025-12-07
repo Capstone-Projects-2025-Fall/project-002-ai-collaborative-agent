@@ -52,7 +52,6 @@ let authService;
 let databaseService;
 let extensionContext;
 let peerSuggestionService;
-
 // Global notification system
 let notificationsProvider;
 let notifications = [];
@@ -210,7 +209,7 @@ function addNotification(message, type = 'info', projectId, projectName) {
         vscode.window.showWarningMessage(message);
     }
 }
-const JIRA_PROFILE_KEY_PREFIX = "jiraProfile:";
+const JIRA_PROFILE_KEY_PREFIX = "jiraProfile:"; // Prefix for per-user Jira cache in VS Code global state
 function getCachedJiraProfile(userId) {
     if (!extensionContext) {
         return undefined;
@@ -1261,7 +1260,6 @@ async function openMainPanel(context, authService) {
                             requestId: msg.payload?.requestId,
                         },
                     });
-                    addNotification(errorMessage, 'error');
                 }
                 break;
             }
