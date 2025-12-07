@@ -69,9 +69,6 @@ function activateCodeReviewer(context, addNotification) {
         const showResultsCommand = vscode.commands.registerCommand('ai-code-reviewer.showResults', () => {
             showResultsPanel();
         });
-        const showChangeLogCommand = vscode.commands.registerCommand('ai-code-reviewer.showChangeLog', () => {
-            showChangeLogPanel();
-        });
         const configureCommand = vscode.commands.registerCommand('ai-code-reviewer.configure', async () => {
             vscode.window.showInformationMessage('AI Code Assistant is monitoring your changes...');
         });
@@ -99,7 +96,7 @@ function activateCodeReviewer(context, addNotification) {
                 handleFileSave(document);
             }
         });
-        context.subscriptions.push(analyzeCommand, showResultsCommand, showChangeLogCommand, configureCommand, toggleAutoAnalyzeCommand, changeListener, saveListener);
+        context.subscriptions.push(analyzeCommand, showResultsCommand, configureCommand, toggleAutoAnalyzeCommand, changeListener, saveListener);
         updateStatusBar();
         if (isAutoAnalyzeEnabled) {
             startAutoAnalyze();
@@ -653,7 +650,7 @@ async function navigateToFileLine(fileName, line) {
         setTimeout(() => {
             decorationType.dispose();
         }, 2000);
-        vscode.window.showInformationMessage(`Mapsd to ${path.basename(fileName)}:${line}`);
+        vscode.window.showInformationMessage(`Navigated to ${path.basename(fileName)}:${line}`);
     }
     catch (error) {
         console.error('Error navigating to line:', error);
@@ -795,7 +792,7 @@ function getWebviewContent(analysisResult, fileCount, folderPath, reason) {
             }
             
             .intervention-reason {
-                background: rgba(255, 200, 47, 0.1); /* Yellow tint */
+                background: rgba(255, 200, 47, 0.1);
                 border-left: 3px solid var(--accent-primary);
                 padding: 12px 16px;
                 margin-bottom: 20px;
@@ -806,7 +803,7 @@ function getWebviewContent(analysisResult, fileCount, folderPath, reason) {
             
             .meta-info {
                 font-size: 13px;
-                color: var(--text-secondary);
+                color: var(--text-primary);
                 margin-bottom: 24px;
                 display: flex;
                 flex-direction: column;
@@ -823,29 +820,105 @@ function getWebviewContent(analysisResult, fileCount, folderPath, reason) {
                 background: transparent;
             }
 
-            /* Styles for structured output */
-            .result-section {
-                background: var(--bg-secondary);
-                border-radius: 8px;
-                padding: 16px;
-                margin-bottom: 16px;
-                border: 1px solid var(--border-color);
+            /* Bullet point sections */
+            .analysis-section {
+                margin-bottom: 24px;
             }
 
-            .result-section-header {
+            .section-header {
+                font-size: 16px;
                 font-weight: 700;
-                text-transform: uppercase;
-                font-size: 12px;
-                letter-spacing: 1px;
                 margin-bottom: 12px;
+                padding-bottom: 8px;
+                border-bottom: 2px solid var(--border-color);
                 display: flex;
                 align-items: center;
                 gap: 8px;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
             }
 
-            .result-content {
-                font-size: 14px;
-                line-height: 1.7;
+            .section-header.critical {
+                color: ${palette.red};
+                border-bottom-color: ${palette.red};
+            }
+
+            .section-header.improvements {
+                color: ${palette.yellow};
+                border-bottom-color: ${palette.yellow};
+            }
+
+            .section-header.quick-win {
+                color: #4cc9f0;
+                border-bottom-color: #4cc9f0;
+            }
+
+            .issue-list {
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+                padding: 0;
+                margin: 12px 0;
+            }
+
+            .issue-item {
+                padding: 12px 16px 12px 40px;
+                border-radius: 6px;
+                background: var(--bg-secondary);
+                border-left: 3px solid var(--border-color);
+                position: relative;
+                transition: all 0.2s ease;
+                line-height: 1.8;
+            }
+
+            .issue-item:hover {
+                transform: translateX(4px);
+                box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            }
+
+            .issue-item.critical {
+                border-left-color: ${palette.red};
+                background: rgba(255, 107, 107, 0.08);
+            }
+
+            .issue-item.improvement {
+                border-left-color: ${palette.yellow};
+                background: rgba(255, 200, 47, 0.08);
+            }
+
+            .issue-item.quick-win {
+                border-left-color: #4cc9f0;
+                background: rgba(76, 201, 240, 0.08);
+            }
+
+            .issue-item::before {
+                content: "●";
+                position: absolute;
+                left: 16px;
+                top: 14px;
+                font-size: 10px;
+                color: var(--border-color);
+            }
+
+            .issue-item.critical::before {
+                color: ${palette.red};
+            }
+
+            .issue-item.improvement::before {
+                color: ${palette.yellow};
+            }
+
+            .issue-item.quick-win::before {
+                color: #4cc9f0;
+            }
+
+            /* Hint styling - make it appear on second line */
+            .issue-item .hint {
+                display: block;
+                margin-top: 6px;
+                padding-left: 8px;
+                font-style: italic;
+                opacity: 0.9;
             }
             
             .file-reference {
@@ -853,9 +926,9 @@ function getWebviewContent(analysisResult, fileCount, folderPath, reason) {
                 background-color: var(--accent-primary);
                 text-decoration: none;
                 cursor: pointer;
-                padding: 1px 6px;
+                padding: 2px 8px;
                 border-radius: 4px;
-                font-family: monospace;
+                font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
                 font-size: 12px;
                 font-weight: 600;
                 transition: all 0.2s ease;
@@ -864,8 +937,8 @@ function getWebviewContent(analysisResult, fileCount, folderPath, reason) {
             }
             
             .file-reference:hover {
-                transform: translateY(-1px);
-                box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                transform: translateY(-2px);
+                box-shadow: 0 4px 8px rgba(255, 200, 47, 0.3);
             }
             
             .empty-state {
@@ -894,12 +967,32 @@ function getWebviewContent(analysisResult, fileCount, folderPath, reason) {
 
             .help-text {
                 font-size: 12px;
-                color: var(--text-secondary);
+                color: var(--text-primary);
                 margin-bottom: 16px;
-                padding: 8px 12px;
+                padding: 10px 14px;
                 background: var(--bg-secondary);
-                border-radius: 4px;
+                border-radius: 6px;
                 border-left: 3px solid var(--accent-primary);
+            }
+
+            .success-message {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 10px;
+                padding: 24px;
+                background: rgba(81, 207, 102, 0.1);
+                border-radius: 8px;
+                border: 1px solid ${palette.green};
+                color: ${palette.green};
+                font-size: 16px;
+                font-weight: 600;
+                text-align: center;
+            }
+
+            .result-content {
+                font-size: 14px;
+                line-height: 1.8;
             }
         </style>
     </head>
@@ -924,7 +1017,7 @@ function getWebviewContent(analysisResult, fileCount, folderPath, reason) {
             ` : ''}
             
             <div class="help-text">
-                Click any file reference (e.g. <span style="color: var(--accent-primary); font-family: monospace;">filename.ts:42</span>) to jump to code.
+                💡 Click any file reference (e.g. <span style="color: var(--accent-primary); font-family: monospace;">filename.ts:42</span>) to jump to code
             </div>
             
             <div class="analysis-container">
@@ -987,39 +1080,97 @@ function escapeHtml(text) {
 }
 function formatAnalysisResult(result) {
     let formatted = escapeHtml(result);
+    // Split into lines for processing
+    const lines = formatted.split('\n');
+    let output = '';
+    let currentSection = '';
+    let inList = false;
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        // Detect section headers
+        if (line.match(/^🔴\s*(CRITICAL|LOGIC ERRORS)/i)) {
+            if (inList) {
+                output += '</div></div>';
+                inList = false;
+            }
+            output += '<div class="analysis-section">';
+            output += '<div class="section-header critical">🔴 Critical Issues</div>';
+            output += '<div class="issue-list">';
+            currentSection = 'critical';
+            inList = true;
+            continue;
+        }
+        if (line.match(/^🟡\s*(IMPROVEMENTS|CODE QUALITY)/i)) {
+            if (inList) {
+                output += '</div></div>';
+                inList = false;
+            }
+            output += '<div class="analysis-section">';
+            output += '<div class="section-header improvements">🟡 Improvements</div>';
+            output += '<div class="issue-list">';
+            currentSection = 'improvements';
+            inList = true;
+            continue;
+        }
+        if (line.match(/^💡\s*QUICK WIN/i)) {
+            if (inList) {
+                output += '</div></div>';
+                inList = false;
+            }
+            output += '<div class="analysis-section">';
+            output += '<div class="section-header quick-win">💡 Quick Win</div>';
+            output += '<div class="issue-list">';
+            currentSection = 'quick-win';
+            inList = true;
+            continue;
+        }
+        if (line.match(/^✅/i)) {
+            if (inList) {
+                output += '</div></div>';
+                inList = false;
+            }
+            output += '<div class="success-message">✅ ' + line.substring(line.indexOf('✅') + 1).trim() + '</div>';
+            continue;
+        }
+        // Process list items (lines starting with - or •)
+        if (inList && line.match(/^[-•]\s/)) {
+            let content = line.substring(2).trim();
+            // Check if the content has "Hint:" and split it
+            const hintMatch = content.match(/^(.*?)(\s+Hint:\s+.*)$/i);
+            if (hintMatch) {
+                const mainText = hintMatch[1].trim();
+                const hintText = hintMatch[2].trim();
+                content = `${mainText}<span class="hint">${hintText}</span>`;
+            }
+            const className = currentSection === 'critical' ? 'critical' :
+                currentSection === 'improvements' ? 'improvement' :
+                    'quick-win';
+            output += `<div class="issue-item ${className}">${content}</div>`;
+            continue;
+        }
+        // Regular text
+        if (line.length > 0) {
+            if (inList) {
+                output += '</div></div>';
+                inList = false;
+            }
+            output += '<div style="margin-bottom: 8px;">' + line + '</div>';
+        }
+    }
+    // Close any open lists
+    if (inList) {
+        output += '</div></div>';
+    }
     // Make file references clickable
-    formatted = formatted.replace(/(\w+\.\w+)(?::|\s+(?:line\s+)?|,\s+line\s+)(\d+)/gi, '<span class="file-reference" data-file="$1" data-line="$2">$1:$2</span>');
-    formatted = formatted.replace(/line\s+(\d+)\s+(?:in|of)\s+(\w+\.\w+)/gi, '<span class="file-reference" data-file="$2" data-line="$1">line $1 in $2</span>');
-    // Wrap sections in cards based on headers
-    // Note: We use a simple replacement strategy here to add div wrappers around paragraphs
-    // that follow specific headers.
-    // Style the specific section headers
-    formatted = formatted
-        .replace(/(🔴 CRITICAL|🔴 LOGIC ERRORS)/g, '<div style="color: #ff6b6b; font-weight: bold; margin-top: 15px; margin-bottom: 8px;">$1</div>')
-        .replace(/(🟡 IMPROVEMENTS|⚠️ WARNINGS|🟡 CODE QUALITY)/g, '<div style="color: #ffc82f; font-weight: bold; margin-top: 15px; margin-bottom: 8px;">$1</div>')
-        .replace(/(💡 QUICK WIN)/g, '<div style="color: #4cc9f0; font-weight: bold; margin-top: 15px; margin-bottom: 8px;">$1</div>')
-        .replace(/(✅ No logic errors found!)/g, '<div style="color: #51cf66; font-weight: bold; font-size: 16px; text-align: center; padding: 20px;">$1</div>');
-    // Bold formatting
-    formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong style="color: #ffc82f;">$1</strong>');
-    // List items
-    formatted = formatted.replace(/\n- /g, '<div style="margin-bottom: 8px; padding-left: 10px; border-left: 2px solid #637074;">');
-    // Newlines to line breaks (preserving structure)
-    formatted = formatted.replace(/\n/g, '<br>');
-    // Wrap the whole thing in a general content block if no specific sections were caught
-    // to ensure basic styling applies
-    return `<div class="result-content">${formatted}</div>`;
+    output = output.replace(/\b([\w-]+\.[\w]+):(\d+)\b/g, '<span class="file-reference" data-file="$1" data-line="$2">$1:$2</span>');
+    output = output.replace(/\bin\s+([\w-]+\.[\w]+)(?::|\s+line\s+)(\d+)\b/gi, 'in <span class="file-reference" data-file="$1" data-line="$2">$1:$2</span>');
+    output = output.replace(/\bline\s+(\d+)\s+(?:in|of)\s+([\w-]+\.[\w]+)\b/gi, '<span class="file-reference" data-file="$2" data-line="$1">line $1 in $2</span>');
+    return `<div class="result-content">${output}</div>`;
 }
 async function updateStatusBar() {
-    const recentChanges = changeLog.filter(c => (new Date().getTime() - c.timestamp.getTime()) / 1000 / 60 < 5);
     if (isAutoAnalyzeEnabled) {
-        if (recentChanges.length > 0) {
-            statusBarItem.text = `$(eye) Pallas Watch (${recentChanges.length})`;
-            statusBarItem.tooltip = `Monitoring: ${recentChanges.length} recent changes\nClick to run AI analysis`;
-        }
-        else {
-            statusBarItem.text = '$(eye) Pallas Watch';
-            statusBarItem.tooltip = 'Monitoring for changes\nClick to run AI analysis';
-        }
+        statusBarItem.text = '$(eye) Pallas Watch';
+        statusBarItem.tooltip = 'Monitoring for changes\nClick to run AI analysis';
     }
     else {
         statusBarItem.text = '$(eye-closed) Pallas Watch';
