@@ -43,6 +43,8 @@ This project addresses these needs by introducing an AI-enhanced VS Code extensi
 - Visual Studio Live Share for real-time collaborative coding
 - OpenAI API for AI-powered task allocation and feedback
 - Supabase for backend data storage and management
+- Jira Cloud account with a project key and API token for backlog sync
+- Node.js dependencies for the Jira feature (installed via `npm install` in `vscode-extension`, including `node-fetch@2`)
 
 ## How to Run the Project
 
@@ -77,6 +79,12 @@ cd vscode-extension
 npm install
 ```
 
+7. Install the Jira REST client dependency (bundled with the extension install; run explicitly if you skipped step 6):
+```bash
+cd vscode-extension
+npm install node-fetch@2
+```
+
 ### Configuration
 
 No configuration is required for local development. Supabase settings are embedded in the extension code, so a `.env` file is not needed.
@@ -99,6 +107,13 @@ If you want to join an existing project from the UI using an invite code:
 3. Enter the invite code: `748FDF`
 4. Confirm to join the project
 
+#### Using Jira Backlog Sync (AI → Jira)
+
+1. Open the extension panel and run **AI Analysis & Task Delegation** for a project.
+2. Go to the **Jira** tab and enter your Jira base URL (e.g., `https://your-team.atlassian.net`), project key, Jira email, and API token.
+3. Click **Use AI analysis output** to auto-fill the backlog prompt with delegated tasks.
+4. Press **Create Jira Tasks** to push those tasks to Jira; use **Refresh tasks** to verify they appear on the board.
+
 ### Features
 
 - **Team Management**: Add team members with their skills and programming languages
@@ -106,6 +121,20 @@ If you want to join an existing project from the UI using an invite code:
 - **AI Task Delegation**: Generate AI-powered task assignments based on team composition
 - **Live Share Integration**: Start collaborative coding sessions
 - **Code Analysis**: Automated code review and suggestions
+- **Jira Backlog Sync**: Turn AI analysis output into Jira tasks, create/update issues, and refresh board status from Jira
+
+### Testing
+
+- Run all extension tests:
+  ```bash
+  cd vscode-extension
+  npm run test
+  ```
+- Run only the Jira helper tests (task parsing and Jira API calls):
+  ```bash
+  cd vscode-extension
+  npm run test -- src/lib/jira.test.ts
+  ```
 
 ## Collaborators
 

@@ -4,8 +4,7 @@ on:
   push:
     branches: ["main", "master", "develop"]
   pull_request:
-    branches: ["main", "master", "develop"]
-
+    branches: [ "main" , "master", "develop" ]
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -21,6 +20,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 18
+          cache: 'npm'
 
       - name: Install dependencies
         run: npm ci

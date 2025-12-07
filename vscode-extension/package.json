@@ -102,7 +102,10 @@
         }
       ],
       "commandPalette": [
-        { "command": "ai.createJiraTasks", "when": "true" },
+        {
+          "command": "ai.createJiraTasks",
+          "when": "true"
+        },
         {
           "command": "ai-code-reviewer.analyzeCode",
           "when": "workspaceFolderCount > 0"
@@ -222,6 +225,23 @@
         }
       ]
     }
+  },
+  "viewsContainers": {
+    "activitybar": [
+      {
+        "id": "aiCollab-sidebar",
+        "title": "AI Collab",
+        "icon": "media/collaboration.svg"
+      }
+    ]
+  },
+  "views": {
+    "aiCollab-sidebar": [
+      {
+        "id": "aiCollabView",
+        "name": "Team Panel"
+      }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",

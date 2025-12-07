@@ -1,0 +1,163 @@
+PROJECT ANALYSIS AND TEAM OPTIMIZATION REQUEST
+
+=== PROJECT INFORMATION ===
+Project Name: test
+Created: 12/3/2025, 1:36:14 PM
+
+Project Description:
+test2
+
+Project Goals:
+make sure jira generate using the other option
+
+Project Requirements:
+
+
+=== TEAM COMPOSITION ===
+Team Size: 1 members
+
+Team Member 1:
+
+Name: Abdoul Djedje
+Skills: Not specified
+Programming Languages: Python, C++, Ruby, HTML/CSS
+Willing to work on: jira
+
+
+
+=== AI ANALYSIS REQUEST ===
+
+Please analyze this project and team composition and provide:
+
+1. TEAM ANALYSIS:
+   - Evaluate if the current team has the right skill mix for the project requirements
+   - Identify any skill gaps or redundancies
+   - Assess team member compatibility based on their stated interests
+
+2. PROJECT FEASIBILITY:
+   - Analyze if the project goals are achievable with the current team
+   - Identify potential challenges based on requirements vs. available skills
+   - Suggest timeline considerations
+
+3. ROLE ASSIGNMENTS:
+   - Recommend specific roles for each team member based on their skills
+   - Suggest who should lead different aspects of the project
+   - Identify collaboration opportunities between team members
+
+4. OPTIMIZATION RECOMMENDATIONS:
+   - Suggest additional skills that might be needed
+   - Recommend training or resource allocation
+   - Propose project structure and workflow improvements
+
+5. RISK ASSESSMENT:
+   - Identify potential project risks based on team composition
+   - Suggest mitigation strategies
+   - Highlight critical success factors
+
+6. DELIVERABLES MAPPING:
+   - Break down project requirements into specific deliverables
+   - Map deliverables to team member capabilities
+   - Suggest milestone structure
+
+Give me a specific message for EACH team member, detailing them what they need to do RIGHT NOW and in the FUTURE. Give each user the exact things they need to work on according also to their skills.
+
+IMPORTANT: Please respond in valid JSON format with the following structure:
+{
+  "teamAnalysis": {
+    "summary": "Overall team assessment",
+    "skillMix": "Evaluation of skill mix",
+    "gaps": ["List of skill gaps"],
+    "redundancies": ["List of redundancies"],
+    "compatibility": "Team compatibility assessment"
+  },
+  "feasibility": {
+    "isFeasible": true,
+    "assessment": "Feasibility assessment",
+    "challenges": ["List of challenges"],
+    "timeline": "Timeline considerations"
+  },
+  "roleAssignments": [
+    {
+      "memberName": "Team member name",
+      "role": "Assigned role",
+      "tasks": {
+        "immediate": ["Tasks to do right now"],
+        "future": ["Future tasks"]
+      },
+      "responsibilities": ["List of responsibilities"],
+      "collaboration": "Collaboration opportunities"
+    }
+  ],
+  "optimization": {
+    "recommendations": ["List of recommendations"],
+    "training": ["Training suggestions"],
+    "structure": "Project structure suggestions"
+  },
+  "risks": {
+    "identified": ["List of risks"],
+    "mitigation": ["Mitigation strategies"],
+    "successFactors": ["Critical success factors"]
+  },
+  "deliverables": [
+    {
+      "name": "Deliverable name",
+      "description": "Description",
+      "assignedTo": "Team member name",
+      "milestone": "Milestone name",
+      "timeline": "Timeline"
+    }
+  ]
+}
+
+If you cannot provide JSON, provide the response in the numbered format as before, and I will parse it.
+
+================================================================================
+AI RESPONSE:
+================================================================================
+
+{
+  "teamAnalysis": {
+    "summary": "The team consists of one member with significant programming skills but no specified project management, testing or design skills.",
+    "skillMix": "The single member team has a good mix of programming languages, but there are no skills specified beyond programming. Additional skills may be needed depending on the project scope.",
+    "gaps": ["Project Management", "Testing", "Design"],
+    "redundancies": [],
+    "compatibility": "There is only one team member, so compatibility is not an issue. The member is willing to work on Jira, which is presumably related to the project."
+  },
+  "feasibility": {
+    "isFeasible": false,
+    "assessment": "The project may not be feasible with only one team member, unless the scope is very limited. The member's skills are mostly in programming, so if the project requires additional skills like design or project management, it may not be feasible.",
+    "challenges": ["Limited team size", "Possible skill gaps"],
+    "timeline": "The timeline will depend on the project scope, but with only one team member, it will likely take longer than if there was a larger team."
+  },
+  "roleAssignments": [
+    {
+      "memberName": "Abdoul Djedje",
+      "role": "Developer",
+      "tasks": {
+        "immediate": ["Start on Jira-related tasks"],
+        "future": ["Continue developing, testing and debugging code"]
+      },
+      "responsibilities": ["All development tasks", "Some project management tasks"],
+      "collaboration": "No collaboration opportunities as there is only one team member"
+    }
+  ],
+  "optimization": {
+    "recommendations": ["Consider adding more team members with complementary skills"],
+    "training": ["Project management training would be beneficial"],
+    "structure": "The project structure should be as flat as possible given the single member team."
+  },
+  "risks": {
+    "identified": ["Scope creep due to single member team", "Possible burnout due to workload", "Project may take longer than expected due to limited resources"],
+    "mitigation": ["Clearly define project scope", "Ensure reasonable workload", "Set realistic timeline"],
+    "successFactors": ["Well-defined project scope", "Effective time management"]
+  },
+  "deliverables": [
+    {
+      "name": "Jira-related tasks",
+      "description": "Tasks related to Jira, as specified by the team member's stated interest.",
+      "assignedTo": "Abdoul Djedje",
+      "milestone": "Completion of Jira-related tasks",
+      "timeline": "Depends on scope of tasks"
+    }
+  ]
+}
