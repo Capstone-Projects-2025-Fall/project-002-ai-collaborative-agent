@@ -103,13 +103,10 @@
       ],
       "commandPalette": [
         {
-<<<<<<< HEAD
-=======
           "command": "ai.createJiraTasks",
           "when": "true"
         },
         {
->>>>>>> main
           "command": "ai-code-reviewer.analyzeCode",
           "when": "workspaceFolderCount > 0"
         },
@@ -119,8 +116,6 @@
         {
           "command": "ai-code-reviewer.toggleAutoAnalyze"
         }
-<<<<<<< HEAD
-=======
       ],
       "view/title": [
         {
@@ -145,7 +140,6 @@
           "when": "view == aiCollabNotificationsView && viewItem == readNotification",
           "group": "inline@1"
         }
->>>>>>> main
       ]
     },
     "configuration": {
@@ -260,11 +254,7 @@
     "lint": "eslint src --ext ts"
   },
   "dependencies": {
-<<<<<<< HEAD
     "@supabase/supabase-js": "^2.86.2",
-=======
-    "@supabase/supabase-js": "^2.39.8",
->>>>>>> main
     "axios": "^1.6.5",
     "dotenv": "^16.4.5",
     "node-fetch": "^2.7.0",
