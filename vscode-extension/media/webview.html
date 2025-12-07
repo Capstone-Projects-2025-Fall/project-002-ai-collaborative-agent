@@ -1895,60 +1895,90 @@
 
             // Updated to handle currentUser separately
             loadData(data) {
-                // Load current user's profile
-                if (data.currentUser) {
-                    this.currentUser = {
-                        id: data.currentUser.id,
-                        name: data.currentUser.name,
-                        skills: data.currentUser.skills || '',
-                        programmingLanguages: data.currentUser.programming_languages || '',
-                        willingToWorkOn: data.currentUser.willing_to_work_on || '',
-                        jiraBaseUrl: data.currentUser.jira_base_url || '',
-                        jiraProjectKey: data.currentUser.jira_project_key || '',
-                        jiraEmail: data.currentUser.jira_email || '',
-                        jiraApiToken: data.currentUser.jira_api_token || '',
-                        jiraProjectPrompt: data.currentUser.jira_project_prompt || '',
-                        createdAt: data.currentUser.created_at
-                    };
-                    this.loadCurrentUserProfile();
-                }
+                try {
+                    // Remember if modal was open before reloading
+                    const modal = document.getElementById('editProjectModal');
+                    const wasModalOpen = modal && modal.style.display === 'block';
+                    const openProjectId = wasModalOpen ? document.getElementById('editProjectId')?.value : null;
+                    
+                    // Close any open modals to prevent stale references
+                    // But we'll reopen it after data reload if it was open
+                    this.closeEditModal();
+                    
+                    // Load current user's profile
+                    if (data.currentUser) {
+                        this.currentUser = {
+                            id: data.currentUser.id,
+                            name: data.currentUser.name,
+                            skills: data.currentUser.skills || '',
+                            programmingLanguages: data.currentUser.programming_languages || '',
+                            willingToWorkOn: data.currentUser.willing_to_work_on || '',
+                            jiraBaseUrl: data.currentUser.jira_base_url || '',
+                            jiraProjectKey: data.currentUser.jira_project_key || '',
+                            jiraEmail: data.currentUser.jira_email || '',
+                            jiraApiToken: data.currentUser.jira_api_token || '',
+                            jiraProjectPrompt: data.currentUser.jira_project_prompt || '',
+                            createdAt: data.currentUser.created_at
+                        };
+                        this.loadCurrentUserProfile();
+                    }
 
-                if (data.users) {
-                    this.users = data.users.map(userData => {
-                        const user = new TeamMember(userData.name, userData.skills, userData.programming_languages, userData.willing_to_work_on);
-                        user.id = userData.id;
-                        user.createdAt = userData.created_at;
-                        user.jiraEmail = userData.jira_email || '';
-                        user.email = userData.email || '';
-                        return user;
-                    });
-                }
+                    if (data.users) {
+                        this.users = data.users.map(userData => {
+                            const user = new TeamMember(userData.name, userData.skills, userData.programming_languages, userData.willing_to_work_on);
+                            user.id = userData.id;
+                            user.createdAt = userData.created_at;
+                            return user;
+                        });
+                    }
 
-                if (data.projects) {
-                    this.projects = data.projects.map(projectData => {
-                        // Ensure selectedMemberIds is an array
-                        const memberIds = Array.isArray(projectData.selectedMemberIds) ? projectData.selectedMemberIds : [];
-                        const project = new Project(
-                            projectData.name,
-                            projectData.description,
-                            projectData.goals,
-                            projectData.requirements,
-                            memberIds,
-                            projectData.invite_code || ''
-                        );
-                        project.id = projectData.id;
-                        project.createdAt = projectData.created_at;
-                        // CRITICAL: Copy owner_id to project object for ownership checks
-                        project.owner_id = projectData.owner_id;
-                        return project;
-                    });
-                }
+                    if (data.projects) {
+                        // Get valid user IDs to filter out any invalid member references
+                        const validUserIds = new Set(this.users.map(u => String(u.id)));
+                        
+                        this.projects = data.projects.map(projectData => {
+                            // Ensure selectedMemberIds is an array
+                            let memberIds = Array.isArray(projectData.selectedMemberIds) ? projectData.selectedMemberIds : [];
+                            // Filter out any member IDs that don't exist in users array (defensive programming)
+                            memberIds = memberIds.filter(id => validUserIds.has(String(id)));
+                            
+                            const project = new Project(
+                                projectData.name,
+                                projectData.description,
+                                projectData.goals,
+                                projectData.requirements,
+                                memberIds,
+                                projectData.invite_code || ''
+                            );
+                            project.id = projectData.id;
+                            project.createdAt = projectData.created_at;
+                            // CRITICAL: Copy owner_id to project object for ownership checks
+                            project.owner_id = projectData.owner_id;
+                            return project;
+                        });
+                    }
 
-                if (data.promptCount !== undefined) { // Check for undefined, not just falsy
-                    this.promptCount = data.promptCount;
-                }
+                    if (data.promptCount !== undefined) { // Check for undefined, not just falsy
+                        this.promptCount = data.promptCount;
+                    }
 
-                this.updateUI();
+                    this.updateUI();
+                    
+                    // Reopen modal if it was open before, and the project still exists
+                    if (wasModalOpen && openProjectId) {
+                        const projectStillExists = this.projects.some(p => p.id === openProjectId);
+                        if (projectStillExists) {
+                            // Small delay to ensure UI is updated first
+                            setTimeout(() => {
+                                this.openEditModal(openProjectId);
+                            }, 100);
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error loading data:', error);
+                    // Show error to user but don't crash
+                    showStatus('userStatus', 'Error loading data. Please refresh.', 'error');
+                }
                 this.renderJiraBoard();
             }
 
@@ -3016,41 +3046,20 @@
             // Removed createComprehensivePrompt from webview as extension handles it
 
             updateUI() {
-                this.updateStats();
-                this.updateCurrentUserDisplay();
-                this.updateProjectList();
-                this.updateUserSelection();
-                this.updateProjectSelection();
-                this.renderAssignableEmails();
-            }
-
-            refreshAssignableFromJira() {
-                this.fetchAssignableFromJira();
-            }
-
-            clearAssignableList() {
-                this.jiraAssignableEmails = [];
-                this.renderAssignableEmails();
-                this.refreshJiraAssigneeDropdown();
-                this.showJiraStatus('Cleared locally. Reload to pull assignable users from Jira again.', 'info');
-            }
-
-            renderAssignableEmails() {
-                const listEl = document.getElementById('jiraAssignableList');
-                if (!listEl) return;
-                const entries = this.jiraAssignableEmails || [];
-                if (!entries.length) {
-                    listEl.innerHTML = '<p style="text-align: center; color: #64748b; padding: 10px;">No assignable Jira users returned yet. Reload after adding Jira credentials.</p>';
-                    return;
+                try {
+                    this.updateStats();
+                    this.updateCurrentUserDisplay();
+                    this.updateProjectList();
+                    this.updateUserSelection();
+                    this.updateProjectSelection();
+                } catch (error) {
+                    console.error('Error updating UI:', error);
+                    // Try to show a basic error message
+                    const projectList = document.getElementById('projectList');
+                    if (projectList) {
+                        projectList.innerHTML = '<p style="text-align: center; color: #ef4444; padding: 15px;">Error updating UI. Please refresh the panel.</p>';
+                    }
                 }
-                listEl.innerHTML = entries.map(entry => `
-                    <div class="user-item" style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
-                        <div>
-                            <div style="font-weight: 600;">${entry.name || entry.displayName || 'Unnamed teammate'}</div>
-                            ${entry.email ? `<div style="color: #475569;">${entry.email}</div>` : ''}
-                        </div>
-                    </div>
-                `).join('');
             }
 
             updateStats() {
@@ -3085,14 +3094,21 @@
 
             updateProjectList() {
                 const projectList = document.getElementById('projectList');
+                if (!projectList) return; // Safety check
+                
                 if (this.projects.length === 0) {
                     projectList.innerHTML = '<p style="text-align: center; color: #64748b; padding: 15px;">No projects yet</p>';
                     return;
                 }
 
+                // Create a set of valid user IDs for efficient lookup
+                const validUserIds = new Set(this.users.map(u => String(u.id)));
+
                 projectList.innerHTML = this.projects.map(project => {
-                    // Filter this.users by IDs stored in project.selectedMemberIds
-                    const teamMembers = this.users.filter(user => project.selectedMemberIds.includes(user.id));
+                    // Ensure selectedMemberIds is an array and filter to only valid user IDs
+                    const validMemberIds = (project.selectedMemberIds || []).filter(id => validUserIds.has(String(id)));
+                    // Filter this.users by valid IDs stored in project.selectedMemberIds
+                    const teamMembers = this.users.filter(user => validMemberIds.includes(String(user.id)));
 
                     // Create detailed team member cards
                     const teamMemberCards = teamMembers.length > 0 ? teamMembers.map(member => `
@@ -3423,7 +3439,11 @@
 
                 if (isOwner) {
                     membersSection.style.display = 'block';
-                    const teamMembers = this.users.filter(user => project.selectedMemberIds && project.selectedMemberIds.includes(user.id));
+                    // Create a set of valid user IDs for efficient lookup
+                    const validUserIds = new Set(this.users.map(u => String(u.id)));
+                    // Filter to only valid member IDs and then get corresponding users
+                    const validMemberIds = (project.selectedMemberIds || []).filter(id => validUserIds.has(String(id)));
+                    const teamMembers = this.users.filter(user => validMemberIds.includes(String(user.id)));
                     membersContainer.innerHTML = teamMembers.map(member => `
                         <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; margin: 5px 0; background: #f1f5f9; border-radius: 8px;">
                             <div>
@@ -3442,7 +3462,10 @@
             }
 
             closeEditModal() {
-                document.getElementById('editProjectModal').style.display = 'none';
+                const modal = document.getElementById('editProjectModal');
+                if (modal) {
+                    modal.style.display = 'none';
+                }
             }
         }
 
@@ -3622,7 +3645,12 @@
                     vscode.postMessage({ type: 'loadData' });
                     break;
                 case 'dataLoaded':
-                    app.loadData(message.payload); // This will re-render everything
+                    try {
+                        app.loadData(message.payload); // This will re-render everything
+                    } catch (error) {
+                        console.error('Error handling dataLoaded message:', error);
+                        showStatus('userStatus', 'Error loading data. Please try again.', 'error');
+                    }
                     break;
                 case 'profileUpdated':
                     showStatus('userStatus', '✅ Profile updated successfully!', 'success');
@@ -4097,77 +4125,103 @@
             });
 
             document.body.addEventListener('click', (event) => {
-                const target = event.target;
+                try {
+                    const target = event.target;
 
-                if (target.matches('.tab-button')) {
-                    showTab(target.dataset.tab, target);
-                    if (target.dataset.tab === 'jira') {
-                        app.renderJiraBoard();
-                        if (app.hasJiraCredentials()) {
-                            app.loadJiraTasks();
+                    if (target.matches('.tab-button')) {
+                        showTab(target.dataset.tab, target);
+                        return;
+                    }
+
+                    if (target.matches('.remove-user-btn')) {
+                        const userId = target.dataset.userId;
+                        if (userId) {
+                            app.removeUser(userId);
                         }
+                        return;
                     }
-                }
 
-                if (target.matches('.remove-user-btn')) {
-                    const userId = target.dataset.userId;
-                    if (userId) {
-                        app.removeUser(userId);
-                    }
-                }
-
-                // Handle delete/leave project buttons - use closest() to handle nested elements
-                const deleteBtn = target.closest('.delete-project-btn');
-                const leaveBtn = target.closest('.leave-project-btn');
-                const removeBtn = target.closest('.remove-project-btn');
-
-                if (deleteBtn || leaveBtn || removeBtn) {
-                    const button = deleteBtn || leaveBtn || removeBtn;
-                    const projectId = button.dataset.projectId;
-                    console.log('Button clicked:', { type: deleteBtn ? 'delete' : leaveBtn ? 'leave' : 'remove', projectId });
-
-                    if (projectId) {
-                        if (deleteBtn) {
-                            // Send message directly - extension will handle confirmation
-                            console.log('Sending deleteProject message:', { projectId });
-                            vscode.postMessage({
-                                type: 'deleteProject',
-                                payload: { projectId }
-                            });
-                        } else if (leaveBtn) {
-                            // Send message directly - extension will handle confirmation
-                            console.log('Sending leaveProject message:', { projectId });
-                            vscode.postMessage({
-                                type: 'leaveProject',
-                                payload: { projectId }
-                            });
-                        } else if (removeBtn) {
-                            // Fallback for old remove-project-btn
-                            app.removeProject(projectId);
+                    // Handle remove member button FIRST - use closest() to handle nested elements
+                    // This must be checked before other handlers to prevent event bubbling issues
+                    const removeMemberBtn = target.closest('.remove-member-btn');
+                    if (removeMemberBtn) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        event.stopImmediatePropagation(); // Prevent any other handlers from running
+                        
+                        // Ensure modal stays open
+                        const modal = document.getElementById('editProjectModal');
+                        if (modal) {
+                            modal.style.display = 'block';
                         }
-                    } else {
-                        console.error('No projectId found on button:', button);
+                        
+                        const projectId = removeMemberBtn.dataset.projectId;
+                        const memberId = removeMemberBtn.dataset.memberId;
+                        if (projectId && memberId) {
+                            // Send message directly - extension will handle confirmation
+                            console.log('Sending removeProjectMember message:', { projectId, memberId });
+                            try {
+                                vscode.postMessage({
+                                    type: 'removeProjectMember',
+                                    payload: { projectId, memberId }
+                                });
+                                // Keep modal open - don't close it here
+                            } catch (err) {
+                                console.error('Error posting message:', err);
+                                showStatus('userStatus', 'Error sending request. Please try again.', 'error');
+                            }
+                        } else {
+                            console.error('Missing projectId or memberId:', { projectId, memberId });
+                            showStatus('userStatus', 'Error: Missing project or member information.', 'error');
+                        }
+                        return false; // Important: stop processing other handlers
                     }
-                }
 
-                if (target.matches('.edit-project-btn')) {
-                    const projectId = target.dataset.projectId;
-                    if (projectId) {
-                        app.openEditModal(projectId);
+                    // Handle delete/leave project buttons - use closest() to handle nested elements
+                    const deleteBtn = target.closest('.delete-project-btn');
+                    const leaveBtn = target.closest('.leave-project-btn');
+                    const removeBtn = target.closest('.remove-project-btn');
+                    
+                    if (deleteBtn || leaveBtn || removeBtn) {
+                        const button = deleteBtn || leaveBtn || removeBtn;
+                        const projectId = button.dataset.projectId;
+                        console.log('Button clicked:', { type: deleteBtn ? 'delete' : leaveBtn ? 'leave' : 'remove', projectId });
+                        
+                        if (projectId) {
+                            if (deleteBtn) {
+                                // Send message directly - extension will handle confirmation
+                                console.log('Sending deleteProject message:', { projectId });
+                                vscode.postMessage({
+                                    type: 'deleteProject',
+                                    payload: { projectId }
+                                });
+                            } else if (leaveBtn) {
+                                // Send message directly - extension will handle confirmation
+                                console.log('Sending leaveProject message:', { projectId });
+                                vscode.postMessage({
+                                    type: 'leaveProject',
+                                    payload: { projectId }
+                                });
+                            } else if (removeBtn) {
+                                // Fallback for old remove-project-btn
+                                app.removeProject(projectId);
+                            }
+                        } else {
+                            console.error('No projectId found on button:', button);
+                        }
+                        return;
                     }
-                }
 
-                if (target.matches('.remove-member-btn')) {
-                    const projectId = target.dataset.projectId;
-                    const memberId = target.dataset.memberId;
-                    if (projectId && memberId) {
-                        // Send message directly - extension will handle confirmation
-                        console.log('Sending removeProjectMember message:', { projectId, memberId });
-                        vscode.postMessage({
-                            type: 'removeProjectMember',
-                            payload: { projectId, memberId }
-                        });
+                    if (target.matches('.edit-project-btn')) {
+                        const projectId = target.dataset.projectId;
+                        if (projectId) {
+                            app.openEditModal(projectId);
+                        }
+                        return;
                     }
+                } catch (error) {
+                    console.error('Error in click handler:', error);
+                    // Don't let errors crash the UI
                 }
 
                 if (target.id === 'jiraSaveTaskBtn' || target.id === 'jiraCreateTaskBtn') {
@@ -4213,11 +4267,31 @@
                 app.closeEditModal();
             });
 
-            // Close modal when clicking outside
+            // Close modal when clicking outside (but not on buttons or interactive elements)
             document.getElementById('editProjectModal')?.addEventListener('click', (e) => {
+                // Don't close if clicking on buttons, inputs, or other interactive elements
+                if (e.target.closest('button') || e.target.closest('input') || e.target.closest('textarea') || e.target.closest('.modal-content')) {
+                    return;
+                }
+                // Only close if clicking directly on the modal backdrop
                 if (e.target === document.getElementById('editProjectModal')) {
                     app.closeEditModal();
                 }
+            });
+
+            // Global error handler to prevent blank screens
+            window.addEventListener('error', (event) => {
+                console.error('Global error caught:', event.error, event.message, event.filename, event.lineno);
+                // Don't let errors crash the UI
+                event.preventDefault();
+                showStatus('userStatus', 'An error occurred. Please refresh if needed.', 'error');
+                return true;
+            });
+
+            window.addEventListener('unhandledrejection', (event) => {
+                console.error('Unhandled promise rejection:', event.reason);
+                event.preventDefault();
+                showStatus('userStatus', 'An error occurred. Please refresh if needed.', 'error');
             });
 
             // Initial UI setup and tab selection

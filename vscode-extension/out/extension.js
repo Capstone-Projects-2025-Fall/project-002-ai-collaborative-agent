@@ -1260,6 +1260,7 @@ async function openMainPanel(context, authService) {
                             requestId: msg.payload?.requestId,
                         },
                     });
+                    addNotification(errorMessage, 'error');
                 }
                 break;
             }
