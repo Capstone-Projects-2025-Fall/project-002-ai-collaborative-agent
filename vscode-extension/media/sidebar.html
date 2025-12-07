@@ -283,25 +283,6 @@
             font-style: italic;
         }
 
-        .close-details-btn {
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            background: none;
-            border: none;
-            color: var(--vscode-descriptionForeground);
-            cursor: pointer;
-            font-size: 16px;
-            padding: 4px;
-            line-height: 1;
-            border-radius: 4px;
-            transition: background 0.2s ease;
-        }
-
-        .close-details-btn:hover {
-            background: var(--vscode-list-hoverBackground);
-        }
-
         /* No Project Mode */
         .no-project-container {
             background: var(--vscode-input-background);
@@ -529,6 +510,41 @@
             font-size: 11px;
             color: var(--vscode-foreground);
         }
+
+        .member-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+
+        .member-header:hover {
+            background: var(--vscode-list-hoverBackground);
+        }
+
+        .member-header .expand-icon {
+            font-size: 10px;
+            transition: transform 0.2s;
+            color: var(--vscode-foreground);
+            flex-shrink: 0;
+        }
+
+        .member-header .expand-icon.expanded {
+            transform: rotate(-90deg);
+        }
+
+        .member-details {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+
+        .member-details.expanded {
+            max-height: 1000px;
+        }
     </style>
 </head>
 <body>
@@ -632,7 +648,7 @@
         let isListExpanded = false;
         let liveshareStatus = 'disconnected';
         let liveshareLink = null;
-        let expandedMemberId = null;
+        let expandedMemberIds = new Set(); // Track multiple expanded members
         let isLiveshareExpanded = false;
 
         // Initialize
@@ -772,6 +788,7 @@
                     updateActiveMembers(message.payload.participants);
                     break;
                 case 'aiAnalysisData':
+                    console.log('AI Analysis Data Received');
                     aiAnalysisData = message.payload;
                     renderTeamMembers();
                     break;
@@ -849,6 +866,7 @@
             document.getElementById('currentProjectName').textContent = project.name || 'Unknown Project';
 
             aiAnalysisData = null;
+            expandedMemberIds.clear();
             
             const container = document.getElementById('teamMembersList');
             container.innerHTML = `
@@ -874,7 +892,7 @@
             document.getElementById('activeProjectMode').classList.add('hidden');
             document.getElementById('noProjectMode').classList.remove('hidden');
             activeProject = null;
-            expandedMemberId = null;
+            expandedMemberIds.clear(); // Clear all expanded members
         }
 
         function updateActiveMembers(participants) {
@@ -903,10 +921,8 @@
 
             container.innerHTML = teamMembers.map(member => {
                 const isActive = activeMembers.has(member.id);
-                const isExpanded = expandedMemberId === member.id;
+                const isExpanded = expandedMemberIds.has(member.id);
                 const memberTasks = getMemberTasks(member.name);
-                // const memberTasks = hasAIAnalysis ? getMemberTasks(member.name) : { current: [], goal: '' };
-                const lastActive = isActive ? 'Active now' : 'Last active: 2 hours ago';
 
                 return `
                     <div class="team-member-item">
@@ -921,13 +937,11 @@
                         </div>
                         <div class="member-details ${isExpanded ? 'expanded' : ''}" id="details-${member.id}">
                             <div class="member-details-content" style="position: relative;">
-                                <button class="close-details-btn" data-member-id="${member.id}">×</button>
-
                                 <div class="detail-section">
                                     <div class="detail-label">🎯 Tasks</div>
                                     ${memberTasks.current.length > 0 
                                         ? memberTasks.current.map(task => `<div class="task-item">${task}</div>`).join('')
-                                        : '<div class="detail-content">No tasks assigned</div>'
+                                        : '<div class="detail-content">Generate AI analysis in main panel to automatically assign tasks and roles to all team members based on their skills.</div>'
                                     }
                                 </div>
                             </div>
@@ -944,13 +958,6 @@
                 });
             });
 
-            document.querySelectorAll('.close-details-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const memberId = btn.dataset.memberId;
-                    closeMemberDetails(memberId);
-                });
-            });
         }
 
         function getMemberTasks(memberName) {
@@ -973,20 +980,16 @@
         }
 
         function toggleMemberDetails(memberId) {
-            if (expandedMemberId === memberId) {
-                closeMemberDetails(memberId);
+            if (expandedMemberIds.has(memberId)) {
+                expandedMemberIds.delete(memberId); // Collapse this member
             } else {
-                // Close any open details
-                if (expandedMemberId) {
-                    closeMemberDetails(expandedMemberId);
-                }
-                expandedMemberId = memberId;
-                renderTeamMembers();
+                expandedMemberIds.add(memberId); // Expand this member
             }
+            renderTeamMembers();
         }
 
         function closeMemberDetails(memberId) {
-            expandedMemberId = null;
+            expandedMemberIds.delete(memberId);
             renderTeamMembers();
         }
 
