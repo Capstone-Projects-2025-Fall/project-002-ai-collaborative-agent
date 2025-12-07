@@ -187,3 +187,269 @@ function trimSlash(url: string) { //Removes any trailing slashes ("/") from a UR
  //Prevents double slashes when joining with Jira API endpoint
   return url.replace(/\/+$/, "");
 }
+
+// --- Additional helpers for Jira management ---
+type JiraAuth = {
+  baseUrl: string; // Jira Cloud site URL, used to build REST endpoints
+  email: string; // Atlassian account email used with the API token
+  token: string; // Jira API token used for Basic Auth
+};
+
+type JiraRequestInit = {
+  method?: string; // HTTP verb for Jira REST call
+  body?: any; // Optional request payload (stringified later)
+};
+
+async function jiraRequest<T>(
+  auth: JiraAuth,
+  path: string,
+  init: JiraRequestInit = {}
+): Promise<T> {
+  const authHeader = Buffer.from(`${auth.email}:${auth.token}`).toString("base64"); // Basic auth header for all Jira requests
+  const response = await fetch(`${trimSlash(auth.baseUrl)}${path}`, { // Call Jira REST endpoint with provided path
+    method: init.method, // e.g., GET/POST/PUT/DELETE depending on operation
+    body: init.body, // JSON payload (string) if provided
+    headers: {
+      "Authorization": `Basic ${authHeader}`, // Jira REST API expects Basic auth
+      "Accept": "application/json", // ask Jira for JSON responses
+      "Content-Type": "application/json", // send JSON bodies
+    },
+  });
+
+  if (!response.ok) { // Bubble up Jira errors with helpful context
+    const errText = await response.text().catch(() => "");
+    const error: any = new Error(`Jira ${response.status}: ${errText}`);
+    error.status = response.status; // allow callers to check status codes
+    error.body = errText; // preserve raw error body for debugging
+    throw error;
+  }
+
+  if (response.status === 204) { // Jira sometimes returns 204 No Content
+    return {} as T;
+  }
+  return (await response.json()) as T; // Parse JSON payload into typed response
+}
+
+function mapIssues(data: any) {
+  return (
+    data?.issues?.map((issue: any) => ({
+      id: issue.id, // Jira internal issue id
+      key: issue.key, // Human-readable issue key (e.g., PROJ-123)
+      summary: issue.fields?.summary ?? "", // Task title
+      description: issue.fields?.description ?? null, // ADF description content
+      status: {
+        id: issue.fields?.status?.id,
+        name: issue.fields?.status?.name, // Board/status column
+      },
+      assignee: issue.fields?.assignee
+        ? {
+            accountId: issue.fields.assignee.accountId, // Unique Atlassian account id (for assignment updates)
+            displayName: issue.fields.assignee.displayName || issue.fields.assignee.name || "", // Friendly name to show in UI
+            email: issue.fields.assignee.emailAddress || "", // Email for mapping to local teammates
+          }
+        : null,
+      updated: issue.fields?.updated, // Timestamp for sorting/showing last activity
+      priority: issue.fields?.priority?.name ?? null, // Jira priority label if present
+    })) ?? []
+  );
+}
+
+async function executeSearch(
+  auth: JiraAuth,
+  path: string,
+  payload: any
+) {
+  const data = await jiraRequest<any>(auth, path, { // POST to Jira search endpoint (new or legacy)
+    method: "POST",
+    body: JSON.stringify(payload), // Jira expects a JSON body for JQL searches
+  });
+  console.log("[Jira] search response (issues)", data?.issues?.length ?? 0);
+  const mapped = mapIssues(data); // Normalize fields the webview uses
+  console.log(`[Jira] ${path} returned ${mapped.length} issues`);
+  return mapped;
+}
+
+export async function searchIssues(
+  auth: JiraAuth,
+  projectKey: string,
+  opts?: { status?: string; search?: string }
+) {
+  // Query Jira for tasks in a project, with optional status filter and full-text search, and return mapped issues for the webview
+  const jqlParts = [`project = "${projectKey}"`];
+  if (opts?.status) {
+    jqlParts.push(`status = "${opts.status}"`);
+  }
+  if (opts?.search) {
+    const term = opts.search.replace(/"/g, '\\"'); // escape quotes so JQL stays valid
+    jqlParts.push(`text ~ "${term}"`); // free-text search across issue content
+  }
+  const jqlQuery = jqlParts.join(" AND ");
+
+  const baseFields = {
+    maxResults: 50,
+    fields: ["summary", "status", "assignee", "description", "updated", "priority"],
+    expand: ["renderedFields"],
+  };
+
+  try {
+    console.log("[Jira] Searching issues via /search/jql", jqlQuery);
+    return await executeSearch(auth, "/rest/api/3/search/jql", {
+      ...baseFields,
+      expand: Array.isArray(baseFields.expand) ? baseFields.expand.join(",") : baseFields.expand,
+      jql: jqlQuery,
+    });
+  } catch (err: any) {
+    if (err?.status === 400 || (err?.message || "").includes("Invalid request payload")) {
+      console.warn("[Jira] search/jql failed, falling back to legacy search endpoint:", err?.message);
+      return await executeSearch(auth, "/rest/api/3/search", {
+        startAt: 0,
+        ...baseFields,
+        expand: baseFields.expand,
+        jql: jqlQuery,
+      });
+    }
+    throw err;
+  }
+}
+
+export async function createIssue(
+  auth: JiraAuth,
+  input: { projectKey: string; summary: string; description?: string; assigneeAccountId?: string | null }
+) {
+  // Create a new Jira Task using the simple ADF formatter for description
+  const payload = {
+    fields: {
+      project: { key: input.projectKey },
+      summary: input.summary,
+      issuetype: { name: "Task" },
+      description: toSimpleAdf(input.description ?? input.summary),
+      ...(input.assigneeAccountId !== undefined
+        ? { assignee: input.assigneeAccountId ? { accountId: input.assigneeAccountId } : null }
+        : {}),
+    },
+  };
+  return jiraRequest<any>(auth, "/rest/api/3/issue", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateIssue(
+  auth: JiraAuth,
+  issueIdOrKey: string,
+  fields: { summary?: string; description?: string; assigneeAccountId?: string | null }
+) {
+  // Update an existing Jira issue's summary/description (ADF formatted)
+  const payload: any = { fields: {} };
+  if (fields.summary !== undefined) {
+    payload.fields.summary = fields.summary;
+  }
+  if (fields.description !== undefined) {
+    payload.fields.description = toSimpleAdf(fields.description);
+  }
+  if (fields.assigneeAccountId !== undefined) {
+    payload.fields.assignee = fields.assigneeAccountId ? { accountId: fields.assigneeAccountId } : null;
+  }
+  return jiraRequest<any>(auth, `/rest/api/3/issue/${issueIdOrKey}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteIssue(auth: JiraAuth, issueIdOrKey: string) {
+  // Remove a Jira issue by id/key
+  return jiraRequest(auth, `/rest/api/3/issue/${issueIdOrKey}`, {
+    method: "DELETE",
+  });
+}
+
+export async function assignIssue(
+  auth: JiraAuth,
+  issueIdOrKey: string,
+  accountId: string | null
+) {
+  // Assign (or clear assignment) for a Jira issue via accountId
+  return jiraRequest(auth, `/rest/api/3/issue/${issueIdOrKey}/assignee`, {
+    method: "PUT",
+    body: JSON.stringify({ accountId }),
+  });
+}
+
+export async function getProjectStatuses(auth: JiraAuth, projectKey: string) {
+  // Fetch all unique workflow statuses for a project (used to populate filters)
+  const data = await jiraRequest<any>(auth, `/rest/api/3/project/${projectKey}/statuses`);
+  const statuses: string[] = [];
+  for (const workflow of data ?? []) {
+    for (const status of workflow.statuses ?? []) {
+      if (status?.name && !statuses.includes(status.name)) {
+        statuses.push(status.name);
+      }
+    }
+  }
+  return statuses;
+}
+
+export async function getIssueTransitions(auth: JiraAuth, issueIdOrKey: string) {
+  // Retrieve available transitions for an issue to drive the status dropdown in the webview
+  const data = await jiraRequest<any>(auth, `/rest/api/3/issue/${issueIdOrKey}/transitions`);
+  return data?.transitions ?? [];
+}
+
+export async function transitionIssue(
+  auth: JiraAuth,
+  issueIdOrKey: string,
+  transitionId: string
+) {
+  // Move an issue to a new status using a transition id
+  return jiraRequest(auth, `/rest/api/3/issue/${issueIdOrKey}/transitions`, {
+    method: "POST",
+    body: JSON.stringify({ transition: { id: transitionId } }),
+  });
+}
+
+export async function findUserAccountId(auth: JiraAuth, query: string) {
+  // Resolve an Atlassian accountId from an email/partial query for assignments
+  if (!query) {
+    return null;
+  }
+  const encoded = encodeURIComponent(query);
+  const users = await jiraRequest<any[]>(auth, `/rest/api/3/user/search?query=${encoded}`);
+  if (Array.isArray(users) && users.length > 0) {
+    return users[0].accountId;
+  }
+  return null;
+}
+
+export async function getAssignableUsers(auth: JiraAuth, projectKey: string) {
+  // Fetch Jira users who can be assigned issues in the given project
+  const users = await jiraRequest<any[]>(
+    auth,
+    `/rest/api/3/user/assignable/search?project=${encodeURIComponent(projectKey)}`
+  );
+  return (users || []).map((u: any) => ({
+    accountId: u.accountId,
+    email: u.emailAddress || "",
+    displayName: u.displayName || u.name || u.accountId,
+  }));
+}
+
+function toSimpleAdf(text: string) {
+  // Minimal ADF builder for short descriptions/summaries when creating/updating issues
+  return {
+    type: "doc",
+    version: 1,
+    content: [
+      {
+        type: "paragraph",
+        content: text
+          ? [
+              {
+                type: "text",
+                text,
+              },
+            ]
+          : [],
+      },
+    ],
+  };
+}

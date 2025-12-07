@@ -1,4 +1,13 @@
 {
+  "name": "pallas-ai",
+  "displayName": "Pallas AI",
+  "version": "1.0.0",
+  "publisher": "CapstoneFall2025Team2",
+  "icon": "vscode-extension/media/logo.png",
+  "description": "AI-powered team collaboration platform",
+  "scripts": {
+    "install-all": "npm install && cd vscode-extension && npm install"
+  },
   "devDependencies": {
     "@types/node": "^24.6.1"
   },
@@ -6,7 +15,6 @@
     "vsls": "^1.0.4753",
     "@supabase/supabase-js": "^2.74.0",
     "dotenv": "^17.2.3",
-    "nanoid": "^5.1.6",
-    "node": "^25.0.0"
+    "nanoid": "^5.1.6"
   }
 }

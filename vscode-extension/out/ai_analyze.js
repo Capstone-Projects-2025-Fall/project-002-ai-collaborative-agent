@@ -41,6 +41,7 @@ let resultsPanel;
 let extensionContext;
 let autoAnalyzeTimer;
 let isAutoAnalyzeEnabled = true;
+let notificationCallback;
 // Change tracking
 let changeLog = [];
 let lastAnalysisTime = new Date();
@@ -51,24 +52,22 @@ let lastEditTime = new Map();
 const SUPABASE_EDGE_FUNCTION_URL = "https://ptthofpfrmhhmvmbzgxx.supabase.co/functions/v1/ai-analyze";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB0dGhvZnBmcm1oaG12bWJ6Z3h4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxMjIzMTUsImV4cCI6MjA3MzY5ODMxNX0.vmIQd2JlfigERJTG5tkFGpoRgqBOj0FudEvGDzNd5Ko";
 // Thresholds for intervention
-const SIGNIFICANT_CHANGE_THRESHOLD = 3; // Number of significant changes before analyzing
-const TIME_BASED_CHECK_INTERVAL = 10; // Minutes between time-based checks
-const LINES_CHANGED_THRESHOLD = 20; // Consider it significant if 20+ lines changed
-function activateCodeReviewer(context) {
+const SIGNIFICANT_CHANGE_THRESHOLD = 10; // Number of significant changes before analyzing
+const TIME_BASED_CHECK_INTERVAL = 20; // Minutes between time-based checks
+const LINES_CHANGED_THRESHOLD = 30; // Consider it significant if 20+ lines changed
+function activateCodeReviewer(context, addNotification) {
     try {
         console.log('AI Code Assistant extension is now active!');
         extensionContext = context;
+        notificationCallback = addNotification;
         statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
-        statusBarItem.command = 'ai-code-reviewer.showChangeLog';
+        statusBarItem.command = 'ai-code-reviewer.analyzeCode';
         context.subscriptions.push(statusBarItem);
         const analyzeCommand = vscode.commands.registerCommand('ai-code-reviewer.analyzeCode', async () => {
             await analyzeCurrentFile(true); // Force analysis
         });
         const showResultsCommand = vscode.commands.registerCommand('ai-code-reviewer.showResults', () => {
             showResultsPanel();
-        });
-        const showChangeLogCommand = vscode.commands.registerCommand('ai-code-reviewer.showChangeLog', () => {
-            showChangeLogPanel();
         });
         const configureCommand = vscode.commands.registerCommand('ai-code-reviewer.configure', async () => {
             vscode.window.showInformationMessage('AI Code Assistant is monitoring your changes...');
@@ -97,7 +96,7 @@ function activateCodeReviewer(context) {
                 handleFileSave(document);
             }
         });
-        context.subscriptions.push(analyzeCommand, showResultsCommand, showChangeLogCommand, configureCommand, toggleAutoAnalyzeCommand, changeListener, saveListener);
+        context.subscriptions.push(analyzeCommand, showResultsCommand, configureCommand, toggleAutoAnalyzeCommand, changeListener, saveListener);
         updateStatusBar();
         if (isAutoAnalyzeEnabled) {
             startAutoAnalyze();
@@ -320,29 +319,45 @@ async function analyzeCurrentFile(forceAnalysis = false, reason) {
         // Update last analysis time
         lastAnalysisTime = new Date();
         significantChangesCount = 0; // Reset counter
-        // Parse the response to determine severity
+        // Parse the response to determine severity - check both old and new formats
         const hasErrors = data.message.includes('🚨 ERRORS');
         const hasWarnings = data.message.includes('⚠️ WARNINGS');
+        const hasCritical = data.message.includes('🔴') &&
+            (data.message.includes('CRITICAL') || data.message.includes('LOGIC ERRORS'));
+        const hasImprovements = data.message.includes('🟡') &&
+            (data.message.includes('IMPROVEMENTS') || data.message.includes('CODE QUALITY'));
         // Only intervene if there are issues or forced
-        if (hasErrors || hasWarnings || forceAnalysis) {
+        if (hasErrors || hasWarnings || hasCritical || hasImprovements || forceAnalysis) {
             const analysisReason = unsavedCount > 0
                 ? `${reason || 'Analysis'} (${unsavedCount} unsaved file${unsavedCount > 1 ? 's' : ''})`
                 : reason;
             showResultsPanel(data.message, folderContents.length, folderPath, analysisReason);
-            if (hasErrors) {
+            if (hasErrors || hasCritical) {
                 vscode.window.setStatusBarMessage('$(error) Issues detected - check AI Assistant', 5000);
+                if (notificationCallback) {
+                    notificationCallback(`AI analysis found critical issues in ${folderContents.length} file(s)`, 'error');
+                }
             }
-            else if (hasWarnings) {
+            else if (hasWarnings || hasImprovements) {
                 vscode.window.setStatusBarMessage('$(warning) Warnings - check AI Assistant', 5000);
+                if (notificationCallback) {
+                    notificationCallback(`AI analysis found warnings in ${folderContents.length} file(s)`, 'warning');
+                }
             }
             else {
                 vscode.window.setStatusBarMessage('$(check) Analysis complete', 3000);
+                if (notificationCallback) {
+                    notificationCallback(`AI analysis complete - ${folderContents.length} file(s) analyzed`, 'success');
+                }
             }
         }
         else {
             // Silently update without showing panel
             updateResultsPanel(data.message, folderContents.length, folderPath, reason);
             vscode.window.setStatusBarMessage('$(check) Looking good!', 2000);
+            if (notificationCallback) {
+                notificationCallback(`Code looks good - ${folderContents.length} file(s) analyzed`, 'success');
+            }
         }
         // Clear old change logs after successful analysis
         changeLog = changeLog.filter(c => (new Date().getTime() - c.timestamp.getTime()) / 1000 / 60 < 10);
@@ -351,6 +366,9 @@ async function analyzeCurrentFile(forceAnalysis = false, reason) {
     catch (error) {
         console.error('Analysis error:', error);
         vscode.window.setStatusBarMessage('$(warning) Analysis failed', 3000);
+        if (notificationCallback) {
+            notificationCallback(`AI analysis failed: ${error.message || 'Unknown error'}`, 'error');
+        }
     }
 }
 function getRecentChangeSummary() {
@@ -435,7 +453,7 @@ function showChangeLogPanel() {
     const recentChanges = changeLog.slice(-20).reverse();
     let changeHtml = '<div class="change-list">';
     if (recentChanges.length === 0) {
-        changeHtml += '<p style="text-align: center; color: var(--vscode-descriptionForeground);">No recent changes tracked</p>';
+        changeHtml += '<p style="text-align: center; color: #6f7b87;">No recent changes tracked</p>';
     }
     else {
         recentChanges.forEach(change => {
@@ -480,16 +498,19 @@ function showChangeLogPanel() {
                 body {
                     font-family: var(--vscode-font-family);
                     padding: 20px;
-                    color: var(--vscode-foreground);
+                    color: #d0d0d0;
+                    background-color: #212227;
                 }
                 h2 {
                     margin-top: 0;
+                    color: #ffc82f;
                 }
                 .stats {
-                    background: var(--vscode-textCodeBlock-background);
+                    background: #484f57;
                     padding: 15px;
                     border-radius: 6px;
                     margin-bottom: 20px;
+                    border-left: 4px solid #ffc82f;
                 }
                 .stat-item {
                     margin: 5px 0;
@@ -503,7 +524,7 @@ function showChangeLogPanel() {
                     align-items: center;
                     gap: 10px;
                     padding: 10px 8px;
-                    border-bottom: 1px solid var(--vscode-panel-border);
+                    border-bottom: 1px solid #637074;
                 }
                 .change-icon {
                     font-size: 18px;
@@ -516,15 +537,16 @@ function showChangeLogPanel() {
                     white-space: nowrap;
                     overflow: hidden;
                     text-overflow: ellipsis;
+                    color: #ffc82f;
                 }
                 .change-meta {
                     font-size: 11px;
-                    color: var(--vscode-descriptionForeground);
+                    color: #6f7b87;
                     margin-top: 2px;
                 }
                 .change-time {
                     font-size: 12px;
-                    color: var(--vscode-descriptionForeground);
+                    color: #6f7b87;
                     white-space: nowrap;
                 }
             </style>
@@ -620,7 +642,7 @@ async function navigateToFileLine(fileName, line) {
         textEditor.revealRange(new vscode.Range(position, position), vscode.TextEditorRevealType.InCenter);
         // Highlight the line briefly
         const decorationType = vscode.window.createTextEditorDecorationType({
-            backgroundColor: 'rgba(255, 200, 0, 0.3)',
+            backgroundColor: 'rgba(255, 200, 47, 0.3)', // #ffc82f with opacity
             isWholeLine: true
         });
         textEditor.setDecorations(decorationType, [new vscode.Range(position, position)]);
@@ -671,18 +693,41 @@ function updateResultsPanel(analysisResult, fileCount, folderPath, reason) {
     }
 }
 function getWebviewContent(analysisResult, fileCount, folderPath, reason) {
+    // Check for new AI response format
+    const hasCritical = analysisResult.includes('🔴') &&
+        (analysisResult.includes('CRITICAL') || analysisResult.includes('LOGIC ERRORS'));
+    const hasImprovements = analysisResult.includes('🟡') &&
+        (analysisResult.includes('IMPROVEMENTS') || analysisResult.includes('CODE QUALITY'));
+    const allGood = analysisResult.includes('✅') ||
+        analysisResult.toLowerCase().includes('no logic errors') ||
+        analysisResult.toLowerCase().includes('code looks solid');
+    // Also check for old format for backwards compatibility
     const hasErrors = analysisResult.includes('🚨 ERRORS');
     const hasWarnings = analysisResult.includes('⚠️ WARNINGS');
-    const allGood = analysisResult.includes('✅');
-    let statusColor = '#27ae60';
+    // Palette Colors
+    const palette = {
+        slateGray: '#6f7b87',
+        darkSlate: '#484f57',
+        veryDark: '#212227',
+        muted: '#637074',
+        yellow: '#ffc82f',
+        white: '#ffffff',
+        red: '#ff6b6b', // Softer red to match dark theme
+        green: '#51cf66' // Softer green
+    };
+    let statusColor = palette.green;
     let statusText = 'All Clear';
-    if (hasErrors) {
-        statusColor = '#e74c3c';
+    if (hasCritical || hasErrors) {
+        statusColor = palette.red;
         statusText = 'Issues Found';
     }
-    else if (hasWarnings) {
-        statusColor = '#f39c12';
+    else if (hasImprovements || hasWarnings) {
+        statusColor = palette.yellow;
         statusText = 'Needs Attention';
+    }
+    else if (allGood) {
+        statusColor = palette.green;
+        statusText = 'All Clear';
     }
     return `
     <!DOCTYPE html>
@@ -692,12 +737,21 @@ function getWebviewContent(analysisResult, fileCount, folderPath, reason) {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>AI Code Assistant</title>
         <style>
+            :root {
+                --bg-primary: ${palette.veryDark};
+                --bg-secondary: ${palette.darkSlate};
+                --text-primary: ${palette.white};
+                --text-secondary: ${palette.slateGray};
+                --accent-primary: ${palette.yellow};
+                --border-color: ${palette.muted};
+            }
+
             body {
                 font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
                 line-height: 1.6;
-                color: var(--vscode-editor-foreground);
-                background-color: var(--vscode-editor-background);
-                padding: 20px;
+                color: var(--text-primary);
+                background-color: var(--bg-primary);
+                padding: 24px;
                 margin: 0;
             }
             
@@ -705,156 +759,290 @@ function getWebviewContent(analysisResult, fileCount, folderPath, reason) {
                 display: flex;
                 align-items: center;
                 gap: 15px;
-                border-bottom: 2px solid ${statusColor};
-                padding-bottom: 15px;
-                margin-bottom: 20px;
+                margin-bottom: 24px;
+                padding-bottom: 16px;
+                border-bottom: 1px solid var(--border-color);
             }
             
             .status-indicator {
-                width: 12px;
-                height: 12px;
+                width: 14px;
+                height: 14px;
                 border-radius: 50%;
                 background-color: ${statusColor};
+                box-shadow: 0 0 10px ${statusColor}40;
                 animation: pulse 2s infinite;
             }
             
             @keyframes pulse {
-                0%, 100% { opacity: 1; }
-                50% { opacity: 0.5; }
+                0% { box-shadow: 0 0 0 0 ${statusColor}40; }
+                70% { box-shadow: 0 0 0 6px ${statusColor}00; }
+                100% { box-shadow: 0 0 0 0 ${statusColor}00; }
             }
             
             .header h1 {
                 margin: 0;
-                font-size: 22px;
-                color: ${statusColor};
-                font-weight: 600;
+                font-size: 24px;
+                color: var(--text-primary);
+                font-weight: 700;
+                letter-spacing: -0.5px;
+            }
+
+            .header h1 span {
+                color: var(--accent-primary);
             }
             
             .intervention-reason {
-                background: var(--vscode-inputValidation-infoBackground);
-                border-left: 3px solid var(--vscode-inputValidation-infoBorder);
-                padding: 10px 15px;
-                margin-bottom: 15px;
+                background: rgba(255, 200, 47, 0.1);
+                border-left: 3px solid var(--accent-primary);
+                padding: 12px 16px;
+                margin-bottom: 20px;
                 font-size: 13px;
                 border-radius: 4px;
+                color: #e0e0e0;
             }
             
             .meta-info {
                 font-size: 13px;
-                color: var(--vscode-descriptionForeground);
-                margin-bottom: 20px;
-                padding: 10px;
-                background: var(--vscode-textCodeBlock-background);
-                border-radius: 4px;
+                color: var(--text-primary);
+                margin-bottom: 24px;
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+            }
+
+            .meta-item {
+                display: flex;
+                align-items: center;
+                gap: 6px;
             }
             
-            .analysis-content {
-                background: var(--vscode-editor-background);
-                border: 1px solid var(--vscode-panel-border);
+            .analysis-container {
+                background: transparent;
+            }
+
+            /* Bullet point sections */
+            .analysis-section {
+                margin-bottom: 24px;
+            }
+
+            .section-header {
+                font-size: 16px;
+                font-weight: 700;
+                margin-bottom: 12px;
+                padding-bottom: 8px;
+                border-bottom: 2px solid var(--border-color);
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+
+            .section-header.critical {
+                color: ${palette.red};
+                border-bottom-color: ${palette.red};
+            }
+
+            .section-header.improvements {
+                color: ${palette.yellow};
+                border-bottom-color: ${palette.yellow};
+            }
+
+            .section-header.quick-win {
+                color: #4cc9f0;
+                border-bottom-color: #4cc9f0;
+            }
+
+            .issue-list {
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+                padding: 0;
+                margin: 12px 0;
+            }
+
+            .issue-item {
+                padding: 12px 16px 12px 40px;
                 border-radius: 6px;
-                padding: 20px;
-                margin: 15px 0;
-                white-space: pre-wrap;
-                font-family: var(--vscode-editor-font-family);
-                font-size: 14px;
-                line-height: 1.7;
+                background: var(--bg-secondary);
+                border-left: 3px solid var(--border-color);
+                position: relative;
+                transition: all 0.2s ease;
+                line-height: 1.8;
+            }
+
+            .issue-item:hover {
+                transform: translateX(4px);
+                box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            }
+
+            .issue-item.critical {
+                border-left-color: ${palette.red};
+                background: rgba(255, 107, 107, 0.08);
+            }
+
+            .issue-item.improvement {
+                border-left-color: ${palette.yellow};
+                background: rgba(255, 200, 47, 0.08);
+            }
+
+            .issue-item.quick-win {
+                border-left-color: #4cc9f0;
+                background: rgba(76, 201, 240, 0.08);
+            }
+
+            .issue-item::before {
+                content: "●";
+                position: absolute;
+                left: 16px;
+                top: 14px;
+                font-size: 10px;
+                color: var(--border-color);
+            }
+
+            .issue-item.critical::before {
+                color: ${palette.red};
+            }
+
+            .issue-item.improvement::before {
+                color: ${palette.yellow};
+            }
+
+            .issue-item.quick-win::before {
+                color: #4cc9f0;
+            }
+
+            /* Hint styling - make it appear on second line */
+            .issue-item .hint {
+                display: block;
+                margin-top: 6px;
+                padding-left: 8px;
+                font-style: italic;
+                opacity: 0.9;
             }
             
             .file-reference {
-                color: var(--vscode-textLink-foreground);
-                text-decoration: underline;
+                color: var(--bg-primary);
+                background-color: var(--accent-primary);
+                text-decoration: none;
                 cursor: pointer;
-                padding: 2px 4px;
-                border-radius: 3px;
-                transition: background-color 0.2s;
+                padding: 2px 8px;
+                border-radius: 4px;
+                font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+                font-size: 12px;
+                font-weight: 600;
+                transition: all 0.2s ease;
+                display: inline-block;
+                margin: 0 2px;
             }
             
             .file-reference:hover {
-                background-color: var(--vscode-textLink-activeForeground);
-                opacity: 0.8;
-            }
-            
-            .file-reference:active {
-                opacity: 0.6;
+                transform: translateY(-2px);
+                box-shadow: 0 4px 8px rgba(255, 200, 47, 0.3);
             }
             
             .empty-state {
                 text-align: center;
                 padding: 60px 20px;
-                color: var(--vscode-descriptionForeground);
+                color: var(--text-secondary);
+                background: var(--bg-secondary);
+                border-radius: 12px;
+                border: 1px dashed var(--border-color);
             }
             
             .empty-state h2 {
                 margin: 20px 0 10px 0;
-                color: var(--vscode-textLink-foreground);
+                color: var(--accent-primary);
             }
             
             .timestamp {
-                color: var(--vscode-descriptionForeground);
+                color: var(--text-secondary);
                 font-size: 11px;
-                text-align: right;
-                margin-top: 15px;
-                padding-top: 10px;
-                border-top: 1px solid var(--vscode-panel-border);
-            }
-            
-            .analysis-content strong {
-                color: ${statusColor};
+                text-align: center;
+                margin-top: 30px;
+                padding-top: 20px;
+                border-top: 1px solid var(--border-color);
+                opacity: 0.6;
             }
 
             .help-text {
                 font-size: 12px;
-                color: var(--vscode-descriptionForeground);
-                margin-top: 10px;
-                padding: 8px 12px;
-                background: var(--vscode-textCodeBlock-background);
-                border-radius: 4px;
-                border-left: 3px solid var(--vscode-textLink-foreground);
+                color: var(--text-primary);
+                margin-bottom: 16px;
+                padding: 10px 14px;
+                background: var(--bg-secondary);
+                border-radius: 6px;
+                border-left: 3px solid var(--accent-primary);
+            }
+
+            .success-message {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 10px;
+                padding: 24px;
+                background: rgba(81, 207, 102, 0.1);
+                border-radius: 8px;
+                border: 1px solid ${palette.green};
+                color: ${palette.green};
+                font-size: 16px;
+                font-weight: 600;
+                text-align: center;
+            }
+
+            .result-content {
+                font-size: 14px;
+                line-height: 1.8;
             }
         </style>
     </head>
     <body>
         <div class="header">
             <div class="status-indicator"></div>
-            <h1>${statusText}</h1>
+            <h1>AI <span>Code</span> Analysis</h1>
         </div>
         
         ${analysisResult ? `
             ${reason ? `
                 <div class="intervention-reason">
-                    🔍 <strong>Intervention reason:</strong> ${escapeHtml(reason)}
+                    <strong>Trigger:</strong> ${escapeHtml(reason)}
                 </div>
             ` : ''}
             
             ${folderPath || fileCount ? `
                 <div class="meta-info">
-                    ${folderPath ? `📁 ${escapeHtml(folderPath)}<br>` : ''}
-                    ${fileCount ? `📄 Analyzed ${fileCount} file${fileCount !== 1 ? 's' : ''}` : ''}
+                    ${folderPath ? `<div class="meta-item"><span>📁</span> ${escapeHtml(folderPath)}</div>` : ''}
+                    ${fileCount ? `<div class="meta-item"><span>📄</span> Analyzed ${fileCount} file${fileCount !== 1 ? 's' : ''}</div>` : ''}
                 </div>
             ` : ''}
             
             <div class="help-text">
-                💡 <strong>Tip:</strong> Click on any file reference (e.g., <span style="color: var(--vscode-textLink-foreground); text-decoration: underline;">filename.ts:42</span>) to jump to that line!
+                💡 Click any file reference (e.g. <span style="color: var(--accent-primary); font-family: monospace;">filename.ts:42</span>) to jump to code
             </div>
             
-            <div class="analysis-content">${formatAnalysisResult(analysisResult)}</div>
+            <div class="analysis-container">
+                ${formatAnalysisResult(analysisResult)}
+            </div>
             
             <div class="timestamp">
-                Analyzed at ${new Date().toLocaleString()}
+                Analyzed at ${new Date().toLocaleTimeString()}
             </div>
         ` : `
             <div class="empty-state">
-                <h2>👀 Monitoring Your Code</h2>
-                <p>I'm watching for changes and will intervene when needed.</p>
-                <p style="font-size: 12px; margin-top: 20px;">
-                    I'll alert you when I detect:<br>
-                    • ${SIGNIFICANT_CHANGE_THRESHOLD}+ significant changes (saved or unsaved)<br>
-                    • 15+ rapid edits in one minute<br>
-                    • 30+ lines changed without saving<br>
-                    • 25+ edits in one file within 5 minutes<br>
-                    • Changes across multiple files<br>
-                    • Or every ${TIME_BASED_CHECK_INTERVAL} minutes if there's activity
-                </p>
+                <h2>👀 Monitoring Active</h2>
+                <p>I'm watching your code for significant changes.</p>
+                <div style="margin-top: 30px; text-align: left; font-size: 13px; max-width: 300px; margin-left: auto; margin-right: auto;">
+                    <div style="margin-bottom: 8px;"><strong>Triggers:</strong></div>
+                    <div style="display: flex; gap: 8px; margin-bottom: 6px;">
+                        <span style="color: var(--accent-primary);">•</span> ${SIGNIFICANT_CHANGE_THRESHOLD}+ significant edits
+                    </div>
+                    <div style="display: flex; gap: 8px; margin-bottom: 6px;">
+                        <span style="color: var(--accent-primary);">•</span> Rapid editing (15+/min)
+                    </div>
+                    <div style="display: flex; gap: 8px; margin-bottom: 6px;">
+                        <span style="color: var(--accent-primary);">•</span> Large unsaved blocks
+                    </div>
+                </div>
             </div>
         `}
 
@@ -891,40 +1079,102 @@ function escapeHtml(text) {
         .replace(/'/g, '&#39;');
 }
 function formatAnalysisResult(result) {
-    // First escape HTML
-    let formatted = result
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
-    // Make file references clickable
-    // Pattern: filename.ext:line or filename.ext line or "in filename.ext on line X"
-    formatted = formatted.replace(/(\w+\.\w+)(?::|\s+(?:line\s+)?|,\s+line\s+)(\d+)/gi, '<span class="file-reference" data-file="$1" data-line="$2">$1:$2</span>');
-    // Pattern: "line X in filename.ext"
-    formatted = formatted.replace(/line\s+(\d+)\s+(?:in|of)\s+(\w+\.\w+)/gi, '<span class="file-reference" data-file="$2" data-line="$1">line $1 in $2</span>');
-    // Format markdown-style bold
-    formatted = formatted
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-        .replace(/\n\n/g, '</p><p>')
-        .replace(/\n/g, '<br>');
-    return formatted;
-}
-async function updateStatusBar() {
-    const recentChanges = changeLog.filter(c => (new Date().getTime() - c.timestamp.getTime()) / 1000 / 60 < 5);
-    if (isAutoAnalyzeEnabled) {
-        if (recentChanges.length > 0) {
-            statusBarItem.text = `$(eye) AI Assistant (${recentChanges.length})`;
-            statusBarItem.tooltip = `Monitoring: ${recentChanges.length} recent changes\nClick to view change log`;
+    let formatted = escapeHtml(result);
+    // Split into lines for processing
+    const lines = formatted.split('\n');
+    let output = '';
+    let currentSection = '';
+    let inList = false;
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        // Detect section headers
+        if (line.match(/^🔴\s*(CRITICAL|LOGIC ERRORS)/i)) {
+            if (inList) {
+                output += '</div></div>';
+                inList = false;
+            }
+            output += '<div class="analysis-section">';
+            output += '<div class="section-header critical">🔴 Critical Issues</div>';
+            output += '<div class="issue-list">';
+            currentSection = 'critical';
+            inList = true;
+            continue;
         }
-        else {
-            statusBarItem.text = '$(eye) AI Assistant';
-            statusBarItem.tooltip = 'Monitoring for changes\nClick to view change log';
+        if (line.match(/^🟡\s*(IMPROVEMENTS|CODE QUALITY)/i)) {
+            if (inList) {
+                output += '</div></div>';
+                inList = false;
+            }
+            output += '<div class="analysis-section">';
+            output += '<div class="section-header improvements">🟡 Improvements</div>';
+            output += '<div class="issue-list">';
+            currentSection = 'improvements';
+            inList = true;
+            continue;
+        }
+        if (line.match(/^💡\s*QUICK WIN/i)) {
+            if (inList) {
+                output += '</div></div>';
+                inList = false;
+            }
+            output += '<div class="analysis-section">';
+            output += '<div class="section-header quick-win">💡 Quick Win</div>';
+            output += '<div class="issue-list">';
+            currentSection = 'quick-win';
+            inList = true;
+            continue;
+        }
+        if (line.match(/^✅/i)) {
+            if (inList) {
+                output += '</div></div>';
+                inList = false;
+            }
+            output += '<div class="success-message">✅ ' + line.substring(line.indexOf('✅') + 1).trim() + '</div>';
+            continue;
+        }
+        // Process list items (lines starting with - or •)
+        if (inList && line.match(/^[-•]\s/)) {
+            let content = line.substring(2).trim();
+            // Check if the content has "Hint:" and split it
+            const hintMatch = content.match(/^(.*?)(\s+Hint:\s+.*)$/i);
+            if (hintMatch) {
+                const mainText = hintMatch[1].trim();
+                const hintText = hintMatch[2].trim();
+                content = `${mainText}<span class="hint">${hintText}</span>`;
+            }
+            const className = currentSection === 'critical' ? 'critical' :
+                currentSection === 'improvements' ? 'improvement' :
+                    'quick-win';
+            output += `<div class="issue-item ${className}">${content}</div>`;
+            continue;
+        }
+        // Regular text
+        if (line.length > 0) {
+            if (inList) {
+                output += '</div></div>';
+                inList = false;
+            }
+            output += '<div style="margin-bottom: 8px;">' + line + '</div>';
         }
     }
+    // Close any open lists
+    if (inList) {
+        output += '</div></div>';
+    }
+    // Make file references clickable
+    output = output.replace(/\b([\w-]+\.[\w]+):(\d+)\b/g, '<span class="file-reference" data-file="$1" data-line="$2">$1:$2</span>');
+    output = output.replace(/\bin\s+([\w-]+\.[\w]+)(?::|\s+line\s+)(\d+)\b/gi, 'in <span class="file-reference" data-file="$1" data-line="$2">$1:$2</span>');
+    output = output.replace(/\bline\s+(\d+)\s+(?:in|of)\s+([\w-]+\.[\w]+)\b/gi, '<span class="file-reference" data-file="$2" data-line="$1">line $1 in $2</span>');
+    return `<div class="result-content">${output}</div>`;
+}
+async function updateStatusBar() {
+    if (isAutoAnalyzeEnabled) {
+        statusBarItem.text = '$(eye) Pallas Watch';
+        statusBarItem.tooltip = 'Monitoring for changes\nClick to run AI analysis';
+    }
     else {
-        statusBarItem.text = '$(eye-closed) AI Assistant';
-        statusBarItem.tooltip = 'Monitoring disabled\nClick to view status';
+        statusBarItem.text = '$(eye-closed) Pallas Watch';
+        statusBarItem.tooltip = 'Monitoring disabled\nClick to run AI analysis';
     }
     statusBarItem.backgroundColor = undefined;
     statusBarItem.show();
