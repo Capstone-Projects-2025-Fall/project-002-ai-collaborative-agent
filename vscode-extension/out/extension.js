@@ -1299,8 +1299,16 @@ async function openMainPanel(context, authService) {
             }
             case "setActiveProject": {
                 const { projectId } = msg.payload;
-                await setActiveProject(projectId || null);
-                console.log("Active project set to:", projectId);
+                // If projectId exists and is not just whitespace, set it.
+                if (projectId && projectId.trim() !== "") {
+                    await setActiveProject(projectId);
+                    console.log("Active project set to:", projectId);
+                }
+                else {
+                    // If projectId is null, undefined, or empty string "", CLEAR it.
+                    await setActiveProject(null);
+                    console.log("Active project cleared (No project selected).");
+                }
                 break;
             }
             case "generatePrompt": {
