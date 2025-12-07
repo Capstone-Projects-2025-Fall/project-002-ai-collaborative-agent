@@ -9,8 +9,8 @@
 .env.production.local
 .env
 
-node_modules/
-vscode-extension/node_modules
+/node_modules/
+/vscode-extension/node_modules
 dist/
 build/
 out/
@@ -21,7 +21,9 @@ coverage/
 .nyc_output/
 
 # VS Code extension build artifacts
-vscode-extension/out/
-vscode-extension/dist/
-vscode-extension/coverage/
+/vscode-extension/out/
+/vscode-extension/dist/
+/vscode-extension/coverage/
 *.vsix
+/vscode-extension/out/extension.js
+vscode-extension/out/extension.js

@@ -44,6 +44,7 @@ const authService_1 = require("./authService");
 const databaseService_1 = require("./databaseService");
 const supabaseConfig_1 = require("./supabaseConfig");
 const createJiraTasks_1 = require("./commands/createJiraTasks");
+const jira_1 = require("./lib/jira");
 const peerSuggestionService_1 = require("./peerSuggestionService");
 // No .env loading needed; using hardcoded config in supabaseConfig
 // Global variables for OAuth callback handling
@@ -51,6 +52,7 @@ let authService;
 let databaseService;
 let extensionContext;
 let peerSuggestionService;
+
 // Global notification system
 let notificationsProvider;
 let notifications = [];
@@ -231,6 +233,7 @@ async function setCachedJiraProfile(userId, profile) {
 const GLOBAL_STATE_KEY = "reopenAiCollabAgent";
 // When new workspace is open, liveshare begins
 const GLOBAL_LIVESHARE_KEY = "reopenLiveShareSession";
+const jiraAccountIdCache = new Map(); // Memoizes Jira account ids for email lookups to reduce API calls
 // LLM API Key Management
 const LLM_API_KEY_SECRET = "llm_api_key";
 const ACTIVE_PROJECT_KEY = "activeProjectId";
@@ -318,7 +321,7 @@ async function loadInitialData() {
             return { users: [], projects: [], promptCount: 0 };
         }
         // Apply Jira profile caching if available
-        const cachedJiraProfile = getCachedJiraProfile(user.id);
+        const cachedJiraProfile = getCachedJiraProfile(user.id); // Pull Jira creds from VS Code global state so user doesn't retype every session
         if (profile && cachedJiraProfile) {
             profile = {
                 ...profile,
@@ -350,13 +353,14 @@ async function loadInitialData() {
         const allPrompts = await Promise.all(projects.map(project => databaseService.getAIPromptsForProject(project.id)));
         const promptCount = allPrompts.flat().length;
         const sanitizedProfiles = allProfiles.map((profileItem) => {
-            const cached = profileItem.id === user.id ? cachedJiraProfile : undefined;
+            const isCurrentProfile = profileItem.id === profileId;
+            const cached = isCurrentProfile ? cachedJiraProfile : undefined; // Only current user gets cached Jira secrets merged
             return {
                 ...profileItem,
                 jira_base_url: cached?.baseUrl ?? profileItem.jira_base_url ?? null,
                 jira_project_key: cached?.projectKey ?? profileItem.jira_project_key ?? null,
                 jira_email: cached?.email ?? profileItem.jira_email ?? null,
-                jira_api_token: null,
+                jira_api_token: null, // Never expose stored Jira tokens in teammate payloads
                 jira_project_prompt: cached?.projectPrompt ?? profileItem.jira_project_prompt ?? null,
             };
         });
@@ -404,6 +408,7 @@ async function saveInitialData(data) {
     }
 }
 async function activate(context) {
+    (0, ai_analyze_1.activateCodeReviewer)(context);
     // Store context globally first
     extensionContext = context;
     // Load persisted notifications
@@ -543,7 +548,7 @@ async function activate(context) {
     context.subscriptions.push(showNotificationsCmd);
     // ============ END NOTIFICATION SYSTEM SETUP ============
     const createJiraCmd = vscode.commands.registerCommand("ai.createJiraTasks", async (options) => {
-        return await (0, createJiraTasks_1.createJiraTasksCmd)(context, options);
+        return await (0, createJiraTasks_1.createJiraTasksCmd)(context, options); // Entry point to trigger AI backlog → Jira issue creation
     });
     context.subscriptions.push(createJiraCmd);
     // Register LLM API key configuration command
@@ -1205,8 +1210,9 @@ async function openMainPanel(context, authService) {
         switch (msg.type) {
             case "createJiraTasks": {
                 try {
-                    const payload = msg?.payload;
-                    const result = await vscode.commands.executeCommand("ai.createJiraTasks", payload);
+                    const payload = msg?.payload; // Webview sends Jira creds + AI backlog prompt
+                    const result = await vscode.commands.executeCommand("ai.createJiraTasks", payload // Reuse command registration so both UI + other commands share logic
+                    );
                     const createdCount = Array.isArray(result) ? result.length : 0;
                     const message = createdCount > 0
                         ? `Created ${createdCount} Jira issue(s) for project ${payload?.projectKey ?? ""}`.trim()
@@ -1224,6 +1230,191 @@ async function openMainPanel(context, authService) {
                         payload: { message: errorMessage },
                     });
                     addNotification(errorMessage, 'error');
+                }
+                break;
+            }
+            case "loadJiraTasks": {
+                try {
+                    validateJiraPayload(msg.payload); // Ensure baseUrl/projectKey/token/email exist
+                    const requestId = msg.payload?.requestId; // Track request to ignore stale responses in webview
+                    const auth = {
+                        baseUrl: msg.payload.baseUrl,
+                        email: msg.payload.email,
+                        token: msg.payload.token,
+                    };
+                    const tasks = await (0, jira_1.searchIssues)(auth, msg.payload.projectKey, {
+                        status: msg.payload.status,
+                        search: msg.payload.search,
+                    });
+                    const statuses = await (0, jira_1.getProjectStatuses)(auth, msg.payload.projectKey);
+                    panel.webview.postMessage({
+                        type: "jiraTasksLoaded",
+                        payload: { tasks, statuses, requestId },
+                    });
+                }
+                catch (error) {
+                    panel.webview.postMessage({
+                        type: "jiraTasksError",
+                        payload: {
+                            message: error?.message || "Failed to load Jira tasks.",
+                            requestId: msg.payload?.requestId,
+                        },
+                    });
+                    addNotification(errorMessage, 'error');
+                }
+                break;
+            }
+            case "jiraCreateTask": {
+                try {
+                    validateJiraPayload(msg.payload);
+                    if (!msg.payload.summary) {
+                        throw new Error("Task summary is required.");
+                    }
+                    const auth = {
+                        baseUrl: msg.payload.baseUrl,
+                        email: msg.payload.email,
+                        token: msg.payload.token,
+                    };
+                    const created = await (0, jira_1.createIssue)(auth, {
+                        projectKey: msg.payload.projectKey,
+                        summary: msg.payload.summary,
+                        description: msg.payload.description,
+                        assigneeAccountId: msg.payload.assigneeAccountId ?? undefined,
+                    });
+                    // assignIssue is kept as a fallback for cases where Jira ignores assignee in create payload
+                    if (msg.payload.assigneeAccountId || msg.payload.assigneeEmail) {
+                        const accountId = msg.payload.assigneeAccountId ||
+                            (await resolveAssigneeAccountId(auth, msg.payload.assigneeEmail)); // Translate email → Jira account id
+                        if (accountId) {
+                            await (0, jira_1.assignIssue)(auth, created.id ?? created.key, accountId);
+                        }
+                    }
+                    panel.webview.postMessage({
+                        type: "jiraOperationResult",
+                        payload: { message: "Jira task created successfully." },
+                    });
+                }
+                catch (error) {
+                    panel.webview.postMessage({
+                        type: "jiraOperationError",
+                        payload: { message: error?.message || "Failed to create Jira task." },
+                    });
+                }
+                break;
+            }
+            case "jiraUpdateTask": {
+                try {
+                    validateJiraPayload(msg.payload);
+                    if (!msg.payload.issueId) {
+                        throw new Error("Missing issue identifier.");
+                    }
+                    const auth = {
+                        baseUrl: msg.payload.baseUrl,
+                        email: msg.payload.email,
+                        token: msg.payload.token,
+                    };
+                    const assigneeAccountId = msg.payload.assigneeAccountId !== undefined
+                        ? msg.payload.assigneeAccountId
+                        : await resolveAssigneeAccountId(auth, msg.payload.assigneeEmail);
+                    console.log("[Extension:Jira] Updating issue", {
+                        issueId: msg.payload.issueId,
+                        hasAssigneeEmail: msg.payload.assigneeEmail ? true : false,
+                        assigneeAccountId,
+                        transitionRequested: msg.payload.transitionId ? true : false,
+                    });
+                    await (0, jira_1.updateIssue)(auth, msg.payload.issueId, {
+                        summary: msg.payload.summary,
+                        description: msg.payload.description,
+                        assigneeAccountId: assigneeAccountId === undefined ? undefined : assigneeAccountId || null,
+                    });
+                    if ((msg.payload.assigneeEmail !== undefined || msg.payload.assigneeAccountId !== undefined) && assigneeAccountId === undefined) {
+                        throw new Error(`Jira user not found for ${msg.payload.assigneeEmail || msg.payload.assigneeAccountId}. Check access in Jira.`);
+                    }
+                    if (msg.payload.transitionId) {
+                        await (0, jira_1.transitionIssue)(auth, msg.payload.issueId, msg.payload.transitionId); // Move status using Jira transitions API
+                    }
+                    panel.webview.postMessage({
+                        type: "jiraOperationResult",
+                        payload: { message: "Jira task updated." },
+                    });
+                }
+                catch (error) {
+                    panel.webview.postMessage({
+                        type: "jiraOperationError",
+                        payload: { message: error?.message || "Failed to update Jira task." },
+                    });
+                }
+                break;
+            }
+            case "jiraDeleteTask": {
+                try {
+                    validateJiraPayload(msg.payload);
+                    if (!msg.payload.issueId) {
+                        throw new Error("Missing issue identifier.");
+                    }
+                    const auth = {
+                        baseUrl: msg.payload.baseUrl,
+                        email: msg.payload.email,
+                        token: msg.payload.token,
+                    };
+                    await (0, jira_1.deleteIssue)(auth, msg.payload.issueId);
+                    panel.webview.postMessage({
+                        type: "jiraOperationResult",
+                        payload: { message: "Jira task deleted." },
+                    });
+                }
+                catch (error) {
+                    panel.webview.postMessage({
+                        type: "jiraOperationError",
+                        payload: { message: error?.message || "Failed to delete Jira task." },
+                    });
+                }
+                break;
+            }
+            case "jiraGetTransitions": {
+                try {
+                    validateJiraPayload(msg.payload);
+                    if (!msg.payload.issueId) {
+                        throw new Error("Missing issue identifier.");
+                    }
+                    const auth = {
+                        baseUrl: msg.payload.baseUrl,
+                        email: msg.payload.email,
+                        token: msg.payload.token,
+                    };
+                    const transitions = await (0, jira_1.getIssueTransitions)(auth, msg.payload.issueId); // Fetch available status moves for dropdown
+                    panel.webview.postMessage({
+                        type: "jiraTransitionsLoaded",
+                        payload: { issueId: msg.payload.issueId, transitions },
+                    });
+                }
+                catch (error) {
+                    panel.webview.postMessage({
+                        type: "jiraOperationError",
+                        payload: { message: error?.message || "Failed to load transitions." },
+                    });
+                }
+                break;
+            }
+            case "jiraFetchAssignable": {
+                try {
+                    validateJiraPayload(msg.payload);
+                    const auth = {
+                        baseUrl: msg.payload.baseUrl,
+                        email: msg.payload.email,
+                        token: msg.payload.token,
+                    };
+                    const users = await (0, jira_1.getAssignableUsers)(auth, msg.payload.projectKey);
+                    panel.webview.postMessage({
+                        type: "jiraAssignableLoaded",
+                        payload: { users },
+                    });
+                }
+                catch (error) {
+                    panel.webview.postMessage({
+                        type: "jiraAssignableError",
+                        payload: { message: error?.message || "Failed to load assignable users." },
+                    });
                 }
                 break;
             }
@@ -1299,8 +1490,16 @@ async function openMainPanel(context, authService) {
             }
             case "setActiveProject": {
                 const { projectId } = msg.payload;
-                await setActiveProject(projectId || null);
-                console.log("Active project set to:", projectId);
+                // If projectId exists and is not just whitespace, set it.
+                if (projectId && projectId.trim() !== "") {
+                    await setActiveProject(projectId);
+                    console.log("Active project set to:", projectId);
+                }
+                else {
+                    // If projectId is null, undefined, or empty string "", CLEAR it.
+                    await setActiveProject(null);
+                    console.log("Active project cleared (No project selected).");
+                }
                 break;
             }
             case "generatePrompt": {
@@ -1494,7 +1693,8 @@ If you cannot provide JSON, provide the response in the numbered format as befor
                             prompt: promptContent,
                             response: aiResponse,
                             parsed: parsedData,
-                            projectName: projectToPrompt.name
+                            projectName: projectToPrompt.name,
+                            projectId: projectToPrompt.id
                         },
                     });
                     vscode.window.showInformationMessage(`✅ AI analysis complete for project: ${projectToPrompt.name}`);
@@ -1987,6 +2187,30 @@ function ensureWorkspaceOpen() {
     }
     return true;
 }
+function validateJiraPayload(payload) {
+    if (!payload ||
+        !payload.baseUrl ||
+        !payload.email ||
+        !payload.token ||
+        !payload.projectKey) {
+        throw new Error("Missing Jira credentials or project key."); // Protects all Jira REST calls from incomplete inputs
+    }
+}
+async function resolveAssigneeAccountId(auth, email) {
+    if (!email) {
+        return null;
+    }
+    const cacheKey = `${trimBase(auth.baseUrl)}|${email.toLowerCase()}`; // Cache per-site + email so we don't spam Jira user search
+    if (jiraAccountIdCache.has(cacheKey)) {
+        return jiraAccountIdCache.get(cacheKey) || null; // Return cached result (including null) to avoid duplicate lookups
+    }
+    const accountId = await (0, jira_1.findUserAccountId)(auth, email); // Ask Jira for account id that matches the email
+    jiraAccountIdCache.set(cacheKey, accountId); // Store resolved id for later updates/assignments
+    return accountId;
+}
+function trimBase(url) {
+    return url.replace(/\/+$/, "");
+}
 async function getHtml(webview, context) {
     const nonce = getNonce();
     const htmlPath = path.join(context.extensionPath, "media", "webview.html");
@@ -1994,14 +2218,13 @@ async function getHtml(webview, context) {
     let htmlContent = await fs.readFile(htmlPath, "utf-8");
     htmlContent = htmlContent
         .replace(/\{\{logoUri\}\}/g, logoUri.toString())
-        // Inject CSP
         .replace(/<head>/, `<head>
-      <meta http-equiv="Content-Security-Policy" content="
-          default-src 'none';
-          style-src ${webview.cspSource} 'unsafe-inline';
-          img-src ${webview.cspSource} https:;
-          script-src 'nonce-${nonce}';
-      ">`)
+        <meta http-equiv="Content-Security-Policy" content="
+            default-src 'none';
+            style-src ${webview.cspSource} 'unsafe-inline';
+            img-src ${webview.cspSource} https:;
+            script-src 'nonce-${nonce}';
+        ">`)
         .replace(/<script>/, `<script nonce="${nonce}">`);
     return htmlContent;
 }

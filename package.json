@@ -1,19 +1,12 @@
 {
-  "name": "ai-collab-agent",
-  "version": "1.0.0",
-  "description": "AI-powered team collaboration platform",
-  "scripts": {
-    "install-all": "npm install && cd vscode-extension && npm install"
+  "devDependencies": {
+    "@types/node": "^24.6.1"
   },
   "dependencies": {
+    "vsls": "^1.0.4753",
     "@supabase/supabase-js": "^2.74.0",
     "dotenv": "^17.2.3",
     "nanoid": "^5.1.6",
-    "vsls": "^1.0.4753"
-  },
-  "devDependencies": {
-    "@types/node": "^24.6.1",
-    "@vitest/coverage-v8": "^4.0.14",
-    "vitest": "^4.0.14"
+    "node": "^25.0.0"
   }
 }
