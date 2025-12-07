@@ -504,6 +504,8 @@ export async function activate(context: vscode.ExtensionContext) {
   // Store context globally first
   extensionContext = context;
 
+  checkLiveShareInstalled()
+
   // Load persisted notifications
   await loadNotifications();
 
@@ -2338,6 +2340,20 @@ function ensureWorkspaceOpen(): boolean {
 		return false;
 	}
 	return true;
+}
+
+function checkLiveShareInstalled() {
+  const liveshareExtension = vscode.extensions.getExtension('ms-vsliveshare.vsliveshare');
+  if (!liveshareExtension) {
+    vscode.window.showWarningMessage(
+      'Live Share is not installed. Please install it for collaboration features.',
+      'Install Live Share'
+    ).then(selection => {
+      if (selection === 'Install Live Share') {
+        vscode.env.openExternal(vscode.Uri.parse('vscode:extension/ms-vsliveshare.vsliveshare'));
+      }
+    });
+  }
 }
 
 async function getHtml(

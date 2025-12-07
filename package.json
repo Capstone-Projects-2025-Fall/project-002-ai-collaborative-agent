@@ -1,6 +1,9 @@
 {
-  "name": "ai-collab-agent",
+  "name": "pallas-ai",
+  "displayName": "Pallas AI",
   "version": "1.0.0",
+  "publisher": "CapstoneFall2025Team2",
+  "icon": "vscode-extension/media/logo.png",
   "description": "AI-powered team collaboration platform",
   "scripts": {
     "install-all": "npm install && cd vscode-extension && npm install"

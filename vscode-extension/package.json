@@ -2,7 +2,8 @@
   "name": "pallas-ai",
   "displayName": "Pallas AI",
   "description": "AI-powered team collaboration platform with intelligent code assistance. Manage projects, coordinate teams, and get real-time code analysis.",
-  "publisher": "CollabAgentFall2025Team2",
+  "publisher": "CapstoneFall2025Team2",
+  "icon": "media/logo.png",
   "version": "1.0.0",
   "engines": {
     "vscode": "^1.80.0"
@@ -202,7 +203,8 @@
         },
         {
           "id": "aiCollab-notifications",
-          "title": "AI Collab Notifications"
+          "title": "AI Collab Notifications",
+          "icon": "media/collaboration.svg"
         }
       ]
     },
