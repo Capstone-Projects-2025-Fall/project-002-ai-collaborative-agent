@@ -45,10 +45,172 @@ const databaseService_1 = require("./databaseService");
 const supabaseConfig_1 = require("./supabaseConfig");
 const createJiraTasks_1 = require("./commands/createJiraTasks");
 const timelineManager_1 = require("./timelineManager");
+const jira_1 = require("./lib/jira");
+const peerSuggestionService_1 = require("./peerSuggestionService");
+// No .env loading needed; using hardcoded config in supabaseConfig
+// Global variables for OAuth callback handling
 let authService;
 let databaseService;
 let extensionContext;
 let timelineManager;
+let peerSuggestionService;
+// Global notification system
+let notificationsProvider;
+let notifications = [];
+// Constants for storage
+const NOTIFICATIONS_STORAGE_KEY = 'aiCollab.notifications';
+// Load notifications from persistent storage
+async function loadNotifications() {
+    if (!extensionContext) {
+        return;
+    }
+    const stored = extensionContext.globalState.get(NOTIFICATIONS_STORAGE_KEY);
+    if (stored && Array.isArray(stored)) {
+        // Convert timestamp strings back to Date objects
+        notifications = stored.map(n => ({
+            ...n,
+            timestamp: new Date(n.timestamp)
+        }));
+        console.log(`Loaded ${notifications.length} notifications from storage`);
+    }
+}
+// Save notifications to persistent storage
+async function saveNotifications() {
+    if (!extensionContext) {
+        return;
+    }
+    // Convert Date objects to strings for storage
+    const toStore = notifications.map(n => ({
+        ...n,
+        timestamp: n.timestamp.toISOString()
+    }));
+    await extensionContext.globalState.update(NOTIFICATIONS_STORAGE_KEY, toStore);
+    console.log(`Saved ${notifications.length} notifications to storage`);
+}
+// Notifications Tree Provider for Activity Bar
+class NotificationsTreeProvider {
+    _onDidChangeTreeData = new vscode.EventEmitter();
+    onDidChangeTreeData = this._onDidChangeTreeData.event;
+    refresh() {
+        this._onDidChangeTreeData.fire();
+    }
+    getTreeItem(element) {
+        return element;
+    }
+    getChildren(element) {
+        if (element) {
+            return Promise.resolve([]);
+        }
+        if (notifications.length === 0) {
+            const emptyItem = new NotificationItem('No notifications', '', 'info', new Date(), true, vscode.TreeItemCollapsibleState.None);
+            emptyItem.command = undefined;
+            return Promise.resolve([emptyItem]);
+        }
+        return Promise.resolve(notifications.map(notif => {
+            const item = new NotificationItem(notif.message, notif.id, notif.type, notif.timestamp, notif.read, vscode.TreeItemCollapsibleState.None);
+            // Add command to mark as read or show details
+            item.command = {
+                command: 'aiCollab.notificationClicked',
+                title: 'View Notification',
+                arguments: [notif.id]
+            };
+            return item;
+        }));
+    }
+}
+class NotificationItem extends vscode.TreeItem {
+    message;
+    notificationId;
+    type;
+    timestamp;
+    isRead;
+    collapsibleState;
+    constructor(message, notificationId, type, timestamp, isRead, collapsibleState) {
+        super(message, collapsibleState);
+        this.message = message;
+        this.notificationId = notificationId;
+        this.type = type;
+        this.timestamp = timestamp;
+        this.isRead = isRead;
+        this.collapsibleState = collapsibleState;
+        // Set icon based on type
+        const iconMap = {
+            info: new vscode.ThemeIcon('info', new vscode.ThemeColor('notificationsInfoIcon.foreground')),
+            success: new vscode.ThemeIcon('pass', new vscode.ThemeColor('testing.iconPassed')),
+            warning: new vscode.ThemeIcon('warning', new vscode.ThemeColor('notificationsWarningIcon.foreground')),
+            error: new vscode.ThemeIcon('error', new vscode.ThemeColor('notificationsErrorIcon.foreground'))
+        };
+        this.iconPath = iconMap[type];
+        // Show unread indicator and timestamp
+        if (!isRead && notificationId) {
+            this.description = '● ' + this.getTimeAgo(timestamp);
+        }
+        else if (notificationId) {
+            this.description = this.getTimeAgo(timestamp);
+        }
+        // Tooltip with full message
+        this.tooltip = `${message}\n${timestamp.toLocaleString()}`;
+        // Context value for menu items
+        this.contextValue = isRead ? 'readNotification' : 'unreadNotification';
+        // Add resource states for inline delete button
+        if (notificationId) {
+            this.resourceUri = vscode.Uri.parse(`notification:${notificationId}`);
+        }
+    }
+    getTimeAgo(date) {
+        const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
+        const intervals = {
+            year: 31536000,
+            month: 2592000,
+            week: 604800,
+            day: 86400,
+            hour: 3600,
+            minute: 60
+        };
+        for (const [unit, secondsInUnit] of Object.entries(intervals)) {
+            const interval = Math.floor(seconds / secondsInUnit);
+            if (interval >= 1) {
+                return interval === 1 ? `1 ${unit} ago` : `${interval} ${unit}s ago`;
+            }
+        }
+        return 'just now';
+    }
+}
+// Function to update notification badge - now updates tree view
+function updateNotificationBadge() {
+    if (notificationsProvider) {
+        notificationsProvider.refresh();
+    }
+}
+// Function to add notification - now globally accessible
+function addNotification(message, type = 'info', projectId, projectName) {
+    const notification = {
+        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+        type,
+        message,
+        timestamp: new Date(),
+        read: false,
+        projectId,
+        projectName
+    };
+    notifications.unshift(notification);
+    // Keep only last 50 notifications
+    if (notifications.length > 50) {
+        notifications = notifications.slice(0, 50);
+    }
+    updateNotificationBadge();
+    // Save to persistent storage
+    saveNotifications().catch(err => {
+        console.error('Failed to save notifications:', err);
+    });
+    // Also show a VS Code notification for important messages
+    if (type === 'error') {
+        vscode.window.showErrorMessage(message);
+    }
+    else if (type === 'warning') {
+        vscode.window.showWarningMessage(message);
+    }
+}
 const JIRA_PROFILE_KEY_PREFIX = "jiraProfile:"; // Prefix for per-user Jira cache in VS Code global state
 function getCachedJiraProfile(userId) {
     if (!extensionContext) {
@@ -250,8 +412,146 @@ async function activate(context) {
     (0, ai_analyze_1.activateCodeReviewer)(context);
     // Store context globally first
     extensionContext = context;
+    // Initialize Timeline Manager
     timelineManager = new timelineManager_1.TimelineManager(context);
     context.subscriptions.push(timelineManager);
+    checkLiveShareInstalled();
+    // Load persisted notifications
+    await loadNotifications();
+    // Initialize code reviewer with notification callback
+    (0, ai_analyze_1.activateCodeReviewer)(context, addNotification);
+    // ============ NOTIFICATION SYSTEM SETUP ============
+    // Initialize notifications tree provider
+    notificationsProvider = new NotificationsTreeProvider();
+    // Register the tree view for the Activity Bar
+    const treeView = vscode.window.createTreeView('aiCollabNotificationsView', {
+        treeDataProvider: notificationsProvider,
+        showCollapseAll: false
+    });
+    context.subscriptions.push(treeView);
+    // Update badge to show unread count
+    let updateBadgeCount = () => {
+        const unreadCount = notifications.filter(n => !n.read).length;
+        if (unreadCount > 0) {
+            treeView.badge = {
+                tooltip: `${unreadCount} unread notification${unreadCount > 1 ? 's' : ''}`,
+                value: unreadCount
+            };
+        }
+        else {
+            treeView.badge = undefined;
+        }
+    };
+    // Call updateBadgeCount whenever notifications change
+    const originalRefresh = notificationsProvider.refresh.bind(notificationsProvider);
+    notificationsProvider.refresh = () => {
+        originalRefresh();
+        updateBadgeCount();
+    };
+    // Command when notification is clicked
+    const notificationClickedCmd = vscode.commands.registerCommand('aiCollab.notificationClicked', async (notificationId) => {
+        const notification = notifications.find(n => n.id === notificationId);
+        if (notification && !notification.read) {
+            notification.read = true;
+            notificationsProvider.refresh();
+            await saveNotifications();
+        }
+    });
+    context.subscriptions.push(notificationClickedCmd);
+    // Command to mark all as read
+    const markAllReadCmd = vscode.commands.registerCommand('aiCollab.markAllNotificationsRead', async () => {
+        notifications.forEach(n => n.read = true);
+        notificationsProvider.refresh();
+        await saveNotifications();
+        vscode.window.showInformationMessage('All notifications marked as read');
+    });
+    context.subscriptions.push(markAllReadCmd);
+    // Command to clear all notifications
+    const clearAllCmd = vscode.commands.registerCommand('aiCollab.clearAllNotifications', async () => {
+        notifications = [];
+        notificationsProvider.refresh();
+        await saveNotifications();
+        vscode.window.showInformationMessage('All notifications cleared');
+    });
+    context.subscriptions.push(clearAllCmd);
+    // Command to delete a single notification
+    const deleteNotificationCmd = vscode.commands.registerCommand('aiCollab.deleteNotification', async (item) => {
+        // Handle both string ID (from code) and TreeItem (from context menu)
+        const notificationId = typeof item === 'string' ? item : item.notificationId;
+        if (!notificationId) {
+            console.error('No notification ID provided to deleteNotification command');
+            return;
+        }
+        notifications = notifications.filter(n => n.id !== notificationId);
+        notificationsProvider.refresh();
+        await saveNotifications();
+    });
+    context.subscriptions.push(deleteNotificationCmd);
+    // Keep the old showNotifications command for backward compatibility (opens panel view)
+    const showNotificationsCmd = vscode.commands.registerCommand("aiCollab.showNotifications", () => {
+        const panel = vscode.window.createWebviewPanel("aiCollabNotifications", "AI Collab Notifications", vscode.ViewColumn.Beside, {
+            enableScripts: true,
+            retainContextWhenHidden: true
+        });
+        panel.webview.html = getNotificationsHtml(panel.webview);
+        // Send initial notifications
+        panel.webview.postMessage({
+            type: 'notificationsLoaded',
+            payload: { notifications }
+        });
+        // Handle messages from webview
+        panel.webview.onDidReceiveMessage(async (msg) => {
+            switch (msg.type) {
+                case 'markAsRead': {
+                    const { id } = msg.payload;
+                    const notification = notifications.find(n => n.id === id);
+                    if (notification) {
+                        notification.read = true;
+                        notificationsProvider.refresh();
+                        await saveNotifications();
+                        panel.webview.postMessage({
+                            type: 'notificationsLoaded',
+                            payload: { notifications }
+                        });
+                    }
+                    break;
+                }
+                case 'markAllAsRead': {
+                    notifications.forEach(n => n.read = true);
+                    notificationsProvider.refresh();
+                    await saveNotifications();
+                    panel.webview.postMessage({
+                        type: 'notificationsLoaded',
+                        payload: { notifications }
+                    });
+                    break;
+                }
+                case 'clearAll': {
+                    notifications = [];
+                    notificationsProvider.refresh();
+                    await saveNotifications();
+                    panel.webview.postMessage({
+                        type: 'notificationsLoaded',
+                        payload: { notifications }
+                    });
+                    break;
+                }
+                case 'deleteNotification': {
+                    const { id } = msg.payload;
+                    notifications = notifications.filter(n => n.id !== id);
+                    notificationsProvider.refresh();
+                    await saveNotifications();
+                    panel.webview.postMessage({
+                        type: 'notificationsLoaded',
+                        payload: { notifications }
+                    });
+                    break;
+                }
+            }
+        });
+    });
+    context.subscriptions.push(showNotificationsCmd);
+    // ============ END NOTIFICATION SYSTEM SETUP ============
     const createJiraCmd = vscode.commands.registerCommand("ai.createJiraTasks", async (options) => {
         return await (0, createJiraTasks_1.createJiraTasksCmd)(context, options); // Entry point to trigger AI backlog → Jira issue creation
     });
@@ -360,7 +660,7 @@ async function activate(context) {
     try {
         // Only initialize if user is authenticated
         if (authService.isAuthenticated()) {
-            peerSuggestionService = new PeerSuggestionService(context, databaseService, authService, getActiveProjectContext);
+            peerSuggestionService = new peerSuggestionService_1.PeerSuggestionService(context, databaseService, authService, getActiveProjectContext);
             context.subscriptions.push({
                 dispose: () => {
                     peerSuggestionService?.dispose();
@@ -375,7 +675,7 @@ async function activate(context) {
     authService.onAuthStateChange(async (user) => {
         if (user && !peerSuggestionService) {
             try {
-                peerSuggestionService = new PeerSuggestionService(context, databaseService, authService, getActiveProjectContext);
+                peerSuggestionService = new peerSuggestionService_1.PeerSuggestionService(context, databaseService, authService, getActiveProjectContext);
                 context.subscriptions.push({
                     dispose: () => {
                         peerSuggestionService?.dispose();
@@ -947,11 +1247,11 @@ async function openMainPanel(context, authService) {
                         email: msg.payload.email,
                         token: msg.payload.token,
                     };
-                    const tasks = await searchIssues(auth, msg.payload.projectKey, {
+                    const tasks = await (0, jira_1.searchIssues)(auth, msg.payload.projectKey, {
                         status: msg.payload.status,
                         search: msg.payload.search,
                     });
-                    const statuses = await getProjectStatuses(auth, msg.payload.projectKey);
+                    const statuses = await (0, jira_1.getProjectStatuses)(auth, msg.payload.projectKey);
                     panel.webview.postMessage({
                         type: "jiraTasksLoaded",
                         payload: { tasks, statuses, requestId },
@@ -979,7 +1279,7 @@ async function openMainPanel(context, authService) {
                         email: msg.payload.email,
                         token: msg.payload.token,
                     };
-                    const created = await createIssue(auth, {
+                    const created = await (0, jira_1.createIssue)(auth, {
                         projectKey: msg.payload.projectKey,
                         summary: msg.payload.summary,
                         description: msg.payload.description,
@@ -990,7 +1290,7 @@ async function openMainPanel(context, authService) {
                         const accountId = msg.payload.assigneeAccountId ||
                             (await resolveAssigneeAccountId(auth, msg.payload.assigneeEmail)); // Translate email → Jira account id
                         if (accountId) {
-                            await assignIssue(auth, created.id ?? created.key, accountId);
+                            await (0, jira_1.assignIssue)(auth, created.id ?? created.key, accountId);
                         }
                     }
                     panel.webview.postMessage({
@@ -1026,7 +1326,7 @@ async function openMainPanel(context, authService) {
                         assigneeAccountId,
                         transitionRequested: msg.payload.transitionId ? true : false,
                     });
-                    await updateIssue(auth, msg.payload.issueId, {
+                    await (0, jira_1.updateIssue)(auth, msg.payload.issueId, {
                         summary: msg.payload.summary,
                         description: msg.payload.description,
                         assigneeAccountId: assigneeAccountId === undefined ? undefined : assigneeAccountId || null,
@@ -1035,7 +1335,7 @@ async function openMainPanel(context, authService) {
                         throw new Error(`Jira user not found for ${msg.payload.assigneeEmail || msg.payload.assigneeAccountId}. Check access in Jira.`);
                     }
                     if (msg.payload.transitionId) {
-                        await transitionIssue(auth, msg.payload.issueId, msg.payload.transitionId); // Move status using Jira transitions API
+                        await (0, jira_1.transitionIssue)(auth, msg.payload.issueId, msg.payload.transitionId); // Move status using Jira transitions API
                     }
                     panel.webview.postMessage({
                         type: "jiraOperationResult",
@@ -1061,7 +1361,7 @@ async function openMainPanel(context, authService) {
                         email: msg.payload.email,
                         token: msg.payload.token,
                     };
-                    await deleteIssue(auth, msg.payload.issueId);
+                    await (0, jira_1.deleteIssue)(auth, msg.payload.issueId);
                     panel.webview.postMessage({
                         type: "jiraOperationResult",
                         payload: { message: "Jira task deleted." },
@@ -1086,7 +1386,7 @@ async function openMainPanel(context, authService) {
                         email: msg.payload.email,
                         token: msg.payload.token,
                     };
-                    const transitions = await getIssueTransitions(auth, msg.payload.issueId); // Fetch available status moves for dropdown
+                    const transitions = await (0, jira_1.getIssueTransitions)(auth, msg.payload.issueId); // Fetch available status moves for dropdown
                     panel.webview.postMessage({
                         type: "jiraTransitionsLoaded",
                         payload: { issueId: msg.payload.issueId, transitions },
@@ -1108,7 +1408,7 @@ async function openMainPanel(context, authService) {
                         email: msg.payload.email,
                         token: msg.payload.token,
                     };
-                    const users = await getAssignableUsers(auth, msg.payload.projectKey);
+                    const users = await (0, jira_1.getAssignableUsers)(auth, msg.payload.projectKey);
                     panel.webview.postMessage({
                         type: "jiraAssignableLoaded",
                         payload: { users },
@@ -2090,7 +2390,7 @@ async function resolveAssigneeAccountId(auth, email) {
     if (jiraAccountIdCache.has(cacheKey)) {
         return jiraAccountIdCache.get(cacheKey) || null; // Return cached result (including null) to avoid duplicate lookups
     }
-    const accountId = await findUserAccountId(auth, email); // Ask Jira for account id that matches the email
+    const accountId = await (0, jira_1.findUserAccountId)(auth, email); // Ask Jira for account id that matches the email
     jiraAccountIdCache.set(cacheKey, accountId); // Store resolved id for later updates/assignments
     return accountId;
 }
