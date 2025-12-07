@@ -1393,7 +1393,6 @@ IMPORTANT: Please respond in valid JSON format with the following structure:
 If you cannot provide JSON, provide the response in the numbered format as before, and I will parse it.`;
                 // Call the Supabase Edge Function to get AI response
                 try {
-                    vscode.window.showInformationMessage("Generating AI analysis...");
                     const edgeFunctionUrl = (0, supabaseConfig_1.getEdgeFunctionUrl)();
                     const anonKey = (0, supabaseConfig_1.getSupabaseAnonKey)();
                     // Send in the format the edge function expects: { project, users }
@@ -1415,13 +1414,39 @@ If you cannot provide JSON, provide the response in the numbered format as befor
                     const aiResponse = aiResult.message || aiResult.response || "No response received";
                     // Parse the AI response (try JSON first, fallback to text parsing)
                     const parsedData = parseAIResponse(aiResponse, teamMembersForPrompt);
+                    console.log('Project ID:', projectToPrompt.id);
                     // Save to database
                     const supabase = (0, supabaseConfig_1.getSupabaseClient)();
-                    await supabase.from("ai_prompts").insert([{
+                    const { data: savedPrompt, error: saveError } = await supabase
+                        .from("ai_prompts")
+                        .insert([{
                             project_id: projectToPrompt.id,
                             prompt_content: promptContent,
                             ai_response: aiResponse,
-                        }]);
+                        }])
+                        .select();
+                    if (saveError) {
+                        console.error('❌ Failed to save to database:', saveError);
+                        vscode.window.showErrorMessage(`Failed to save AI analysis: ${saveError.message}`);
+                    }
+                    else {
+                        console.log('✅ Successfully saved to database:', savedPrompt);
+                        vscode.window.showInformationMessage('AI analysis saved successfully!');
+                        // NOTIFY SIDEBAR TO RELOAD IMMEDIATELY
+                        const sidebarProvider = global.sidebarProvider;
+                        if (sidebarProvider) {
+                            console.log('📡 Notifying sidebar to refresh AI analysis');
+                            // Refresh immediately
+                            await sidebarProvider.refreshAIAnalysis(projectToPrompt.id);
+                            // Also reload all data in case team members changed
+                            const freshData = await loadInitialData();
+                            sidebarProvider.sendMessage({
+                                type: 'dataLoaded',
+                                payload: freshData
+                            });
+                            console.log('✅ Sidebar notified and refreshed');
+                        }
+                    }
                     // Save to file
                     const tempFileName = `AI_Response_${projectToPrompt.name.replace(/[^a-zA-Z0-9]/g, "_")}_${Date.now()}.txt`;
                     const workspaceFolders = vscode.workspace.workspaceFolders;

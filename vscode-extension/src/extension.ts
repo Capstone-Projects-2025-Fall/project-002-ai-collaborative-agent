@@ -1461,9 +1461,7 @@ async function openMainPanel(
         );
 
         if (!projectToPrompt) {
-          vscode.window.showErrorMessage(
-            "Project not found for AI prompt generation."
-          );
+          vscode.window.showErrorMessage("Project not found for AI prompt generation.");
           panel.webview.postMessage({
             type: "promptGenerationError",
             payload: { message: "Project not found." },
@@ -1603,8 +1601,6 @@ If you cannot provide JSON, provide the response in the numbered format as befor
 
         // Call the Supabase Edge Function to get AI response
         try {
-          vscode.window.showInformationMessage("Generating AI analysis...");
-          
           const edgeFunctionUrl = getEdgeFunctionUrl();
           const anonKey = getSupabaseAnonKey();
           
@@ -1631,13 +1627,44 @@ If you cannot provide JSON, provide the response in the numbered format as befor
           // Parse the AI response (try JSON first, fallback to text parsing)
           const parsedData = parseAIResponse(aiResponse, teamMembersForPrompt);
 
+          console.log('Project ID:', projectToPrompt.id);
+
           // Save to database
           const supabase = getSupabaseClient();
-          await supabase.from("ai_prompts").insert([{
+          const { data: savedPrompt, error: saveError } = await supabase
+          .from("ai_prompts")
+          .insert([{
             project_id: projectToPrompt.id,
             prompt_content: promptContent,
             ai_response: aiResponse,
-          }]);
+          }])
+          .select();
+
+          if (saveError) {
+            console.error('❌ Failed to save to database:', saveError);
+            vscode.window.showErrorMessage(`Failed to save AI analysis: ${saveError.message}`);
+          } else {
+            console.log('✅ Successfully saved to database:', savedPrompt);
+            vscode.window.showInformationMessage('AI analysis saved successfully!');
+            
+            // NOTIFY SIDEBAR TO RELOAD IMMEDIATELY
+            const sidebarProvider = (global as any).sidebarProvider;
+            if (sidebarProvider) {
+              console.log('📡 Notifying sidebar to refresh AI analysis');
+              
+              // Refresh immediately
+              await sidebarProvider.refreshAIAnalysis(projectToPrompt.id);
+              
+              // Also reload all data in case team members changed
+              const freshData = await loadInitialData();
+              sidebarProvider.sendMessage({ 
+                type: 'dataLoaded', 
+                payload: freshData 
+              });
+              
+              console.log('✅ Sidebar notified and refreshed');
+            }
+          }
 
           // Save to file
           const tempFileName = `AI_Response_${projectToPrompt.name.replace(

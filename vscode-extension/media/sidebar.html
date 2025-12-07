@@ -466,6 +466,69 @@
         .join-code-section {
             margin-top: 12px;
         }
+
+        .collapsible-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+
+        .collapsible-header:hover {
+            background: var(--vscode-list-hoverBackground);
+        }
+
+        .collapsible-header .expand-icon {
+            font-size: 10px;
+            transition: transform 0.2s;
+            color: var(--vscode-foreground);
+        }
+
+        .collapsible-header .expand-icon.expanded {
+            transform: rotate(-90deg);
+        }
+
+        .collapsible-content {
+            max-height: 500px;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+            opacity: 1;
+        }
+
+        .collapsible-content.collapsed {
+            max-height: 0;
+            opacity: 0;
+        }
+
+        .liveshare-status-box {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            background: var(--vscode-badge-background);
+            border-radius: 12px;
+            font-size: 11px;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--vscode-descriptionForeground);
+        }
+
+        .status-indicator.active {
+            background: #4caf50;
+            box-shadow: 0 0 8px #4caf50;
+        }
+
+        .status-text {
+            font-size: 11px;
+            color: var(--vscode-foreground);
+        }
     </style>
 </head>
 <body>
@@ -476,27 +539,48 @@
 
     <!-- MODE 1: Active Project View -->
     <div id="activeProjectMode" class="hidden">
+        <!-- Current Project Section -->
         <div class="section">
-            <div class="section-title">📋 Current Project</div>
+            <div class="section-title">Current Project</div>
             <div class="active-project-container">
                 <div class="project-header">
                     <div class="project-name-large" id="currentProjectName">-</div>
                     <button class="switch-btn" id="switchProjectBtn">Switch</button>
                 </div>
-
-                <div class="liveshare-status-box">
-                    <span class="status-indicator" id="projectStatusIndicator"></span>
-                    <span class="status-text" id="projectStatusText">Not connected</span>
-                </div>
-
-                <button class="copy-link-btn" id="copyLinkBtn" disabled>
-                    Copy LiveShare Link
-                </button>
             </div>
         </div>
 
+        <!-- LiveShare Collaboration Section (Collapsible) -->
         <div class="section">
-            <div class="section-title">👥 Team Members</div>
+            <div class="collapsible-header" id="liveshareHeader">
+                <span class="expand-icon" id="liveshareExpandIcon">▼</span>
+                <div class="section-title" style="margin: 0;">🔗 Live Collab</div>
+                <div class="liveshare-status-box" style="margin-left: auto;">
+                    <span class="status-indicator" id="projectStatusIndicator"></span>
+                    <span class="status-text" id="projectStatusText">Not connected</span>
+                </div>
+            </div>
+            
+            <div class="collapsible-content" id="liveshareContent">
+                <div class="active-project-container">
+                    <div class="input-group">
+                        <input 
+                            type="text" 
+                            id="liveshareInput" 
+                            placeholder="Paste LiveShare link..."
+                        />
+                    </div>
+                    <button id="joinBtn" class="full-width-btn">Join Session</button>
+                    <button id="startSessionBtn" class="secondary full-width-btn">
+                        Start New Session
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Team Members Section -->
+        <div class="section">
+            <div class="section-title">Team Members</div>
             <div class="team-members-list" id="teamMembersList">
                 <div class="no-projects">No team members</div>
             </div>
@@ -505,22 +589,7 @@
 
     <!-- MODE 2: No Active Project View -->
     <div id="noProjectMode">
-        <div class="section">
-            <div class="section-title">🔗 Join Collaboration</div>
-            <div class="no-project-container">
-                <div class="input-group">
-                    <input 
-                        type="text" 
-                        id="liveshareInput" 
-                        placeholder="Paste LiveShare link..."
-                    />
-                </div>
-                <button id="joinBtn" class="full-width-btn">Join</button>
-                <button id="startSessionBtn" class="secondary full-width-btn">
-                    Start New Session
-                </button>
-            </div>
-        </div>
+        
 
         <div class="section">
             <div class="section-title">📋 My Projects</div>
@@ -564,11 +633,17 @@
         let liveshareStatus = 'disconnected';
         let liveshareLink = null;
         let expandedMemberId = null;
+        let isLiveshareExpanded = false;
 
         // Initialize
         vscode.postMessage({ type: 'sidebarReady' });
         vscode.postMessage({ type: 'loadData' });
         switchToNoProjectMode();
+
+        // Initialize LiveShare section as collapsed
+        window.addEventListener('DOMContentLoaded', () => {
+            initializeLiveshareSection();
+        });
 
         // Request LiveShare participants periodically
         setInterval(() => {
@@ -581,6 +656,35 @@
         document.getElementById('profileAvatar').addEventListener('click', () => {
             vscode.postMessage({ type: 'openProfile' });
         });
+
+        // LiveShare Section Toggle
+        document.getElementById('liveshareHeader').addEventListener('click', () => {
+            isLiveshareExpanded = !isLiveshareExpanded;
+            toggleLiveshareSection();
+        });
+
+        function toggleLiveshareSection() {
+            const content = document.getElementById('liveshareContent');
+            const icon = document.getElementById('liveshareExpandIcon');
+            
+            if (isLiveshareExpanded) {
+                content.classList.remove('collapsed');
+                icon.classList.add('expanded');
+            } else {
+                content.classList.add('collapsed');
+                icon.classList.remove('expanded');
+            }
+        }
+
+        function initializeLiveshareSection() {
+            const content = document.getElementById('liveshareContent');
+            const icon = document.getElementById('liveshareExpandIcon');
+            
+            if (content && icon) {
+                content.classList.add('collapsed');
+                icon.classList.remove('expanded');
+            }
+        }
 
         // LiveShare Join
         document.getElementById('liveshareInput').addEventListener('paste', (e) => {
@@ -610,16 +714,6 @@
         // Start LiveShare
         document.getElementById('startSessionBtn').addEventListener('click', () => {
             vscode.postMessage({ type: 'startLiveShare' });
-        });
-
-        // Copy LiveShare Link
-        document.getElementById('copyLinkBtn').addEventListener('click', () => {
-            if (liveshareLink) {
-                vscode.postMessage({ 
-                    type: 'copyLiveShareLink', 
-                    payload: { link: liveshareLink } 
-                });
-            }
         });
 
         // Switch Project
@@ -684,6 +778,32 @@
             }
         });
 
+        function showNotification(message) {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 10px;
+                right: 10px;
+                background: var(--vscode-notifications-background);
+                color: var(--vscode-notifications-foreground);
+                border: 1px solid var(--vscode-notifications-border);
+                border-radius: 4px;
+                padding: 12px 16px;
+                font-size: 12px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+                z-index: 9999;
+                animation: slideIn 0.3s ease-out;
+            `;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease-out';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+
         function loadData(data) {
             if (data.currentUser) {
                 currentUser = data.currentUser;
@@ -722,18 +842,27 @@
                 return;
             }
 
+            console.log('Setting active project:', project.name);
             activeProject = project;
             switchToActiveProjectMode();
 
             document.getElementById('currentProjectName').textContent = project.name || 'Unknown Project';
 
-            // Request AI analysis for task data
+            aiAnalysisData = null;
+            
+            const container = document.getElementById('teamMembersList');
+            container.innerHTML = `
+                <div style="text-align: center; padding: 20px; color: var(--vscode-descriptionForeground);">
+                    <div style="font-size: 24px; margin-bottom: 8px;">⏳</div>
+                    <div style="font-size: 12px;">Loading team members...</div>
+                </div>
+            `;
+            
+            console.log('Requesting AI analysis for project:', project.id);
             vscode.postMessage({ 
                 type: 'getAIAnalysis', 
                 payload: { projectId: project.id } 
             });
-
-            renderTeamMembers();
         }
 
         function switchToActiveProjectMode() {
@@ -770,10 +899,13 @@
                 return;
             }
 
+            const hasAIAnalysis = aiAnalysisData && aiAnalysisData.hasAnalysis && aiAnalysisData.roleAssignments;
+
             container.innerHTML = teamMembers.map(member => {
                 const isActive = activeMembers.has(member.id);
                 const isExpanded = expandedMemberId === member.id;
                 const memberTasks = getMemberTasks(member.name);
+                // const memberTasks = hasAIAnalysis ? getMemberTasks(member.name) : { current: [], goal: '' };
                 const lastActive = isActive ? 'Active now' : 'Last active: 2 hours ago';
 
                 return `
@@ -782,30 +914,21 @@
                             <span class="member-status-dot ${isActive ? 'active' : ''}"></span>
                             <div class="member-info">
                                 <div class="member-name">${member.name}</div>
-                                <div class="member-last-active">${lastActive}</div>
+                                <div class="detail-label">${memberTasks.goal || 'No goals assigned yet'}</div>
+
                             </div>
                             <span class="expand-icon ${isExpanded ? 'expanded' : ''}">▼</span>
                         </div>
                         <div class="member-details ${isExpanded ? 'expanded' : ''}" id="details-${member.id}">
                             <div class="member-details-content" style="position: relative;">
                                 <button class="close-details-btn" data-member-id="${member.id}">×</button>
-                                
+
                                 <div class="detail-section">
-                                    <div class="detail-label">🎯 Current Tasks</div>
+                                    <div class="detail-label">🎯 Tasks</div>
                                     ${memberTasks.current.length > 0 
                                         ? memberTasks.current.map(task => `<div class="task-item">${task}</div>`).join('')
-                                        : '<div class="detail-content">No current tasks assigned</div>'
+                                        : '<div class="detail-content">No tasks assigned</div>'
                                     }
-                                </div>
-
-                                <div class="detail-section">
-                                    <div class="detail-label">📚 Work History</div>
-                                    <div class="history-placeholder">See history (Coming soon)</div>
-                                </div>
-
-                                <div class="detail-section">
-                                    <div class="detail-label">🚀 Project Goals</div>
-                                    <div class="detail-content">${memberTasks.goal || 'No goals assigned yet'}</div>
                                 </div>
                             </div>
                         </div>
@@ -880,7 +1003,6 @@
 
             const indicator = document.getElementById('projectStatusIndicator');
             const text = document.getElementById('projectStatusText');
-            const copyBtn = document.getElementById('copyLinkBtn');
             
             if (status.state === 'active') {
                 indicator.classList.add('active');
