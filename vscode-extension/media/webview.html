@@ -1516,6 +1516,8 @@
             font-size: 0.85rem;
             border: 1px solid rgba(255, 255, 255, 0.3);
             background: rgba(255, 255, 255, 0.2);
+        }
+
         .timeline-header {
             display: flex;
             justify-content: space-between;
@@ -1573,6 +1575,8 @@
             transition: all 0.2s ease;
             font-weight: 600;
             min-width: 0;
+        }
+
         .timeline-container {
             position: relative;
             padding: 20px 0;
@@ -1783,6 +1787,7 @@
             grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
             gap: 24px;
             align-items: flex-start;
+        }
         /* CODE DIFF VIEWER STYLES */
         .diff-viewer-modal {
             display: none;
@@ -2646,7 +2651,6 @@ body { min-height: 100dvh; }
                 <div style="width: 140px;"></div> <!-- Spacer -->
             </div>
             <p>Team Collaboration & AI-Powered Project Management</p>
-
         </div>
 
         <div class="tabs">
@@ -2873,7 +2877,6 @@ body { min-height: 100dvh; }
                     <div id="projectRefreshStatus" class="status-message" style="display: none;"></div>
                 </div>
             </div>
-
         </div>
 
         <!-- Edit Project Modal -->
@@ -3550,14 +3553,6 @@ body { min-height: 100dvh; }
                     'Go', 'Rust', 'PHP', 'Ruby', 'Swift', 'Kotlin', 'SQL', 'HTML/CSS'
                 ];
 
-                <h1 class="brand">
-                <img src="{{logoUri}}" alt="AI Collab Agent logo" class="app-logo">
-                <span class="brand-text">Pallas AI</span>
-
-                </h1>
-                <div class="header-spacer" aria-hidden="true"></div>
-            </div>
-            <p>Team Collaboration & AI-Powered Project Management</p>
                 const otherLanguages = [];
 
                 // First, uncheck all checkboxes
@@ -3627,8 +3622,6 @@ body { min-height: 100dvh; }
             <div id="jiraStatus" class="status-message" style="display: none;"></div>
 
 
-
-        </div>
                 const jiraBaseUrl = (document.getElementById('jiraBaseUrl')?.value || fallback.jiraBaseUrl || '').trim();
                 const jiraProjectKey = (document.getElementById('jiraProjectKey')?.value || fallback.jiraProjectKey || '').trim();
                 const jiraEmail = (document.getElementById('jiraEmail')?.value || fallback.jiraEmail || '').trim();
@@ -3728,20 +3721,13 @@ body { min-height: 100dvh; }
                         if (Array.isArray(taskGroups.future)) {
                             taskGroups.future.forEach(task => addTask(`${memberPrefix}(Future) ${task}`));
                         }
-
-                    <div id="projectList" class="project-list">
-                    <p class="placeholder">No projects yet</p>
-                    </div>
-
-                    <div id="projectRefreshStatus" class="status-message" style="display: none;"></div>
-                </div>
-            </div>
-        </div>
                         if (Array.isArray(member?.responsibilities)) {
                             member.responsibilities.forEach(resp => addTask(`${memberPrefix}(Responsibility) ${resp}`));
                         }
                     });
                 }
+
+
 
                 if (Array.isArray(analysis.deliverables)) {
                     analysis.deliverables.forEach(deliverable => {
@@ -3769,6 +3755,7 @@ body { min-height: 100dvh; }
 
                 return tasks.join('\n');
             }
+            
 
             useAiAnalysisForJira() {
                 const promptProjectSelect = document.getElementById('promptProject');
@@ -3951,6 +3938,7 @@ body { min-height: 100dvh; }
 
             loadCurrentUserProfile() {
                 if (!this.currentUser) return;
+            }
             fetchAssignableFromJira() {
                 try {
                     const payload = this.getJiraPayload();
@@ -4662,41 +4650,38 @@ body { min-height: 100dvh; }
             }
 
             updateProjectList() {
-            const projectList = document.getElementById('projectList');
-            if (!projectList) return;
+                const projectList = document.getElementById('projectList');
+                if (!projectList) return;
 
-            if (this.projects.length === 0) {
-                projectList.innerHTML = '<p class="placeholder">No projects yet</p>';
-                return;
-            }
+                if (this.projects.length === 0) {
+                    projectList.innerHTML = '<p class="placeholder">No projects yet</p>';
+                    return;
+                }
 
-            projectList.innerHTML = this.projects.map(project => {
-                const memberIds = (project.selectedMemberIds || []).map(String);
-                const teamMembers = this.users.filter(user => memberIds.includes(String(user.id)));
+                projectList.innerHTML = this.projects.map(project => {
+                    const memberIds = (project.selectedMemberIds || []).map(String);
+                    const teamMembers = this.users.filter(user => memberIds.includes(String(user.id)));
 
-                const currentUserId = this.currentUser ? String(this.currentUser.id) : null;
-                const projectOwnerId = project.owner_id ? String(project.owner_id) : null;
-                const isOwner = currentUserId && projectOwnerId && currentUserId === projectOwnerId;
-                const isMember = this.currentUser && memberIds.includes(String(this.currentUser.id));
-                const canEdit = isOwner || isMember;
-
-                const teamMemberCards = teamMembers.length > 0
-                ? teamMembers.map(member => `
-                    <div class="team-member-card">
-                        <div>👤 ${member.name}</div>
-                        <div class="muted xsmall">
-                          <div><strong>Skills:</strong> ${member.skills || 'Not specified'}</div>
-                          <div><strong>Languages:</strong> ${member.programmingLanguages || 'Not specified'}</div>
-                        </div>
-                    </div>
-                    `).join('') : '<p style="color: #64748b; font-size: 0.9rem;">No members yet</p>';
+                    const teamMemberCards = teamMembers.length > 0
+                        ? teamMembers.map(member => `
+                            <div class="team-member-card">
+                                <div>👤 ${member.name}</div>
+                                <div class="muted xsmall">
+                                    <div><strong>Skills:</strong> ${member.skills || 'Not specified'}</div>
+                                    <div><strong>Languages:</strong> ${member.programmingLanguages || 'Not specified'}</div>
+                                </div>
+                            </div>
+                        `).join('')
+                        : '<p style="color: #64748b; font-size: 0.9rem;">No members yet</p>';
 
                     // Ensure both values are strings for comparison (handle UUID type mismatches)
                     const currentUserId = this.currentUser ? String(this.currentUser.id) : null;
                     const projectOwnerId = project.owner_id ? String(project.owner_id) : null;
                     const isOwner = currentUserId && projectOwnerId && currentUserId === projectOwnerId;
                     const isMember = this.currentUser && (project.selectedMemberIds || []).includes(String(this.currentUser.id));
-                    const ownerBadge = isOwner ? '<span style="background: #10b981; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; margin-left: 8px;">Owner</span>' : '';
+                    const ownerBadge = isOwner 
+                        ? '<span style="background: #10b981; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; margin-left: 8px;">Owner</span>' 
+                        : '';
                     const canEdit = isOwner || isMember;
 
                     return `
@@ -4718,46 +4703,14 @@ body { min-height: 100dvh; }
                             </div>
                             <p style="margin-top: 10px;"><strong>Created:</strong> ${new Date(project.createdAt).toLocaleString()}</p>
                             ${isOwner
-                            ? `<button class="btn btn-danger delete-project-btn" data-project-id="${project.id}" style='margin-top: 8px; padding: 6px 12px; font-size: 0.8rem; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer;'>Delete Project</button>`
-                            : `<button class="btn btn-secondary leave-project-btn" data-project-id="${project.id}" style='margin-top: 8px; padding: 6px 12px; font-size: 0.8rem; border: none; border-radius: 4px; cursor: pointer;'>Leave Project</button>`
-                        }
+                                ? `<button class="btn btn-danger delete-project-btn" data-project-id="${project.id}" style='margin-top: 8px; padding: 6px 12px; font-size: 0.8rem; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer;'>Delete Project</button>`
+                                : `<button class="btn btn-secondary leave-project-btn" data-project-id="${project.id}" style='margin-top: 8px; padding: 6px 12px; font-size: 0.8rem; border: none; border-radius: 4px; cursor: pointer;'>Leave Project</button>`
+                            }
                         </div>
-                    </div>
-                    `).join('')
-                : '<p class="muted">No members yet</p>';
-
-                const ownerBadge = isOwner ? '<span class="badge badge-owner">Owner</span>' : '';
-
-                return `
-                <div class="project-item">
-                    <div class="row-between" style="margin-bottom:10px;">
-                    <h3 style="margin:0;">📋 ${project.name}${ownerBadge}</h3>
-                    ${canEdit ? `<button class="btn btn-compact edit-project-btn" data-project-id="${project.id}">✏️ Edit</button>` : ''}
-                    </div>
-
-                    <p><strong>Description:</strong> ${project.description}</p>
-                    <p><strong>Goals:</strong> ${project.goals || 'Not specified'}</p>
-                    <p><strong>Requirements:</strong> ${project.requirements || 'Not specified'}</p>
-                    <p><strong>Invite Code:</strong> <code class="code-badge">${project.invite_code || 'N/A'}</code></p>
-
-                    <div class="team-members-section">
-                    <strong>Team Members:</strong>
-                    <div class="team-member-cards" style="margin-top:8px;">
-                        ${teamMemberCards}
-                    </div>
-                    ${isOwner ? '<p class="muted xsmall" style="margin-top:8px;">As owner, you can remove members by editing the project.</p>' : ''}
-                    </div>
-
-                    <p class="muted xsmall" style="margin-top:10px;"><strong>Created:</strong> ${new Date(project.createdAt).toLocaleString()}</p>
-
-                    ${isOwner
-                    ? `<button class="btn btn-danger btn-compact delete-project-btn" data-project-id="${project.id}" style="margin-top:8px;">Delete Project</button>`
-                    : `<button class="btn btn-secondary btn-compact leave-project-btn" data-project-id="${project.id}" style="margin-top:8px;">Leave Project</button>`
-                    }
-                </div>
-                `;
-            }).join('');
+                    `;
+                }).join('');
             }
+
 
             updateUserSelection() {
                 const userSelection = document.getElementById('userSelection');
