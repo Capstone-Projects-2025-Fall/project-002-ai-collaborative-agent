@@ -2715,7 +2715,7 @@ input::placeholder, textarea::placeholder{
 
         <div id="prompts" class="tab-content">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <div class="section-title" style="margin: 0;">AI Analysis Generator</div>
+                <div class="section-title" style="margin: 0; color: #000000;">AI Analysis Generator</div>
                 <button id="start-project" class="btn btn-primary" style="padding: 8px 20px; font-size: 0.9rem;">Start Project</button>
             </div>
 
@@ -2724,67 +2724,67 @@ input::placeholder, textarea::placeholder{
                 <!-- Project & Mode (2-column grid) -->
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
                     <div class="form-group" style="margin: 0;">
-                        <label for="promptProject" style="font-size: 0.8rem; margin-bottom: 4px;">Project</label>
-                        <select id="promptProject" style="font-size: 0.85rem; padding: 6px 8px;">
+                        <label for="promptProject" style="font-size: 0.85rem; margin-bottom: 4px; color: #000000; font-weight: 600;">Project</label>
+                        <select id="promptProject" style="font-size: 0.9rem; padding: 8px 10px; color: #000000; background: #ffffff; border: 1px solid #cbd5e1;">
                             <option value="">Choose project...</option>
-                        </select>
-                    </div>
+                </select>
+            </div>
 
                     <div class="form-group" style="margin: 0;">
-                        <label for="analysis-mode" style="font-size: 0.8rem; margin-bottom: 4px;">Analysis Mode</label>
-                        <select id="analysis-mode" style="font-size: 0.85rem; padding: 6px 8px;">
+                        <label for="analysis-mode" style="font-size: 0.85rem; margin-bottom: 4px; color: #000000; font-weight: 600;">Analysis Mode</label>
+                        <select id="analysis-mode" style="font-size: 0.9rem; padding: 8px 10px; color: #000000; background: #ffffff; border: 1px solid #cbd5e1;">
                             <option value="initial">Initial Planning</option>
                             <option value="progress">Progress Update</option>
-                        </select>
-                    </div>
+                </select>
                 </div>
+            </div>
 
                 <!-- Workspace Link (compact, inline) -->
                 <div id="workspace-link-info" style="display: none; padding: 6px 10px; background: #f0f9ff; border-left: 2px solid #3b82f6; border-radius: 4px; margin-bottom: 12px;">
                     <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.75rem;">
                         <div id="workspace-link-text" style="color: #1e40af; flex: 1;"></div>
                         <button id="unlink-workspace-btn" class="btn-minimal" style="font-size: 0.7rem; padding: 2px 8px; color: #dc2626;">Unlink</button>
-                    </div>
                 </div>
+            </div>
 
                 <div id="link-workspace-container" style="display: none; margin-bottom: 12px;">
                     <button id="link-workspace-btn" class="btn-minimal" style="font-size: 0.8rem; padding: 4px 10px; color: #3b82f6;">Link Workspace</button>
-                </div>
+            </div>
 
                 <!-- Collapsible Mode Details -->
                 <details id="mode-details" style="margin-bottom: 12px;" open>
-                    <summary style="cursor: pointer; font-size: 0.8rem; color: #475569; font-weight: 600; padding: 6px 0; user-select: none; list-style: none; display: flex; align-items: center; gap: 6px;">
+                    <summary style="cursor: pointer; font-size: 0.85rem; color: #000000; font-weight: 700; padding: 6px 0; user-select: none; list-style: none; display: flex; align-items: center; gap: 6px;">
                         <span style="transition: transform 0.2s;">▶</span>
                         <span id="mode-summary-text">Mode Details</span>
                     </summary>
-                    <div id="mode-description" style="margin-top: 8px; padding: 10px; background: #f8fafc; border-radius: 4px; font-size: 0.8rem;">
-                        <div style="color: #000000; line-height: 1.5;" id="mode-desc-text"></div>
-                        <div id="mode-rag-requirement" style="display: none; color: #059669; font-size: 0.75rem; margin-top: 6px; font-weight: 600; padding: 6px; background: #f0fdf4; border-radius: 3px;">
+                    <div id="mode-description" style="margin-top: 8px; padding: 10px; background: #f8fafc; border-radius: 4px; font-size: 0.85rem;">
+                        <div style="color: #1e293b; line-height: 1.5; font-weight: 500;" id="mode-desc-text"></div>
+                        <div id="mode-rag-requirement" style="display: none; color: #059669; font-size: 0.8rem; margin-top: 6px; font-weight: 700; padding: 6px; background: #f0fdf4; border-radius: 3px;">
                             ✓ Uses Smart Context
-                        </div>
+                </div>
                     </div>
                 </details>
 
                 <!-- Collapsible Smart Context -->
                 <details id="rag-details" style="margin-bottom: 12px;">
-                    <summary style="cursor: pointer; font-size: 0.8rem; color: #475569; font-weight: 600; padding: 6px 0; user-select: none; list-style: none; display: flex; align-items: center; gap: 6px;">
+                    <summary style="cursor: pointer; font-size: 0.85rem; color: #000000; font-weight: 700; padding: 6px 0; user-select: none; list-style: none; display: flex; align-items: center; gap: 6px;">
                         <span style="transition: transform 0.2s;">▶</span>
                         Smart Context
-                        <span id="rag-status-badge" style="font-size: 0.7rem; color: #64748b; margin-left: 4px;">(Not indexed)</span>
+                        <span id="rag-status-badge" style="font-size: 0.75rem; color: #64748b; font-weight: 600; margin-left: 4px;">(Not indexed)</span>
                     </summary>
                     <div id="rag-control" style="padding: 10px; background: #f8fafc; border-radius: 4px; margin-top: 8px;">
                         <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
-                            <div style="font-size: 0.75rem; color: #475569; flex: 1;">
+                            <div style="font-size: 0.8rem; color: #1e293b; font-weight: 500; flex: 1;">
                                 Scans code once, sends only relevant snippets. Saves 60-80% tokens.
                             </div>
                             <div style="display: flex; align-items: center; gap: 10px;">
-                                <label class="rag-toggle">
-                                    <input type="checkbox" id="rag-toggle-switch" disabled>
-                                    <span class="rag-slider"></span>
-                                </label>
+                    <label class="rag-toggle">
+                        <input type="checkbox" id="rag-toggle-switch" disabled>
+                        <span class="rag-slider"></span>
+                    </label>
                                 <button id="index-workspace-btn" class="btn-minimal" style="display: none; padding: 4px 10px; font-size: 0.8rem;">Index</button>
-                            </div>
-                        </div>
+                </div>
+            </div>
                     </div>
                 </details>
 
@@ -2806,16 +2806,16 @@ input::placeholder, textarea::placeholder{
                     <button id="clear-analysis-btn" class="btn-minimal" style="font-size: 0.85rem; padding: 6px 12px; color: #ef4444;" title="Clear and move to past analyses">
                         × Clear
                     </button>
-                </div>
-                
+            </div>
+
                 <!-- Analysis results visualization -->
                 <div id="aiAnalysisVisualization"></div>
-            </div>
+                </div>
 
             <!-- Past AI Analyses Section (minimal) -->
             <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e2e8f0;">
-                <div style="font-size: 1rem; font-weight: 600; color: #1e293b; margin-bottom: 8px;">Past Analyses</div>
-                <p style="color: #64748b; font-size: 0.85rem; margin-bottom: 15px;">Previous task delegations for this project</p>
+                <div style="font-size: 1.1rem; font-weight: 700; color: #ffffff; margin-bottom: 8px;">Past Analyses</div>
+                <p style="color: #ffffff; font-size: 0.9rem; margin-bottom: 15px; font-weight: 500;">Previous task delegations for this project</p>
 
                 <div id="pastAnalysisList" style="display: none; margin-top: 12px;">
                     <div id="pastAnalysisItems" style="max-height: 250px; overflow-y: auto; background: #f8fafc; border-radius: 6px; padding: 8px; border: 1px solid #e2e8f0;">
@@ -3018,7 +3018,7 @@ input::placeholder, textarea::placeholder{
             <div class="diff-viewer-body" id="diffViewerBody">
                 <!-- Content populated by JavaScript -->
             </div>
-        </div> 
+        </div>
     </div>
 
     <script>
@@ -5045,14 +5045,14 @@ input::placeholder, textarea::placeholder{
                     </summary>
                     <div class="analysis-content">
                         ${data.teamAnalysis.summary ? `<p style="margin-bottom: 12px; line-height: 1.5; font-size: 0.85rem; color: #1e293b;">${data.teamAnalysis.summary}</p>` : ''}
-                        ${data.teamAnalysis.gaps && data.teamAnalysis.gaps.length > 0 ? `
+                    ${data.teamAnalysis.gaps && data.teamAnalysis.gaps.length > 0 ? `
                             <div style="margin-top: 10px;">
                                 <strong style="color: #dc2626; font-size: 0.8rem;">Skill Gaps:</strong>
                                 <ul style="margin-top: 6px; padding-left: 18px; font-size: 0.8rem;">
                                     ${data.teamAnalysis.gaps.map(gap => `<li style="margin: 4px 0; color: #475569;">${gap}</li>`).join('')}
-                                </ul>
-                            </div>
-                        ` : ''}
+                            </ul>
+                        </div>
+                    ` : ''}
                     </div>
                 </details>`;
             }
@@ -5070,19 +5070,19 @@ input::placeholder, textarea::placeholder{
                     </summary>
                     <div class="analysis-content">
                         ${data.feasibility.assessment ? `<p style="margin-bottom: 10px; line-height: 1.5; font-size: 0.85rem; color: #1e293b;">${data.feasibility.assessment}</p>` : ''}
-                        ${data.feasibility.challenges && data.feasibility.challenges.length > 0 ? `
+                    ${data.feasibility.challenges && data.feasibility.challenges.length > 0 ? `
                             <div style="margin-top: 10px;">
                                 <strong style="color: #f59e0b; font-size: 0.8rem;">Challenges:</strong>
-                                ${data.feasibility.challenges.map(challenge => `
+                            ${data.feasibility.challenges.map(challenge => `
                                     <div style="padding: 8px 10px; background: #fef3c7; border-radius: 4px; margin-top: 6px; font-size: 0.8rem; color: #92400e; border-left: 2px solid #f59e0b;">${challenge}</div>
-                                `).join('')}
-                            </div>
-                        ` : ''}
-                        ${data.feasibility.timeline ? `
+                            `).join('')}
+                        </div>
+                    ` : ''}
+                    ${data.feasibility.timeline ? `
                             <div style="margin-top: 10px; padding: 8px 10px; background: #dbeafe; border-radius: 4px; border-left: 2px solid #3b82f6; font-size: 0.8rem; color: #1e40af;">
-                                <strong>Timeline:</strong> ${data.feasibility.timeline}
-                            </div>
-                        ` : ''}
+                            <strong>Timeline:</strong> ${data.feasibility.timeline}
+                        </div>
+                    ` : ''}
                     </div>
                 </details>`;
             }
@@ -5096,45 +5096,45 @@ input::placeholder, textarea::placeholder{
                         <span class="summary-badge info">${data.roleAssignments.length} member${data.roleAssignments.length > 1 ? 's' : ''}</span>
                     </summary>
                     <div class="analysis-content">
-                        ${data.roleAssignments.map(member => `
+                    ${data.roleAssignments.map(member => `
                             <div class="member-card-compact">
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                                     <div style="font-weight: 600; color: #1e293b; font-size: 0.9rem;">${member.memberName || 'Team Member'}</div>
                                     <div style="font-size: 0.75rem; padding: 3px 8px; background: #e0e7ff; color: #3730a3; border-radius: 3px; font-weight: 600;">${member.role || 'Team Member'}</div>
-                                </div>
-                                ${member.tasks && (member.tasks.immediate && member.tasks.immediate.length > 0 || member.tasks.future && member.tasks.future.length > 0) ? `
-                                    ${member.tasks.immediate && member.tasks.immediate.length > 0 ? `
+                            </div>
+                            ${member.tasks && (member.tasks.immediate && member.tasks.immediate.length > 0 || member.tasks.future && member.tasks.future.length > 0) ? `
+                                ${member.tasks.immediate && member.tasks.immediate.length > 0 ? `
                                         <div style="margin-bottom: 10px;">
                                             <div style="font-size: 0.75rem; font-weight: 600; color: #059669; margin-bottom: 4px;">🚀 Immediate Tasks</div>
                                             <ul style="margin: 0; padding-left: 18px; font-size: 0.8rem;">
                                                 ${member.tasks.immediate.map(task => `<li style="margin: 3px 0; color: #475569;">${task}</li>`).join('')}
-                                            </ul>
-                                        </div>
-                                    ` : ''}
-                                    ${member.tasks.future && member.tasks.future.length > 0 ? `
+                                        </ul>
+                                    </div>
+                                ` : ''}
+                                ${member.tasks.future && member.tasks.future.length > 0 ? `
                                         <div style="margin-bottom: 10px;">
                                             <div style="font-size: 0.75rem; font-weight: 600; color: #3b82f6; margin-bottom: 4px;">📅 Future Tasks</div>
                                             <ul style="margin: 0; padding-left: 18px; font-size: 0.8rem;">
                                                 ${member.tasks.future.map(task => `<li style="margin: 3px 0; color: #475569;">${task}</li>`).join('')}
-                                            </ul>
-                                        </div>
-                                    ` : ''}
+                                        </ul>
+                                    </div>
                                 ` : ''}
-                                ${member.responsibilities && member.responsibilities.length > 0 ? `
+                            ` : ''}
+                            ${member.responsibilities && member.responsibilities.length > 0 ? `
                                     <div style="margin-bottom: 10px;">
                                         <div style="font-size: 0.75rem; font-weight: 600; color: #64748b; margin-bottom: 4px;">📋 Responsibilities</div>
                                         <ul style="margin: 0; padding-left: 18px; font-size: 0.8rem;">
                                             ${member.responsibilities.map(resp => `<li style="margin: 3px 0; color: #475569;">${resp}</li>`).join('')}
-                                        </ul>
-                                    </div>
-                                ` : ''}
-                                ${member.collaboration ? `
+                                    </ul>
+                                </div>
+                            ` : ''}
+                            ${member.collaboration ? `
                                     <div style="padding: 6px 8px; background: #fef3c7; border-radius: 3px; border-left: 2px solid #f59e0b; font-size: 0.75rem; color: #92400e;">
-                                        <strong>🤝 Collaboration:</strong> ${member.collaboration}
-                                    </div>
-                                ` : ''}
-                            </div>
-                        `).join('')}
+                                    <strong>🤝 Collaboration:</strong> ${member.collaboration}
+                                </div>
+                            ` : ''}
+                        </div>
+                    `).join('')}
                     </div>
                 </details>`;
             }
@@ -5149,16 +5149,16 @@ input::placeholder, textarea::placeholder{
                         ${recsCount > 0 ? `<span class="summary-badge info">${recsCount} tip${recsCount > 1 ? 's' : ''}</span>` : ''}
                     </summary>
                     <div class="analysis-content">
-                        ${data.optimization.recommendations && data.optimization.recommendations.length > 0 ? `
-                            ${data.optimization.recommendations.map(rec => `
+                    ${data.optimization.recommendations && data.optimization.recommendations.length > 0 ? `
+                        ${data.optimization.recommendations.map(rec => `
                                 <div style="padding: 8px 10px; background: #f0f9ff; border-radius: 4px; margin-bottom: 6px; font-size: 0.8rem; color: #1e40af; border-left: 2px solid #3b82f6;">${rec}</div>
-                            `).join('')}
-                        ` : ''}
-                        ${data.optimization.structure ? `
+                        `).join('')}
+                    ` : ''}
+                    ${data.optimization.structure ? `
                             <div style="margin-top: 10px; padding: 8px 10px; background: #f0fdf4; border-radius: 4px; font-size: 0.8rem; color: #166534;">
-                                <strong>Project Structure:</strong> ${data.optimization.structure}
-                            </div>
-                        ` : ''}
+                            <strong>Project Structure:</strong> ${data.optimization.structure}
+                        </div>
+                    ` : ''}
                     </div>
                 </details>`;
             }
@@ -5175,30 +5175,30 @@ input::placeholder, textarea::placeholder{
                         ${successCount > 0 ? `<span class="summary-badge success">${successCount} success factor${successCount > 1 ? 's' : ''}</span>` : ''}
                     </summary>
                     <div class="analysis-content">
-                        ${data.risks.identified && data.risks.identified.length > 0 ? `
+                    ${data.risks.identified && data.risks.identified.length > 0 ? `
                             <div style="margin-bottom: 10px;">
                                 <strong style="color: #dc2626; font-size: 0.8rem;">Identified Risks:</strong>
-                                ${data.risks.identified.map(risk => `
+                            ${data.risks.identified.map(risk => `
                                     <div style="padding: 8px 10px; background: #fee2e2; border-radius: 4px; margin-top: 6px; font-size: 0.8rem; color: #7f1d1d; border-left: 2px solid #dc2626;">${risk}</div>
-                                `).join('')}
-                            </div>
-                        ` : ''}
-                        ${data.risks.mitigation && data.risks.mitigation.length > 0 ? `
+                            `).join('')}
+                        </div>
+                    ` : ''}
+                    ${data.risks.mitigation && data.risks.mitigation.length > 0 ? `
                             <div style="margin-bottom: 10px;">
                                 <strong style="color: #3b82f6; font-size: 0.8rem;">Mitigation Strategies:</strong>
-                                ${data.risks.mitigation.map(mit => `
+                            ${data.risks.mitigation.map(mit => `
                                     <div style="padding: 8px 10px; background: #dbeafe; border-radius: 4px; margin-top: 6px; font-size: 0.8rem; color: #1e40af; border-left: 2px solid #3b82f6;">${mit}</div>
-                                `).join('')}
-                            </div>
-                        ` : ''}
-                        ${data.risks.successFactors && data.risks.successFactors.length > 0 ? `
+                            `).join('')}
+                        </div>
+                    ` : ''}
+                    ${data.risks.successFactors && data.risks.successFactors.length > 0 ? `
                             <div style="margin-top: 10px;">
                                 <strong style="color: #059669; font-size: 0.8rem;">Critical Success Factors:</strong>
                                 <ul style="margin-top: 6px; padding-left: 18px; font-size: 0.8rem;">
                                     ${data.risks.successFactors.map(factor => `<li style="margin: 3px 0; color: #475569;">${factor}</li>`).join('')}
-                                </ul>
-                            </div>
-                        ` : ''}
+                            </ul>
+                        </div>
+                    ` : ''}
                     </div>
                 </details>`;
             }
@@ -5212,14 +5212,14 @@ input::placeholder, textarea::placeholder{
                         <span class="summary-badge info">${data.deliverables.length} deliverable${data.deliverables.length > 1 ? 's' : ''}</span>
                     </summary>
                     <div class="analysis-content">
-                        ${data.deliverables.map(deliverable => `
+                    ${data.deliverables.map(deliverable => `
                             <div style="padding: 10px; background: #f8fafc; border-radius: 4px; margin-bottom: 8px; border-left: 2px solid #8b5cf6;">
                                 <div style="font-weight: 600; color: #1e293b; font-size: 0.85rem; margin-bottom: 4px;">${deliverable.name || 'Deliverable'}</div>
                                 ${deliverable.description ? `<div style="font-size: 0.75rem; color: #64748b; margin-bottom: 6px;">${deliverable.description}</div>` : ''}
                                 ${deliverable.assignedTo ? `<div style="font-size: 0.75rem; color: #475569;"><strong>Assigned to:</strong> ${deliverable.assignedTo}</div>` : ''}
                                 ${deliverable.timeline ? `<div style="font-size: 0.75rem; color: #475569;"><strong>Timeline:</strong> ${deliverable.timeline}</div>` : ''}
-                            </div>
-                        `).join('')}
+                        </div>
+                    `).join('')}
                     </div>
                 </details>`;
             }
@@ -5437,9 +5437,9 @@ input::placeholder, textarea::placeholder{
                     if (parsed) {
                         // Hide terminal after a moment, show results section
                         setTimeout(() => {
-                            if (promptOutput) {
-                                promptOutput.style.display = 'none';
-                            }
+                        if (promptOutput) {
+                            promptOutput.style.display = 'none';
+                        }
                         }, 2000);
                         
                         if (resultsSection) {
@@ -6469,7 +6469,7 @@ input::placeholder, textarea::placeholder{
                 // Use appropriate rendering based on analysis type
                 if (isProgressUpdate) {
                     // Render progress update
-                    viewContainer.innerHTML = `
+            viewContainer.innerHTML = `
                         <div style="background: #f8fafc; border-radius: 8px; padding: 20px; border: 1px solid #e2e8f0;">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #e2e8f0;">
                                 <div>
@@ -6501,9 +6501,9 @@ input::placeholder, textarea::placeholder{
                         <h3 style="color: #1e293b; margin-bottom: 15px; font-size: 1.1rem;">Analysis from ${new Date(analysis.created_at).toLocaleString()}</h3>
                         <div style="background: #ffffff; color: #1e293b; padding: 15px; border-radius: 6px; white-space: pre-wrap; max-height: 500px; overflow-y: auto; font-family: monospace; font-size: 0.85rem; line-height: 1.6; border: 1px solid #e2e8f0;">
 ${analysis.ai_response}
-                        </div>
                     </div>
-                `;
+                </div>
+            `;
             }
         }
 
@@ -7256,15 +7256,8 @@ ${analysis.ai_response}
             window.addEventListener('error', (event) => {
                 console.error('Global error caught:', event.error, event.message, event.filename, event.lineno);
                 
-                // Don't show UI errors for non-critical issues
-                const errorMessage = event.message?.toLowerCase() || '';
-                const isCritical = !errorMessage.includes('script error') && 
-                                  !errorMessage.includes('load') && 
-                                  !errorMessage.includes('fetch');
-                
-                if (isCritical) {
-                    showStatus('userStatus', 'An error occurred. Please refresh if needed.', 'error');
-                }
+                // Just log to console, don't spam user with notifications
+                // The extension will handle critical errors explicitly
                 
                 // Don't let errors crash the UI
                 event.preventDefault();
@@ -7274,15 +7267,8 @@ ${analysis.ai_response}
             window.addEventListener('unhandledrejection', (event) => {
                 console.error('Unhandled promise rejection:', event.reason);
                 
-                // Only show for critical promise rejections
-                const reason = event.reason?.message?.toLowerCase() || '';
-                const isCritical = !reason.includes('aborted') && 
-                                  !reason.includes('cancelled') && 
-                                  !reason.includes('timeout');
-                
-                if (isCritical) {
-                    showStatus('userStatus', 'An error occurred. Please refresh if needed.', 'error');
-                }
+                // Just log to console, don't spam user with notifications
+                // The extension will handle critical errors explicitly
                 
                 event.preventDefault();
             });
