@@ -2842,6 +2842,18 @@ async function openMainPanel(
           break;
         }
 
+        // Check analysis mode and route to appropriate analyzer
+        const mode = analysisMode?.mode || 'initial';
+        console.log(`Generating ${mode} analysis for project ${projectId}`);
+
+        // Route to appropriate analyzer based on mode
+        if (mode === 'progress') {
+          // Use agentic AI for progress analysis
+          await handleProgressAnalysis(projectId, panel, analysisMode);
+          break;
+        }
+
+        // Otherwise, continue with initial planning analysis
         // --- FIX APPLIED HERE: Robust ID comparison ---
         const teamMembersForPrompt = currentData.users.filter((user: any) =>
           // Convert all IDs to string for reliable comparison
@@ -3028,8 +3040,8 @@ If you cannot provide JSON, provide the response in the numbered format as befor
             if (sidebarProvider) {
               console.log('📡 Notifying sidebar to refresh AI analysis');
               
-              // Refresh immediately
-              await sidebarProvider.refreshAIAnalysis(projectToPrompt.id);
+              // Refresh AI analysis
+              await sidebarProvider.sendAIAnalysis(projectToPrompt.id);
               
               // Also reload all data in case team members changed
               const freshData = await loadInitialData();
