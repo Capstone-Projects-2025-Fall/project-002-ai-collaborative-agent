@@ -1,613 +1,598 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AI Collab Agent - Login</title>
-    <style>
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      }
 
-      body {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-          sans-serif;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        min-height: 100vh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #333;
-      }
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pallas AI - Login</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
+    /* Pallas Color Variables */
+    :root {
+      --p-bg: #212227;
+      --p-surface-1: #484F57;
+      --p-surface-2: #637074;
+      --p-border: #6F7B87;
+      --p-accent: #FFC82F;
+      --p-text: #F4F6F8;
+      --p-text-muted: rgba(244, 246, 248, 0.72);
+      --p-ink: #212227;
+      --p-shadow: 0 14px 40px rgba(0, 0, 0, 0.35);
+      --p-radius: 14px;
+      --p-focus: 0 0 0 3px rgba(255, 200, 47, 0.22);
+      color-scheme: dark;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background:
+        radial-gradient(900px 500px at 18% -10%, rgba(255, 200, 47, 0.10), transparent 60%),
+        linear-gradient(135deg, var(--p-bg) 0%, var(--p-surface-1) 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--p-text);
+    }
+
+    .login-container {
+      background: rgba(72, 79, 87, 0.92);
+      border-radius: var(--p-radius);
+      padding: 40px;
+      box-shadow: var(--p-shadow);
+      backdrop-filter: blur(20px);
+      width: 100%;
+      max-width: 400px;
+      border: 1px solid rgba(111, 123, 135, 0.30);
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: var(--p-text);
+    }
+
+    .header p {
+      color: var(--p-text-muted);
+      font-size: 0.95rem;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: var(--p-text);
+      opacity: 0.92;
+      font-size: 0.9rem;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid rgba(111, 123, 135, 0.45);
+      border-radius: 10px;
+      font-size: 0.95rem;
+      transition: all 0.3s ease;
+      background: rgba(33, 34, 39, 0.55);
+      color: var(--p-text);
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: rgba(255, 200, 47, 0.70);
+      box-shadow: var(--p-focus);
+    }
+
+    .form-group input::placeholder {
+      color: rgba(244, 246, 248, 0.45);
+    }
+
+    .form-toggle {
+      text-align: center;
+      margin: 20px 0;
+    }
+
+    .form-toggle span {
+      color: var(--p-text-muted);
+    }
+
+    .form-toggle button {
+      background: none;
+      border: none;
+      color: var(--p-accent);
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: underline;
+      font-size: 0.9rem;
+    }
+
+    .form-toggle button:hover {
+      opacity: 0.8;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-bottom: 12px;
+    }
+
+    .btn-primary {
+      background: var(--p-accent);
+      color: var(--p-ink);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.22);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+    }
+
+    .btn-oauth {
+      background: rgba(33, 34, 39, 0.35);
+      color: var(--p-text);
+      border: 2px solid rgba(111, 123, 135, 0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-oauth:hover {
+      background: rgba(99, 112, 116, 0.40);
+      border-color: rgba(111, 123, 135, 0.60);
+    }
+
+    .btn-google:hover {
+      border-color: rgba(255, 200, 47, 0.55);
+    }
+
+    .btn-github:hover {
+      border-color: rgba(255, 200, 47, 0.55);
+    }
+
+    .divider {
+      text-align: center;
+      margin: 20px 0;
+      position: relative;
+      color: var(--p-text-muted);
+      font-size: 0.9rem;
+    }
+
+    .divider::before {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: rgba(111, 123, 135, 0.35);
+      z-index: 1;
+    }
+
+    .divider span {
+      background: rgba(72, 79, 87, 0.92);
+      padding: 0 15px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .status-message {
+      padding: 12px;
+      border-radius: 8px;
+      margin: 15px 0;
+      font-weight: 600;
+      font-size: 0.9rem;
+      text-align: center;
+    }
+
+    .status-success {
+      background: rgba(255, 200, 47, 0.14);
+      color: var(--p-accent);
+      border: 1px solid rgba(255, 200, 47, 0.25);
+    }
+
+    .status-error {
+      background: rgba(239, 68, 68, 0.18);
+      color: #fecaca;
+      border: 1px solid rgba(239, 68, 68, 0.25);
+    }
+
+    .loading {
+      opacity: 0.6;
+      pointer-events: none;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .user-info {
+      text-align: center;
+      margin-bottom: 20px;
+      padding: 15px;
+      background: rgba(33, 34, 39, 0.35);
+      border-radius: 10px;
+      border: 1px solid rgba(111, 123, 135, 0.25);
+    }
+
+    .user-info h3 {
+      color: var(--p-text);
+      margin-bottom: 5px;
+    }
+
+    .user-info p {
+      color: var(--p-text-muted);
+      font-size: 0.9rem;
+    }
+
+    .logout-btn {
+      background: rgba(239, 68, 68, 0.25);
+      color: #fecaca;
+      border: 1px solid rgba(239, 68, 68, 0.35);
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      margin-top: 10px;
+      transition: all 0.3s ease;
+    }
+
+    .logout-btn:hover {
+      background: rgba(239, 68, 68, 0.35);
+      transform: translateY(-1px);
+    }
+
+    @media (max-width: 480px) {
       .login-container {
-        background: rgba(255, 255, 255, 0.95);
-        border-radius: 20px;
-        padding: 40px;
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-        backdrop-filter: blur(20px);
-        width: 100%;
-        max-width: 400px;
-        border: 1px solid rgba(255, 255, 255, 0.2);
+        margin: 20px;
+        padding: 30px 20px;
       }
+    }
+  </style>
+</head>
 
-      .header {
-        text-align: center;
-        margin-bottom: 30px;
-      }
-
-      .header h1 {
-        font-size: 2rem;
-        font-weight: 700;
-        margin-bottom: 8px;
-        background: linear-gradient(135deg, #667eea, #764ba2);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-      }
-
-      .header p {
-        color: #64748b;
-        font-size: 0.95rem;
-      }
-
-      .form-group {
-        margin-bottom: 20px;
-      }
-
-      .form-group label {
-        display: block;
-        font-weight: 600;
-        margin-bottom: 6px;
-        color: #374151;
-        font-size: 0.9rem;
-      }
-
-      .form-group input {
-        width: 100%;
-        padding: 12px 16px;
-        border: 2px solid #e5e7eb;
-        border-radius: 10px;
-        font-size: 0.95rem;
-        transition: all 0.3s ease;
-        background: white;
-      }
-
-      .form-group input:focus {
-        outline: none;
-        border-color: #667eea;
-        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-      }
-
-      .form-toggle {
-        text-align: center;
-        margin: 20px 0;
-      }
-
-      .form-toggle button {
-        background: none;
-        border: none;
-        color: #667eea;
-        font-weight: 600;
-        cursor: pointer;
-        text-decoration: underline;
-        font-size: 0.9rem;
-      }
-
-      .form-toggle button:hover {
-        color: #764ba2;
-      }
-
-      .btn {
-        width: 100%;
-        padding: 12px;
-        border: none;
-        border-radius: 10px;
-        font-size: 0.95rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        margin-bottom: 12px;
-      }
-
-      .btn-primary {
-        background: linear-gradient(135deg, #667eea, #764ba2);
-        color: white;
-      }
-
-      .btn-primary:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-      }
-
-      .btn-oauth {
-        background: white;
-        color: #374151;
-        border: 2px solid #e5e7eb;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-      }
-
-      .btn-oauth:hover {
-        border-color: #d1d5db;
-        background: #f9fafb;
-      }
-
-      .btn-google {
-        border-color: #db4437;
-        color: #db4437;
-      }
-
-      .btn-google:hover {
-        background: #fef2f2;
-        border-color: #dc2626;
-      }
-
-      .btn-github {
-        border-color: #333;
-        color: #333;
-      }
-
-      .btn-github:hover {
-        background: #f3f4f6;
-        border-color: #111;
-      }
-
-      .divider {
-        text-align: center;
-        margin: 20px 0;
-        position: relative;
-        color: #64748b;
-        font-size: 0.9rem;
-      }
-
-      .divider::before {
-        content: "";
-        position: absolute;
-        top: 50%;
-        left: 0;
-        right: 0;
-        height: 1px;
-        background: #e5e7eb;
-        z-index: 1;
-      }
-
-      .divider span {
-        background: rgba(255, 255, 255, 0.95);
-        padding: 0 15px;
-        position: relative;
-        z-index: 2;
-      }
-
-      .status-message {
-        padding: 12px;
-        border-radius: 8px;
-        margin: 15px 0;
-        font-weight: 600;
-        font-size: 0.9rem;
-        text-align: center;
-      }
-
-      .status-success {
-        background: #dcfce7;
-        color: #166534;
-      }
-
-      .status-error {
-        background: #fef2f2;
-        color: #991b1b;
-      }
-
-      .loading {
-        opacity: 0.6;
-        pointer-events: none;
-      }
-
-      .hidden {
-        display: none;
-      }
-
-      .user-info {
-        text-align: center;
-        margin-bottom: 20px;
-        padding: 15px;
-        background: #f8fafc;
-        border-radius: 10px;
-        border: 1px solid #e2e8f0;
-      }
-
-      .user-info h3 {
-        color: #1e293b;
-        margin-bottom: 5px;
-      }
-
-      .user-info p {
-        color: #64748b;
-        font-size: 0.9rem;
-      }
-
-      .logout-btn {
-        background: #ef4444;
-        color: white;
-        border: none;
-        padding: 8px 16px;
-        border-radius: 6px;
-        font-size: 0.85rem;
-        cursor: pointer;
-        margin-top: 10px;
-      }
-
-      .logout-btn:hover {
-        background: #dc2626;
-      }
-
-      @media (max-width: 480px) {
-        .login-container {
-          margin: 20px;
-          padding: 30px 20px;
-        }
-      }
-    </style>
-  </head>
-  <body>
-    <div class="login-container">
-      <div class="header">
-        <h1>🚀 AI Collab Agent</h1>
-        <p>Sign in to access your team collaboration platform</p>
-      </div>
-
-      <!-- User Info (shown when logged in) -->
-      <div id="userInfo" class="user-info hidden">
-        <h3 id="userName">Welcome back!</h3>
-        <p id="userEmail">user@example.com</p>
-        <button id="logoutBtn" class="logout-btn">Sign Out</button>
-      </div>
-
-      <!-- Login/Register Forms -->
-      <div id="authForms">
-        <!-- Login Form -->
-        <form id="loginForm" class="auth-form">
-          <div class="form-group">
-            <label for="loginEmail">Email</label>
-            <input
-              type="email"
-              id="loginEmail"
-              required
-              placeholder="Enter your email"
-            />
-          </div>
-          <div class="form-group">
-            <label for="loginPassword">Password</label>
-            <input
-              type="password"
-              id="loginPassword"
-              required
-              placeholder="Enter your password"
-            />
-          </div>
-          <button type="submit" class="btn btn-primary" id="loginBtn">
-            Sign In
-          </button>
-        </form>
-
-        <!-- Register Form -->
-        <form id="registerForm" class="auth-form hidden">
-          <div class="form-group">
-            <label for="registerName">Full Name</label>
-            <input
-              type="text"
-              id="registerName"
-              placeholder="Enter your full name"
-            />
-          </div>
-          <div class="form-group">
-            <label for="registerEmail">Email</label>
-            <input
-              type="email"
-              id="registerEmail"
-              required
-              placeholder="Enter your email"
-            />
-          </div>
-          <div class="form-group">
-            <label for="registerPassword">Password</label>
-            <input
-              type="password"
-              id="registerPassword"
-              required
-              placeholder="Create a password"
-              minlength="6"
-            />
-          </div>
-          <button type="submit" class="btn btn-primary" id="registerBtn">
-            Create Account
-          </button>
-        </form>
-
-        <div class="form-toggle">
-          <span id="toggleText">Don't have an account?</span>
-          <button type="button" id="toggleForm">Sign up</button>
-        </div>
-
-        <div class="divider">
-          <span>or continue with</span>
-        </div>
-
-        <button class="btn btn-oauth btn-google" id="googleBtn">
-          <svg width="18" height="18" viewBox="0 0 24 24">
-            <path
-              fill="#db4437"
-              d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-            />
-            <path
-              fill="#4285f4"
-              d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-            />
-            <path
-              fill="#34a853"
-              d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-            />
-            <path
-              fill="#fbbc05"
-              d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-            />
-          </svg>
-          Continue with Google
-        </button>
-
-        <button class="btn btn-oauth btn-github" id="githubBtn">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-            <path
-              d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.745.083-.745 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"
-            />
-          </svg>
-          Continue with GitHub
-        </button>
-      </div>
-
-      <div id="statusMessage" class="status-message hidden"></div>
+<body>
+  <div class="login-container">
+    <div class="header">
+      <h1>Pallas AI</h1>
+      <p>VSCode Collaboration Agent</p>
     </div>
 
-    <script>
-      // VS Code API
-      const vscode = acquireVsCodeApi();
+    <!-- User Info (shown when logged in) -->
+    <div id="userInfo" class="user-info hidden">
+      <h3 id="userName">Welcome back!</h3>
+      <p id="userEmail">user@example.com</p>
+      <button id="logoutBtn" class="logout-btn">Sign Out</button>
+    </div>
 
-      class LoginManager {
-        constructor() {
-          this.isLoginMode = true;
-          this.initializeEventListeners();
-          this.checkAuthStatus();
-        }
+    <!-- Login/Register Forms -->
+    <div id="authForms">
+      <!-- Login Form -->
+      <form id="loginForm" class="auth-form">
+        <div class="form-group">
+          <label for="loginEmail">Email</label>
+          <input type="email" id="loginEmail" required placeholder="Enter your email" />
+        </div>
+        <div class="form-group">
+          <label for="loginPassword">Password</label>
+          <input type="password" id="loginPassword" required placeholder="Enter your password" />
+        </div>
+        <button type="submit" class="btn btn-primary" id="loginBtn">
+          Sign In
+        </button>
+      </form>
 
-        initializeEventListeners() {
-          // Form toggles
-          document
-            .getElementById("toggleForm")
-            .addEventListener("click", () => {
-              this.toggleForm();
-            });
+      <!-- Register Form -->
+      <form id="registerForm" class="auth-form hidden">
+        <div class="form-group">
+          <label for="registerName">Full Name</label>
+          <input type="text" id="registerName" placeholder="Enter your full name" />
+        </div>
+        <div class="form-group">
+          <label for="registerEmail">Email</label>
+          <input type="email" id="registerEmail" required placeholder="Enter your email" />
+        </div>
+        <div class="form-group">
+          <label for="registerPassword">Password</label>
+          <input type="password" id="registerPassword" required placeholder="Create a password" minlength="6" />
+        </div>
+        <button type="submit" class="btn btn-primary" id="registerBtn">
+          Create Account
+        </button>
+      </form>
 
-          // Form submissions
-          document
-            .getElementById("loginForm")
-            .addEventListener("submit", (e) => {
-              e.preventDefault();
-              this.handleLogin();
-            });
+      <div class="form-toggle">
+        <span id="toggleText">Don't have an account?</span>
+        <button type="button" id="toggleForm">Sign up</button>
+      </div>
 
-          document
-            .getElementById("registerForm")
-            .addEventListener("submit", (e) => {
-              e.preventDefault();
-              this.handleRegister();
-            });
+      <div class="divider">
+        <span>or continue with</span>
+      </div>
 
-          // OAuth buttons
-          document.getElementById("googleBtn").addEventListener("click", () => {
-            this.handleGoogleAuth();
+      <button class="btn btn-oauth btn-google" id="googleBtn">
+        <svg width="18" height="18" viewBox="0 0 24 24">
+          <path fill="#db4437"
+            d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+          <path fill="#4285f4"
+            d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+          <path fill="#34a853"
+            d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+          <path fill="#fbbc05"
+            d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+        </svg>
+        Continue with Google
+      </button>
+
+      <button class="btn btn-oauth btn-github" id="githubBtn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+          <path
+            d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.745.083-.745 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+        </svg>
+        Continue with GitHub
+      </button>
+    </div>
+
+    <div id="statusMessage" class="status-message hidden"></div>
+  </div>
+
+  <script>
+    // VS Code API
+    const vscode = acquireVsCodeApi();
+
+    class LoginManager {
+      constructor() {
+        this.isLoginMode = true;
+        this.initializeEventListeners();
+        this.checkAuthStatus();
+      }
+
+      initializeEventListeners() {
+        // Form toggles
+        document
+          .getElementById("toggleForm")
+          .addEventListener("click", () => {
+            this.toggleForm();
           });
 
-          document.getElementById("githubBtn").addEventListener("click", () => {
-            this.handleGithubAuth();
+        // Form submissions
+        document
+          .getElementById("loginForm")
+          .addEventListener("submit", (e) => {
+            e.preventDefault();
+            this.handleLogin();
           });
 
-          // Logout
-          document.getElementById("logoutBtn").addEventListener("click", () => {
-            this.handleLogout();
-          });
-        }
-
-        checkAuthStatus() {
-          vscode.postMessage({ type: "checkAuthStatus" });
-        }
-
-        toggleForm() {
-          this.isLoginMode = !this.isLoginMode;
-          const loginForm = document.getElementById("loginForm");
-          const registerForm = document.getElementById("registerForm");
-          const toggleText = document.getElementById("toggleText");
-          const toggleButton = document.getElementById("toggleForm");
-
-          if (this.isLoginMode) {
-            loginForm.classList.remove("hidden");
-            registerForm.classList.add("hidden");
-            toggleText.textContent = "Don't have an account?";
-            toggleButton.textContent = "Sign up";
-          } else {
-            loginForm.classList.add("hidden");
-            registerForm.classList.remove("hidden");
-            toggleText.textContent = "Already have an account?";
-            toggleButton.textContent = "Sign in";
-          }
-        }
-
-        async handleLogin() {
-          const email = document.getElementById("loginEmail").value.trim();
-          const password = document.getElementById("loginPassword").value;
-
-          if (!email || !password) {
-            this.showStatus("Please fill in all fields", "error");
-            return;
-          }
-
-          this.setLoading(true);
-          vscode.postMessage({
-            type: "signIn",
-            payload: { email, password },
-          });
-        }
-
-        async handleRegister() {
-          const name = document.getElementById("registerName").value.trim();
-          const email = document.getElementById("registerEmail").value.trim();
-          const password = document.getElementById("registerPassword").value;
-
-          if (!email || !password) {
-            this.showStatus("Please fill in email and password", "error");
-            return;
-          }
-
-          if (password.length < 6) {
-            this.showStatus("Password must be at least 6 characters", "error");
-            return;
-          }
-
-          this.setLoading(true);
-          vscode.postMessage({
-            type: "signUp",
-            payload: { email, password, name },
-          });
-        }
-
-        async handleGoogleAuth() {
-          this.setLoading(true);
-          this.showStatus(
-            "Opening browser for Google authentication...",
-            "success"
-          );
-          vscode.postMessage({
-            type: "signInWithGoogle",
+        document
+          .getElementById("registerForm")
+          .addEventListener("submit", (e) => {
+            e.preventDefault();
+            this.handleRegister();
           });
 
-          // Reset loading state after 10 seconds if no response
-          setTimeout(() => {
-            this.setLoading(false);
-          }, 10000);
-        }
+        // OAuth buttons
+        document.getElementById("googleBtn").addEventListener("click", () => {
+          this.handleGoogleAuth();
+        });
 
-        async handleGithubAuth() {
-          this.setLoading(true);
-          this.showStatus(
-            "Opening browser for GitHub authentication...",
-            "success"
-          );
-          vscode.postMessage({
-            type: "signInWithGithub",
-          });
+        document.getElementById("githubBtn").addEventListener("click", () => {
+          this.handleGithubAuth();
+        });
 
-          // Reset loading state after 10 seconds if no response
-          setTimeout(() => {
-            this.setLoading(false);
-          }, 10000);
-        }
+        // Logout
+        document.getElementById("logoutBtn").addEventListener("click", () => {
+          this.handleLogout();
+        });
+      }
 
-        async handleLogout() {
-          vscode.postMessage({
-            type: "signOut",
-          });
-        }
+      checkAuthStatus() {
+        vscode.postMessage({ type: "checkAuthStatus" });
+      }
 
-        setLoading(loading) {
-          const forms = document.getElementById("authForms");
-          const buttons = document.querySelectorAll(".btn");
+      toggleForm() {
+        this.isLoginMode = !this.isLoginMode;
+        const loginForm = document.getElementById("loginForm");
+        const registerForm = document.getElementById("registerForm");
+        const toggleText = document.getElementById("toggleText");
+        const toggleButton = document.getElementById("toggleForm");
 
-          if (loading) {
-            forms.classList.add("loading");
-            buttons.forEach((btn) => (btn.disabled = true));
-          } else {
-            forms.classList.remove("loading");
-            buttons.forEach((btn) => (btn.disabled = false));
-          }
-        }
-
-        showStatus(message, type = "success") {
-          const statusEl = document.getElementById("statusMessage");
-          statusEl.textContent = message;
-          statusEl.className = `status-message status-${type}`;
-          statusEl.classList.remove("hidden");
-
-          setTimeout(() => {
-            statusEl.classList.add("hidden");
-          }, 5000);
-        }
-
-        showUserInfo(user) {
-          document.getElementById("userName").textContent = `Welcome, ${
-            user.name || user.email
-          }!`;
-          document.getElementById("userEmail").textContent = user.email;
-          document.getElementById("userInfo").classList.remove("hidden");
-          document.getElementById("authForms").classList.add("hidden");
-        }
-
-        hideUserInfo() {
-          document.getElementById("userInfo").classList.add("hidden");
-          document.getElementById("authForms").classList.remove("hidden");
-        }
-
-        clearForms() {
-          document.getElementById("loginEmail").value = "";
-          document.getElementById("loginPassword").value = "";
-          document.getElementById("registerName").value = "";
-          document.getElementById("registerEmail").value = "";
-          document.getElementById("registerPassword").value = "";
+        if (this.isLoginMode) {
+          loginForm.classList.remove("hidden");
+          registerForm.classList.add("hidden");
+          toggleText.textContent = "Don't have an account?";
+          toggleButton.textContent = "Sign up";
+        } else {
+          loginForm.classList.add("hidden");
+          registerForm.classList.remove("hidden");
+          toggleText.textContent = "Already have an account?";
+          toggleButton.textContent = "Sign in";
         }
       }
 
-      // Initialize the login manager
-      const loginManager = new LoginManager();
+      async handleLogin() {
+        const email = document.getElementById("loginEmail").value.trim();
+        const password = document.getElementById("loginPassword").value;
 
-      // Listen for messages from VS Code extension
-      window.addEventListener("message", (event) => {
-        const message = event.data;
-
-        switch (message.type) {
-          case "authStatus":
-            if (message.payload.authenticated) {
-              loginManager.showUserInfo(message.payload.user);
-            } else {
-              loginManager.hideUserInfo();
-            }
-            break;
-
-          case "authSuccess":
-            loginManager.setLoading(false);
-            if (message.payload.user) {
-              // User successfully authenticated
-              loginManager.showStatus(message.payload.message, "success");
-              loginManager.showUserInfo(message.payload.user);
-              loginManager.clearForms();
-            } else {
-              // OAuth flow started
-              loginManager.showStatus(message.payload.message, "success");
-            }
-            break;
-
-          case "authError":
-            loginManager.setLoading(false);
-            loginManager.showStatus(message.payload.message, "error");
-            break;
-
-          case "authSignedOut":
-            loginManager.hideUserInfo();
-            loginManager.showStatus("Signed out successfully", "success");
-            break;
+        if (!email || !password) {
+          this.showStatus("Please fill in all fields", "error");
+          return;
         }
-      });
-    </script>
-  </body>
+
+        this.setLoading(true);
+        vscode.postMessage({
+          type: "signIn",
+          payload: { email, password },
+        });
+      }
+
+      async handleRegister() {
+        const name = document.getElementById("registerName").value.trim();
+        const email = document.getElementById("registerEmail").value.trim();
+        const password = document.getElementById("registerPassword").value;
+
+        if (!email || !password) {
+          this.showStatus("Please fill in email and password", "error");
+          return;
+        }
+
+        if (password.length < 6) {
+          this.showStatus("Password must be at least 6 characters", "error");
+          return;
+        }
+
+        this.setLoading(true);
+        vscode.postMessage({
+          type: "signUp",
+          payload: { email, password, name },
+        });
+      }
+
+      async handleGoogleAuth() {
+        this.setLoading(true);
+        this.showStatus(
+          "Opening browser for Google authentication...",
+          "success"
+        );
+        vscode.postMessage({
+          type: "signInWithGoogle",
+        });
+
+        // Reset loading state after 10 seconds if no response
+        setTimeout(() => {
+          this.setLoading(false);
+        }, 10000);
+      }
+
+      async handleGithubAuth() {
+        this.setLoading(true);
+        this.showStatus(
+          "Opening browser for GitHub authentication...",
+          "success"
+        );
+        vscode.postMessage({
+          type: "signInWithGithub",
+        });
+
+        // Reset loading state after 10 seconds if no response
+        setTimeout(() => {
+          this.setLoading(false);
+        }, 10000);
+      }
+
+      async handleLogout() {
+        vscode.postMessage({
+          type: "signOut",
+        });
+      }
+
+      setLoading(loading) {
+        const forms = document.getElementById("authForms");
+        const buttons = document.querySelectorAll(".btn");
+
+        if (loading) {
+          forms.classList.add("loading");
+          buttons.forEach((btn) => (btn.disabled = true));
+        } else {
+          forms.classList.remove("loading");
+          buttons.forEach((btn) => (btn.disabled = false));
+        }
+      }
+
+      showStatus(message, type = "success") {
+        const statusEl = document.getElementById("statusMessage");
+        statusEl.textContent = message;
+        statusEl.className = `status-message status-${type}`;
+        statusEl.classList.remove("hidden");
+
+        setTimeout(() => {
+          statusEl.classList.add("hidden");
+        }, 5000);
+      }
+
+      showUserInfo(user) {
+        document.getElementById("userName").textContent = `Welcome, ${user.name || user.email
+          }!`;
+        document.getElementById("userEmail").textContent = user.email;
+        document.getElementById("userInfo").classList.remove("hidden");
+        document.getElementById("authForms").classList.add("hidden");
+      }
+
+      hideUserInfo() {
+        document.getElementById("userInfo").classList.add("hidden");
+        document.getElementById("authForms").classList.remove("hidden");
+      }
+
+      clearForms() {
+        document.getElementById("loginEmail").value = "";
+        document.getElementById("loginPassword").value = "";
+        document.getElementById("registerName").value = "";
+        document.getElementById("registerEmail").value = "";
+        document.getElementById("registerPassword").value = "";
+      }
+    }
+
+    // Initialize the login manager
+    const loginManager = new LoginManager();
+
+    // Listen for messages from VS Code extension
+    window.addEventListener("message", (event) => {
+      const message = event.data;
+
+      switch (message.type) {
+        case "authStatus":
+          if (message.payload.authenticated) {
+            loginManager.showUserInfo(message.payload.user);
+          } else {
+            loginManager.hideUserInfo();
+          }
+          break;
+
+        case "authSuccess":
+          loginManager.setLoading(false);
+          if (message.payload.user) {
+            // User successfully authenticated
+            loginManager.showStatus(message.payload.message, "success");
+            loginManager.showUserInfo(message.payload.user);
+            loginManager.clearForms();
+          } else {
+            // OAuth flow started
+            loginManager.showStatus(message.payload.message, "success");
+          }
+          break;
+
+        case "authError":
+          loginManager.setLoading(false);
+          loginManager.showStatus(message.payload.message, "error");
+          break;
+
+        case "authSignedOut":
+          loginManager.hideUserInfo();
+          loginManager.showStatus("Signed out successfully", "success");
+          break;
+      }
+    });
+  </script>
+</body>
+
 </html>

@@ -4017,9 +4017,17 @@ async function getLoginHtml(
   const nonce = getNonce();
 
   const htmlPath = path.join(context.extensionPath, "media", "login.html");
-
   let htmlContent = await fs.readFile(htmlPath, "utf-8");
 
+  // Build webview-safe logo URI
+  const logoUri = webview.asWebviewUri(
+    vscode.Uri.joinPath(context.extensionUri, "media", "logo.png")
+  );
+
+  // Replace placeholder with actual URI
+  htmlContent = htmlContent.replace(/\{\{logoUri\}\}/g, logoUri.toString());
+
+  // Inject CSP and nonce
   htmlContent = htmlContent
     .replace(
       /<head>/,
@@ -4035,6 +4043,7 @@ async function getLoginHtml(
 
   return htmlContent;
 }
+
 
 function ensureWorkspaceOpen(): boolean {
 	if (!vscode.workspace.workspaceFolders?.length) {
