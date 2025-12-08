@@ -1994,7 +1994,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		vscode.StatusBarAlignment.Left,
 		1
 	);
-	statusBarItem.text = "$(squirrel) AI Collab Agent";
+	statusBarItem.text = "$(squirrel) Pallas AI";
 	statusBarItem.tooltip = "Open AI Collab Panel";
 	statusBarItem.command = "aiCollab.openPanel";
 	statusBarItem.show();
