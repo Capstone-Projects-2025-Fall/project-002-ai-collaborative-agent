@@ -198,27 +198,6 @@
         "mac": "cmd+shift+r"
       }
     ],
-    "menus": {
-      "editor/context": [
-        {
-          "command": "ai-code-reviewer.analyzeCode",
-          "group": "aiCollab@1",
-          "when": "editorTextFocus"
-        }
-      ],
-      "commandPalette": [
-        {
-          "command": "ai-code-reviewer.analyzeCode",
-          "when": "workspaceFolderCount > 0"
-        },
-        {
-          "command": "ai-code-reviewer.showResults"
-        },
-        {
-          "command": "ai-code-reviewer.toggleAutoAnalyze"
-        }
-      ]
-    },
     "viewsContainers": {
       "activitybar": [
         {
@@ -247,8 +226,9 @@
           "name": "Notifications"
         }
       ]
-    },   
-    "viewsContainers": {
+    }  
+  },
+  "viewsContainers": {
     "activitybar": [
       {
         "id": "aiCollab-sidebar",
