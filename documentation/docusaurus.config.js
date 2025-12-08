@@ -38,8 +38,8 @@ const title = rawProjectName
 /** @type {import('@docusaurus/types').Config} */
 const config = {
   /*TODO: Change to your project's title and tagline*/
-  title: title,
-  tagline: 'Owls are cool',
+  title: 'Pallas AI',
+  tagline: 'Team Collaboration & AI-Powered Project Management',
   /*Unless you move this website to a seperate repo don't change url and baseurl.*/
   url: 'https://'+process.env.ORG_NAME+'.github.io/',
   baseUrl: '/'+process.env.PROJECT_NAME+'/',
@@ -79,7 +79,6 @@ const config = {
           editUrl:
             'https://github.com/'+process.env.ORG_NAME+'/'+process.env.PROJECT_NAME+'/edit/main/documentation/',
           // remarkPlugins: [require('mdx-mermaid')],
-
         },
         // tutorials: {
         //   sidebarPath: require.resolve('./tutorialSidebars.js'),
@@ -126,9 +125,9 @@ const config = {
       }} : {}),
       navbar: {
         /*TODO: Change to your project's title*/
-        title: title,
+        title: 'Pallas AI',
         logo: {
-          alt: 'My Site Logo',
+          alt: 'Pallas AI Logo',
           src: logo,
         },
         items: [
@@ -152,7 +151,7 @@ const config = {
       },
       footer: {
         logo: {
-          alt: 'My Site Logo',
+          alt: 'Pallas AI Logo',
           src: logo,
         },
         links: [
@@ -194,10 +193,11 @@ const config = {
         ],
         copyright: `Copyright © ${new Date().getFullYear()} ${title}, Inc. Built with Docusaurus.`,
       },
-      // prism: {
-      //   theme: lightCodeTheme,
-      //   darkTheme: darkCodeTheme,
-      // },
+      colorMode: {
+        defaultMode: 'dark',
+        disableSwitch: false,
+        respectPrefersColorScheme: false,
+      },
       imageZoom: {
         // CSS selector to apply the plugin to, defaults to '.markdown img'
         selector: '.markdown img',
