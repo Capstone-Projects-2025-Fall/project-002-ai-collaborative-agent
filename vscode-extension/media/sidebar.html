@@ -571,10 +571,6 @@
             <div class="collapsible-header" id="liveshareHeader">
                 <span class="expand-icon" id="liveshareExpandIcon">▼</span>
                 <div class="section-title" style="margin: 0;">🔗 Live Collab</div>
-                <div class="liveshare-status-box" style="margin-left: auto;">
-                    <span class="status-indicator" id="projectStatusIndicator"></span>
-                    <span class="status-text" id="projectStatusText">Not connected</span>
-                </div>
             </div>
             
             <div class="collapsible-content" id="liveshareContent">
@@ -1009,11 +1005,9 @@
             
             if (status.state === 'active') {
                 indicator.classList.add('active');
-                text.textContent = 'Connected';
                 copyBtn.disabled = false;
             } else {
                 indicator.classList.remove('active');
-                text.textContent = 'Not connected';
                 copyBtn.disabled = true;
             }
         }
