@@ -193,7 +193,7 @@ function handleDocumentChange(event) {
     }
     // 2. Rapid editing (many small changes quickly)
     const editsInLastMinute = Array.from(lastEditTime.entries()).filter(([_, time]) => (now.getTime() - time.getTime()) / 1000 < 60).length;
-    if (editsInLastMinute >= 15) {
+    if (editsInLastMinute >= 100) {
         console.log(`Rapid editing detected: ${editsInLastMinute} edits in last minute`);
         analyzeCurrentFile(false, 'Rapid editing detected');
         // Reset counters
@@ -203,9 +203,9 @@ function handleDocumentChange(event) {
     // 3. Continuous editing in one file
     const fileEditCount = editCount.get(filePath) || 0;
     const lastEdit = lastEditTime.get(filePath);
-    if (fileEditCount >= 25 && lastEdit) {
+    if (fileEditCount >= 1000 && lastEdit) {
         const minutesSinceFirstEdit = (now.getTime() - lastEdit.getTime()) / 1000 / 60;
-        if (minutesSinceFirstEdit < 5) {
+        if (minutesSinceFirstEdit < 60) {
             console.log(`Intensive editing: ${fileEditCount} edits in ${minutesSinceFirstEdit.toFixed(1)} minutes`);
             analyzeCurrentFile(false, `Intensive work session detected`);
             editCount.set(filePath, 0);
