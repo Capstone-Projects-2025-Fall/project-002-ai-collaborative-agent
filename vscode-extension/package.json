@@ -75,17 +75,20 @@
       {
         "command": "aiCollab.markAllNotificationsRead",
         "title": "Mark All as Read",
-        "category": "AI Collab Agent"
+        "category": "AI Collab Agent",
+        "icon": "$(check-all)"
       },
       {
         "command": "aiCollab.clearAllNotifications",
         "title": "Clear All Notifications",
-        "category": "AI Collab Agent"
+        "category": "AI Collab Agent",
+        "icon": "$(trash)"
       },
       {
         "command": "aiCollab.deleteNotification",
         "title": "Delete Notification",
-        "category": "AI Collab Agent"
+        "category": "AI Collab Agent",
+        "icon": "$(close)"
       },
       {
         "command": "aiCollab.notificationClicked",
@@ -206,8 +209,8 @@
         },
         {
           "id": "aiCollab-notifications",
-          "title": "AI Collab Notifications",
-          "icon": "media/collaboration.svg"
+          "title": "Notification",
+          "icon": "$(bell)"
         }
       ]
     },
@@ -230,7 +233,7 @@
     "activitybar": [
       {
         "id": "aiCollab-sidebar",
-        "title": "AI Collab",
+        "title": "Pallas AI",
         "icon": "media/collaboration.svg"
       }
     ]
