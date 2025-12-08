@@ -513,6 +513,414 @@ async function saveInitialData(data: any): Promise<void> {
   }
 }
 
+class SidebarProvider implements vscode.WebviewViewProvider {
+  private _view?: vscode.WebviewView;
+  private _activeProjectId: string | null = null;
+  private _liveshareParticipants: Set<string> = new Set();
+
+  constructor(private readonly _extensionUri: vscode.Uri) {}
+
+  public async resolveWebviewView(
+    webviewView: vscode.WebviewView,
+    context: vscode.WebviewViewResolveContext,
+    _token: vscode.CancellationToken
+  ) {
+    this._view = webviewView;
+
+    webviewView.webview.options = {
+      enableScripts: true,
+      localResourceRoots: [this._extensionUri],
+    };
+
+    webviewView.webview.html = await this._getHtmlForWebview(webviewView.webview);
+
+    // Handle messages from the webview
+    webviewView.webview.onDidReceiveMessage(async (message) => {
+      switch (message.type) {
+        case "sidebarReady":
+          console.log("Sidebar ready");
+          const initialData = await loadInitialData();
+          this.sendMessage({ type: "dataLoaded", payload: initialData });
+          break;
+
+        case "loadData":
+          const data = await loadInitialData();
+          this.sendMessage({ type: "dataLoaded", payload: data });
+          break;
+
+        case "getLiveShareParticipants":
+          await this.sendLiveShareParticipants();
+          break;
+
+        case "getAIAnalysis":
+          await this.sendAIAnalysis(message.payload.projectId);
+          break;
+
+        case "getActiveProject":
+          await this.sendActiveProject();
+          break;
+
+        case "setActiveProject":
+          await this.setActiveProject(message.payload.projectId);
+          break;
+
+        case "clearActiveProject":
+          this._activeProjectId = null;
+          await extensionContext.globalState.update('activeProjectId', null);
+          this.sendMessage({ 
+            type: "activeProjectChanged", 
+            payload: { project: null } 
+          });
+          break;
+
+        case "openProfile":
+          await vscode.commands.executeCommand("aiCollab.openPanel");
+          break;
+
+        case "joinProjectByCode":
+          try {
+            const { inviteCode } = message.payload;
+            const profileId = await getCurrentUserProfileId(authService, databaseService);
+            
+            if (!profileId) {
+              vscode.window.showErrorMessage("Please log in to join a project.");
+              break;
+            }
+
+            const project = await databaseService.joinProjectByCode(inviteCode, profileId);
+            
+            if (project) {
+              vscode.window.showInformationMessage(`Joined project "${project.name}"!`);
+              await this.setActiveProject(project.id);
+              
+              // Reload data
+              const data = await loadInitialData();
+              this.sendMessage({ type: "dataLoaded", payload: data });
+            } else {
+              vscode.window.showErrorMessage("Invalid invite code.");
+            }
+          } catch (err) {
+            console.error("Failed to join project:", err);
+            vscode.window.showErrorMessage("Failed to join project");
+          }
+          break;
+
+        case "openProfile":
+          await vscode.commands.executeCommand("aiCollab.openPanel");
+          break;
+
+        case "joinLiveShare":
+          try {
+            const link = message.payload?.link;
+            if (!link || !link.trim()) {
+              vscode.window.showErrorMessage(
+                "No Live Share session link provided. Please provide a valid invite link."
+              );
+              break;
+            }
+            
+            const liveShare = await vsls.getApi();
+            if (!liveShare) {
+              vscode.window.showErrorMessage(
+                "Live Share extension is not installed or not activated. Please install and activate the Live Share extension to use this feature."
+              );
+              break;
+            }
+            
+            await liveShare.join(vscode.Uri.parse(link.trim()));
+            
+            this.sendMessage({
+              type: "liveshareStatus",
+              payload: { state: "active" },
+            });
+            vscode.window.showInformationMessage("Joined LiveShare session!");
+          } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : String(err);
+            console.error("Failed to join LiveShare:", errorMessage);
+            vscode.window.showErrorMessage(`Failed to join LiveShare session: ${errorMessage}`);
+          }
+          break;
+
+        case "startLiveShare":
+          try {
+            const liveShare = await vsls.getApi();
+            if (liveShare) {
+              const session = await liveShare.share();
+              if (session) {
+                this.sendMessage({
+                  type: "liveshareStatus",
+                  payload: { state: "active" },
+                });
+                vscode.window.showInformationMessage("LiveShare session started!");
+              }
+            } else {
+              vscode.window.showErrorMessage("Live Share extension not available");
+            }
+          } catch (err) {
+            console.error("Failed to start LiveShare:", err);
+            vscode.window.showErrorMessage("Failed to start LiveShare session");
+          }
+          break;
+
+        case "switchProject":
+          await vscode.commands.executeCommand("aiCollab.openPanel");
+          vscode.window.showInformationMessage("Switching to project...");
+          break;
+
+        case "copyLiveShareLink":
+          try {
+            await vscode.env.clipboard.writeText(message.payload.link);
+            vscode.window.showInformationMessage("LiveShare link copied to clipboard!");
+          } catch (err) {
+            vscode.window.showErrorMessage("Failed to copy link");
+          }
+          break;
+
+        case "showError":
+          vscode.window.showErrorMessage(message.payload.message);
+          break;
+      }
+    });
+
+    this._monitorLiveShare();
+    this._monitorLiveShareParticipants();
+    await this.loadActiveProject();
+  }
+
+  private async loadActiveProject() {
+    // Don't auto-load saved project on startup
+    // User must explicitly select/join a project
+    this._activeProjectId = null;
+    await extensionContext.globalState.update('activeProjectId', null);
+    
+    this.sendMessage({ 
+      type: "activeProjectChanged", 
+      payload: { project: null } 
+    });
+  }
+
+  private async sendLiveShareParticipants() {
+    try {
+      const liveShare = await vsls.getApi();
+      if (liveShare && liveShare.session) {
+        const peers = liveShare.peers || [];
+        const participantEmails = peers
+          .map(peer => peer.user?.emailAddress)
+          .filter(Boolean);
+
+        // Match emails to user IDs
+        const data = await loadInitialData();
+        const participantIds = data.users
+          .filter((user: any) => participantEmails.includes(user.email))
+          .map((user: any) => user.id);
+
+        this.sendMessage({
+          type: 'liveshareParticipants',
+          payload: { participants: participantIds }
+        });
+      } else {
+        this.sendMessage({
+          type: 'liveshareParticipants',
+          payload: { participants: [] }
+        });
+      }
+    } catch (err) {
+      console.error('Error getting LiveShare participants:', err);
+    }
+  }
+
+  private _monitorLiveShareParticipants() {
+    // Poll for participants every 3 seconds
+    setInterval(async () => {
+      if (this._activeProjectId) {
+        await this.sendLiveShareParticipants();
+      }
+    }, 3000);
+  }
+
+  private async sendAIAnalysis(projectId: string) {
+    try {
+      // Get the latest AI prompt for this project
+      const supabase = getSupabaseClient();
+      const { data: prompts, error } = await supabase
+        .from('ai_prompts')
+        .select('ai_response')
+        .eq('project_id', projectId)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (error || !prompts || prompts.length === 0) {
+        this.sendMessage({
+          type: 'aiAnalysisData',
+          payload: null
+        });
+        return;
+      }
+
+      const aiResponse = prompts[0].ai_response;
+      
+      // Parse the AI response (reuse your parseAIResponse function)
+      const data = await loadInitialData();
+      const project = data.projects.find((p: any) => String(p.id) === String(projectId));
+      const teamMembers = data.users.filter((user: any) => 
+        project?.selectedMemberIds?.includes(user.id)
+      );
+
+      const parsedData = parseAIResponse(aiResponse, teamMembers);
+
+      this.sendMessage({
+        type: 'aiAnalysisData',
+        payload: parsedData
+      });
+    } catch (err) {
+      console.error('Error loading AI analysis:', err);
+      this.sendMessage({
+        type: 'aiAnalysisData',
+        payload: null
+      });
+    }
+  }
+
+  private async setActiveProject(projectId: string) {
+    this._activeProjectId = projectId;
+    await extensionContext.globalState.update('activeProjectId', projectId);
+    
+    // Load fresh data and send the active project
+    const data = await loadInitialData();
+    const project = data.projects.find((p: any) => String(p.id) === String(projectId));
+    
+    if (project) {
+      // Send updated data first
+      this.sendMessage({ type: "dataLoaded", payload: data });
+
+      // Then send active project
+      this.sendMessage({ 
+        type: "activeProjectChanged", 
+        payload: { project } 
+      });
+      
+      vscode.window.showInformationMessage(`Switched to project: ${project.name}`);
+    } else {
+      vscode.window.showErrorMessage("Project not found");
+      this._activeProjectId = null;
+      await extensionContext.globalState.update('activeProjectId', null);
+    }
+  }
+
+  private async sendActiveProject() {
+    if (!this._activeProjectId) {
+      this.sendMessage({ 
+        type: "activeProjectChanged", 
+        payload: { project: null } 
+      });
+      return;
+    }
+
+    try {
+      const data = await loadInitialData();
+      const project = data.projects.find((p: any) => String(p.id) === String(this._activeProjectId));
+      
+      if (project) {
+        this.sendMessage({ 
+          type: "activeProjectChanged", 
+          payload: { project } 
+        });
+      } else {
+        // Project not found, clear active project
+        this._activeProjectId = null;
+        await extensionContext.globalState.update('activeProjectId', null);
+        this.sendMessage({ 
+          type: "activeProjectChanged", 
+          payload: { project: null } 
+        });
+      }
+    } catch (err) {
+      console.error("Error loading active project:", err);
+    }
+  }
+
+  private async _monitorLiveShare() {
+    try {
+      const liveShare = await vsls.getApi();
+      if (liveShare) {
+        liveShare.onDidChangeSession((e) => {
+          const state = e.session ? "active" : "disconnected";
+          this.sendMessage({
+            type: "liveshareStatus",
+            payload: { state },
+          });
+        });
+
+        const initialState = liveShare.session ? "active" : "disconnected";
+        this.sendMessage({
+          type: "liveshareStatus",
+          payload: { state: initialState },
+        });
+      }
+    } catch (err) {
+      console.error("Error monitoring LiveShare:", err);
+    }
+  }
+
+  public sendMessage(message: any) {
+    if (this._view) {
+      this._view.webview.postMessage(message);
+    }
+  }
+
+  private async _getHtmlForWebview(webview: vscode.Webview): Promise<string> {
+    const htmlPath = path.join(extensionContext.extensionPath, "media", "sidebar.html");
+    
+    try {
+      let html = await fs.readFile(htmlPath, "utf-8");
+
+      const nonce = getNonce();
+      html = html
+        .replace(
+          /<head>/,
+          `<head>
+        <meta http-equiv="Content-Security-Policy" content="
+            default-src 'none';
+            style-src ${webview.cspSource} 'unsafe-inline';
+            script-src 'nonce-${nonce}';
+        ">`
+        )
+        .replace(/<script>/, `<script nonce="${nonce}">`);
+
+      return html;
+    } catch (err) {
+      console.error("Error loading sidebar.html:", err);
+      return `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="UTF-8">
+            <style>
+              body {
+                padding: 20px;
+                font-family: var(--vscode-font-family);
+                color: var(--vscode-foreground);
+              }
+            </style>
+          </head>
+          <body>
+            <h3>Error loading sidebar</h3>
+            <p>Could not load sidebar.html. Please check the file exists in the media folder.</p>
+          </body>
+        </html>
+      `;
+    }
+  }
+}
+
+// Helper function to update sidebar from anywhere
+function updateSidebar(data: any) {
+  const sidebarProvider = (global as any).sidebarProvider;
+  if (sidebarProvider) {
+    sidebarProvider.sendMessage(data);
+  }
+}
+
 export async function activate(context: vscode.ExtensionContext) {
   activateCodeReviewer(context);
 
@@ -846,40 +1254,63 @@ export async function activate(context: vscode.ExtensionContext) {
     }
   });
 
+  // Register sidebar provider
+  const sidebarProvider = new SidebarProvider(context.extensionUri);
+  // After registering the sidebar provider, add this:
+  context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider(
+      "aiCollabView", 
+      sidebarProvider,
+      {
+        webviewOptions: {
+          retainContextWhenHidden: true
+        }
+      }
+    )
+  );
+  console.log('Sidebar provider registered');
+
+  // Clear any saved active project on startup
+  await context.globalState.update('activeProjectId', null);
+
+  // Store sidebar provider globally
+  (global as any).sidebarProvider = sidebarProvider;
+
+
   // Register URI handler for custom protocol
   // In your URI handler, add this additional check:
-const handleUri = vscode.window.registerUriHandler({
-  handleUri(uri: vscode.Uri) {
-    console.log("=== OAuth Callback Debug ===");
-    console.log("Full URI:", uri.toString());
-    console.log("Scheme:", uri.scheme);
-    console.log("Authority:", uri.authority);
-    console.log("Query:", uri.query);
+  const handleUri = vscode.window.registerUriHandler({
+    handleUri(uri: vscode.Uri) {
+      console.log("=== OAuth Callback Debug ===");
+      console.log("Full URI:", uri.toString());
+      console.log("Scheme:", uri.scheme);
+      console.log("Authority:", uri.authority);
+      console.log("Query:", uri.query);
 
-    if (uri.scheme === "vscode" && uri.authority === "ai-collab-agent.auth") {
-      console.log("OAuth callback received via VS Code URI");
+      if (uri.scheme === "vscode" && uri.authority === "ai-collab-agent.auth") {
+        console.log("OAuth callback received via VS Code URI");
 
-      // Extract tokens from query parameters
-      const urlParams = new URLSearchParams(uri.query);
-      const accessToken = urlParams.get('access_token');
-      const refreshToken = urlParams.get('refresh_token');
+        // Extract tokens from query parameters
+        const urlParams = new URLSearchParams(uri.query);
+        const accessToken = urlParams.get('access_token');
+        const refreshToken = urlParams.get('refresh_token');
 
-      console.log("Parsed tokens:", {
-        accessToken: accessToken ? accessToken.substring(0, 20) + "..." : "None",
-        refreshToken: refreshToken ? refreshToken.substring(0, 20) + "..." : "None"
-      });
+        console.log("Parsed tokens:", {
+          accessToken: accessToken ? accessToken.substring(0, 20) + "..." : "None",
+          refreshToken: refreshToken ? refreshToken.substring(0, 20) + "..." : "None"
+        });
 
-      if (accessToken) {
-        console.log("Access token received, setting session...");
+        if (accessToken) {
+          console.log("Access token received, setting session...");
 
-        // Set the session in Supabase
-        authService
-          .setSessionFromTokens(accessToken, refreshToken || undefined)
-          .then(() => {
-            console.log("Session set successfully");
-            vscode.window.showInformationMessage(
-              "Authentication successful! Redirecting to main app..."
-            );
+          // Set the session in Supabase
+          authService
+            .setSessionFromTokens(accessToken, refreshToken || undefined)
+            .then(() => {
+              console.log("Session set successfully");
+              vscode.window.showInformationMessage(
+                "Authentication successful! Redirecting to main app..."
+              );
 
             // Open the main panel after successful authentication
             setTimeout(() => {
@@ -1433,6 +1864,16 @@ async function openMainPanel(
     console.log('Extension: Received message from webview:', { type: msg.type, payload: msg.payload });
     
     switch (msg.type) {
+      case "syncProjectToSidebar": {
+        const { projectId } = msg.payload;
+        // Update sidebar
+        const sidebarProvider = (global as any).sidebarProvider;
+        if (sidebarProvider) {
+          await (sidebarProvider as any).setActiveProject(projectId);
+        }
+        break;
+      }
+      
       case "createJiraTasks": {
         try {
           const payload: Partial<JiraTaskOptions> | undefined = msg?.payload; // Webview sends Jira creds + AI backlog prompt
@@ -1763,7 +2204,7 @@ async function openMainPanel(
 
       case "generatePrompt": {
         const { projectId } = msg.payload;
-        
+
         // Also set as active project when generating prompt
         if (projectId) {
           await setActiveProject(projectId);
@@ -1775,9 +2216,7 @@ async function openMainPanel(
         );
 
         if (!projectToPrompt) {
-          vscode.window.showErrorMessage(
-            "Project not found for AI prompt generation."
-          );
+          vscode.window.showErrorMessage("Project not found for AI prompt generation.");
           panel.webview.postMessage({
             type: "promptGenerationError",
             payload: { message: "Project not found." },
@@ -1947,13 +2386,44 @@ If you cannot provide JSON, provide the response in the numbered format as befor
           // Parse the AI response (try JSON first, fallback to text parsing)
           const parsedData = parseAIResponse(aiResponse, teamMembersForPrompt);
 
+          console.log('Project ID:', projectToPrompt.id);
+
           // Save to database
           const supabase = getSupabaseClient();
-          await supabase.from("ai_prompts").insert([{
+          const { data: savedPrompt, error: saveError } = await supabase
+          .from("ai_prompts")
+          .insert([{
             project_id: projectToPrompt.id,
             prompt_content: promptContent,
             ai_response: aiResponse,
-          }]);
+          }])
+          .select();
+
+          if (saveError) {
+            console.error('❌ Failed to save to database:', saveError);
+            vscode.window.showErrorMessage(`Failed to save AI analysis: ${saveError.message}`);
+          } else {
+            console.log('✅ Successfully saved to database:', savedPrompt);
+            vscode.window.showInformationMessage('AI analysis saved successfully!');
+            
+            // NOTIFY SIDEBAR TO RELOAD IMMEDIATELY
+            const sidebarProvider = (global as any).sidebarProvider;
+            if (sidebarProvider) {
+              console.log('📡 Notifying sidebar to refresh AI analysis');
+              
+              // Refresh immediately
+              await sidebarProvider.refreshAIAnalysis(projectToPrompt.id);
+              
+              // Also reload all data in case team members changed
+              const freshData = await loadInitialData();
+              sidebarProvider.sendMessage({ 
+                type: 'dataLoaded', 
+                payload: freshData 
+              });
+              
+              console.log('✅ Sidebar notified and refreshed');
+            }
+          }
 
           // Save to file
           const tempFileName = `AI_Response_${projectToPrompt.name.replace(

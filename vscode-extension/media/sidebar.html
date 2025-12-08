@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pallas AI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--vscode-font-family);
+            color: var(--vscode-foreground);
+            background-color: var(--vscode-sidebar-background);
+            padding: 12px;
+            font-size: 13px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Profile Section */
+        .profile-section {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--vscode-panel-border);
+        }
+
+        .profile-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .profile-avatar:hover {
+            transform: scale(1.05);
+        }
+
+        /* Section Styles */
+        .section {
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--vscode-descriptionForeground);
+            margin-bottom: 8px;
+            letter-spacing: 0.5px;
+        }
+
+        /* Active Project Mode */
+        .active-project-container {
+            background: var(--vscode-editor-background);
+            border: 1px solid var(--vscode-panel-border);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 16px;
+        }
+
+        .project-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .project-name-large {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--vscode-foreground);
+        }
+
+        .switch-btn {
+            background: var(--vscode-button-secondaryBackground);
+            color: var(--vscode-button-secondaryForeground);
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .switch-btn:hover {
+            background: var(--vscode-button-secondaryHoverBackground);
+        }
+
+        .liveshare-status-box {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px;
+            background: var(--vscode-input-background);
+            border-radius: 6px;
+            margin-bottom: 8px;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--vscode-testing-iconFailed);
+        }
+
+        .status-indicator.active {
+            background: var(--vscode-testing-iconPassed);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .status-text {
+            font-size: 12px;
+            flex: 1;
+        }
+
+        .copy-link-btn {
+            background: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+            border: none;
+            border-radius: 4px;
+            padding: 6px 12px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 8px;
+            transition: background 0.2s ease;
+        }
+
+        .copy-link-btn:hover {
+            background: var(--vscode-button-hoverBackground);
+        }
+
+        .copy-link-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Team Members List */
+        .team-members-list {
+            margin-top: 12px;
+        }
+
+        .team-member-item {
+            background: var(--vscode-input-background);
+            border-radius: 6px;
+            margin-bottom: 6px;
+            overflow: hidden;
+            transition: background 0.2s ease;
+        }
+
+        .member-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .member-header:hover {
+            background: var(--vscode-list-hoverBackground);
+        }
+
+        .member-status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #6b7280;
+            flex-shrink: 0;
+            transition: background 0.3s ease;
+        }
+
+        .member-status-dot.active {
+            background: #10b981;
+            box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+        }
+
+        .member-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .member-name {
+            font-weight: 600;
+            font-size: 12px;
+            margin-bottom: 2px;
+        }
+
+        .member-last-active {
+            font-size: 10px;
+            color: var(--vscode-descriptionForeground);
+        }
+
+        .expand-icon {
+            font-size: 10px;
+            color: var(--vscode-descriptionForeground);
+            transition: transform 0.2s ease;
+        }
+
+        .expand-icon.expanded {
+            transform: rotate(180deg);
+        }
+
+        /* Member Details Dropdown */
+        .member-details {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+            background: var(--vscode-editor-background);
+        }
+
+        .member-details.expanded {
+            max-height: 400px;
+            border-top: 1px solid var(--vscode-panel-border);
+        }
+
+        .member-details-content {
+            padding: 12px;
+        }
+
+        .detail-section {
+            margin-bottom: 12px;
+        }
+
+        .detail-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .detail-label {
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--vscode-descriptionForeground);
+            margin-bottom: 6px;
+            letter-spacing: 0.5px;
+        }
+
+        .detail-content {
+            font-size: 11px;
+            line-height: 1.5;
+            color: var(--vscode-foreground);
+        }
+
+        .task-item {
+            padding: 6px 8px;
+            background: var(--vscode-input-background);
+            border-left: 3px solid #667eea;
+            border-radius: 4px;
+            margin-bottom: 4px;
+            font-size: 11px;
+        }
+
+        .history-placeholder {
+            padding: 8px;
+            text-align: center;
+            background: var(--vscode-input-background);
+            border-radius: 4px;
+            font-size: 11px;
+            color: var(--vscode-descriptionForeground);
+            font-style: italic;
+        }
+
+        /* No Project Mode */
+        .no-project-container {
+            background: var(--vscode-input-background);
+            border: 1px solid var(--vscode-input-border);
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 16px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+
+        input {
+            flex: 1;
+            background: var(--vscode-input-background);
+            color: var(--vscode-input-foreground);
+            border: 1px solid var(--vscode-input-border);
+            border-radius: 4px;
+            padding: 6px 8px;
+            font-size: 12px;
+            font-family: inherit;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--vscode-focusBorder);
+        }
+
+        input::placeholder {
+            color: var(--vscode-input-placeholderForeground);
+        }
+
+        button {
+            background: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+            border: none;
+            border-radius: 4px;
+            padding: 6px 12px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        button:hover {
+            background: var(--vscode-button-hoverBackground);
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        button.secondary {
+            background: var(--vscode-button-secondaryBackground);
+            color: var(--vscode-button-secondaryForeground);
+        }
+
+        button.secondary:hover {
+            background: var(--vscode-button-secondaryHoverBackground);
+        }
+
+        .full-width-btn {
+            width: 100%;
+            margin-bottom: 8px;
+        }
+
+        /* Project List */
+        .project-list-container {
+            background: var(--vscode-input-background);
+            border: 1px solid var(--vscode-input-border);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .project-list-header {
+            padding: 10px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--vscode-input-background);
+            border-bottom: 1px solid var(--vscode-panel-border);
+        }
+
+        .project-list-header:hover {
+            background: var(--vscode-list-hoverBackground);
+        }
+
+        .chevron {
+            transition: transform 0.2s ease;
+            font-size: 10px;
+        }
+
+        .chevron.expanded {
+            transform: rotate(180deg);
+        }
+
+        .project-list {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .project-list.expanded {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .project-item {
+            padding: 10px;
+            border-bottom: 1px solid var(--vscode-panel-border);
+            cursor: pointer;
+            transition: background 0.1s ease;
+        }
+
+        .project-item:hover {
+            background: var(--vscode-list-hoverBackground);
+        }
+
+        .project-item:last-child {
+            border-bottom: none;
+        }
+
+        .project-item-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+            font-size: 12px;
+        }
+
+        .project-item-desc {
+            font-size: 11px;
+            color: var(--vscode-descriptionForeground);
+            margin-bottom: 6px;
+            line-height: 1.4;
+        }
+
+        .project-members {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 6px;
+        }
+
+        .member-badge {
+            background: var(--vscode-badge-background);
+            color: var(--vscode-badge-foreground);
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 10px;
+        }
+
+        .no-projects {
+            padding: 12px;
+            text-align: center;
+            color: var(--vscode-descriptionForeground);
+            font-size: 11px;
+        }
+
+        .join-code-section {
+            margin-top: 12px;
+        }
+
+        .collapsible-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+
+        .collapsible-header:hover {
+            background: var(--vscode-list-hoverBackground);
+        }
+
+        .collapsible-header .expand-icon {
+            font-size: 10px;
+            transition: transform 0.2s;
+            color: var(--vscode-foreground);
+        }
+
+        .collapsible-header .expand-icon.expanded {
+            transform: rotate(-90deg);
+        }
+
+        .collapsible-content {
+            max-height: 500px;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+            opacity: 1;
+        }
+
+        .collapsible-content.collapsed {
+            max-height: 0;
+            opacity: 0;
+        }
+
+        .liveshare-status-box {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            background: var(--vscode-badge-background);
+            border-radius: 12px;
+            font-size: 11px;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--vscode-descriptionForeground);
+        }
+
+        .status-indicator.active {
+            background: #4caf50;
+            box-shadow: 0 0 8px #4caf50;
+        }
+
+        .status-text {
+            font-size: 11px;
+            color: var(--vscode-foreground);
+        }
+
+        .member-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+
+        .member-header:hover {
+            background: var(--vscode-list-hoverBackground);
+        }
+
+        .member-header .expand-icon {
+            font-size: 10px;
+            transition: transform 0.2s;
+            color: var(--vscode-foreground);
+            flex-shrink: 0;
+        }
+
+        .member-header .expand-icon.expanded {
+            transform: rotate(-90deg);
+        }
+
+        .member-details {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+
+        .member-details.expanded {
+            max-height: 1000px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Profile Section -->
+    <div class="profile-section">
+        <div class="profile-avatar" id="profileAvatar" title="View Profile">?</div>
+    </div>
+
+    <!-- MODE 1: Active Project View -->
+    <div id="activeProjectMode" class="hidden">
+        <!-- Current Project Section -->
+        <div class="section">
+            <div class="section-title">Current Project</div>
+            <div class="active-project-container">
+                <div class="project-header">
+                    <div class="project-name-large" id="currentProjectName">-</div>
+                    <button class="switch-btn" id="switchProjectBtn">Switch</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- LiveShare Collaboration Section (Collapsible) -->
+        <div class="section">
+            <div class="collapsible-header" id="liveshareHeader">
+                <span class="expand-icon" id="liveshareExpandIcon">▼</span>
+                <div class="section-title" style="margin: 0;">🔗 Live Collab</div>
+            </div>
+            
+            <div class="collapsible-content" id="liveshareContent">
+                <div class="active-project-container">
+                    <div class="input-group">
+                        <input 
+                            type="text" 
+                            id="liveshareInput" 
+                            placeholder="Paste LiveShare link..."
+                        />
+                    </div>
+                    <button id="joinBtn" class="full-width-btn">Join Session</button>
+                    <button id="startSessionBtn" class="secondary full-width-btn">
+                        Start New Session
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Team Members Section -->
+        <div class="section">
+            <div class="section-title">Team Members</div>
+            <div class="team-members-list" id="teamMembersList">
+                <div class="no-projects">No team members</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODE 2: No Active Project View -->
+    <div id="noProjectMode">
+        
+
+        <div class="section">
+            <div class="section-title">📋 My Projects</div>
+            <div class="project-list-container">
+                <div class="project-list-header" id="projectListHeader">
+                    <span>Select a project</span>
+                    <span class="chevron" id="chevron">▼</span>
+                </div>
+                <div class="project-list" id="projectList">
+                    <div class="no-projects">Loading projects...</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section join-code-section">
+            <div class="section-title">🔑 Join via Code</div>
+            <div class="input-group">
+                <input 
+                    type="text" 
+                    id="joinCodeInput" 
+                    placeholder="Enter 6-character code" 
+                    maxlength="6"
+                    style="text-transform: uppercase;"
+                />
+                <button id="joinCodeBtn">Join</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const vscode = acquireVsCodeApi();
+
+        // State
+        let projects = [];
+        let users = [];
+        let currentUser = null;
+        let activeProject = null;
+        let aiAnalysisData = null;
+        let activeMembers = new Set();
+        let isListExpanded = false;
+        let liveshareStatus = 'disconnected';
+        let liveshareLink = null;
+        let expandedMemberIds = new Set(); // Track multiple expanded members
+        let isLiveshareExpanded = false;
+
+        // Initialize
+        vscode.postMessage({ type: 'sidebarReady' });
+        vscode.postMessage({ type: 'loadData' });
+        switchToNoProjectMode();
+
+        // Initialize LiveShare section as collapsed
+        window.addEventListener('DOMContentLoaded', () => {
+            initializeLiveshareSection();
+        });
+
+        // Request LiveShare participants periodically
+        setInterval(() => {
+            if (activeProject) {
+                vscode.postMessage({ type: 'getLiveShareParticipants' });
+            }
+        }, 3000); // Poll every 3 seconds
+
+        // Profile Avatar Click
+        document.getElementById('profileAvatar').addEventListener('click', () => {
+            vscode.postMessage({ type: 'openProfile' });
+        });
+
+        // LiveShare Section Toggle
+        document.getElementById('liveshareHeader').addEventListener('click', () => {
+            isLiveshareExpanded = !isLiveshareExpanded;
+            toggleLiveshareSection();
+        });
+
+        function toggleLiveshareSection() {
+            const content = document.getElementById('liveshareContent');
+            const icon = document.getElementById('liveshareExpandIcon');
+            
+            if (isLiveshareExpanded) {
+                content.classList.remove('collapsed');
+                icon.classList.add('expanded');
+            } else {
+                content.classList.add('collapsed');
+                icon.classList.remove('expanded');
+            }
+        }
+
+        function initializeLiveshareSection() {
+            const content = document.getElementById('liveshareContent');
+            const icon = document.getElementById('liveshareExpandIcon');
+            
+            if (content && icon) {
+                content.classList.add('collapsed');
+                icon.classList.remove('expanded');
+            }
+        }
+
+        // LiveShare Join
+        document.getElementById('liveshareInput').addEventListener('paste', (e) => {
+            setTimeout(() => {
+                const link = e.target.value.trim();
+                if (link && link.includes('https://')) {
+                    joinLiveShare(link);
+                }
+            }, 100);
+        });
+
+        document.getElementById('joinBtn').addEventListener('click', () => {
+            const link = document.getElementById('liveshareInput').value.trim();
+            if (link) {
+                joinLiveShare(link);
+            }
+        });
+
+        function joinLiveShare(link) {
+            vscode.postMessage({ 
+                type: 'joinLiveShare', 
+                payload: { link } 
+            });
+            document.getElementById('liveshareInput').value = '';
+        }
+
+        // Start LiveShare
+        document.getElementById('startSessionBtn').addEventListener('click', () => {
+            vscode.postMessage({ type: 'startLiveShare' });
+        });
+
+        // Switch Project
+        document.getElementById('switchProjectBtn').addEventListener('click', () => {
+            vscode.postMessage({ type: 'clearActiveProject' });
+            switchToNoProjectMode();
+        });
+
+        // Project List Toggle
+        document.getElementById('projectListHeader').addEventListener('click', () => {
+            isListExpanded = !isListExpanded;
+            const list = document.getElementById('projectList');
+            const chevron = document.getElementById('chevron');
+            
+            if (isListExpanded) {
+                list.classList.add('expanded');
+                chevron.classList.add('expanded');
+            } else {
+                list.classList.remove('expanded');
+                chevron.classList.remove('expanded');
+            }
+        });
+
+        // Join via Code
+        document.getElementById('joinCodeBtn').addEventListener('click', () => {
+            const code = document.getElementById('joinCodeInput').value.trim().toUpperCase();
+            if (code && code.length === 6) {
+                vscode.postMessage({ 
+                    type: 'joinProjectByCode', 
+                    payload: { inviteCode: code } 
+                });
+                document.getElementById('joinCodeInput').value = '';
+            } else {
+                vscode.postMessage({ 
+                    type: 'showError', 
+                    payload: { message: 'Please enter a valid 6-character code' } 
+                });
+            }
+        });
+
+        // Listen for messages
+        window.addEventListener('message', event => {
+            const message = event.data;
+            
+            switch (message.type) {
+                case 'dataLoaded':
+                    loadData(message.payload);
+                    break;
+                case 'activeProjectChanged':
+                    setActiveProject(message.payload.project);
+                    break;
+                case 'liveshareStatus':
+                    updateLiveShareStatus(message.payload);
+                    break;
+                case 'liveshareParticipants':
+                    updateActiveMembers(message.payload.participants);
+                    break;
+                case 'aiAnalysisData':
+                    console.log('AI Analysis Data Received');
+                    aiAnalysisData = message.payload;
+                    renderTeamMembers();
+                    break;
+            }
+        });
+
+        function showNotification(message) {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 10px;
+                right: 10px;
+                background: var(--vscode-notifications-background);
+                color: var(--vscode-notifications-foreground);
+                border: 1px solid var(--vscode-notifications-border);
+                border-radius: 4px;
+                padding: 12px 16px;
+                font-size: 12px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+                z-index: 9999;
+                animation: slideIn 0.3s ease-out;
+            `;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease-out';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+
+        function loadData(data) {
+            if (data.currentUser) {
+                currentUser = data.currentUser;
+                updateProfileAvatar();
+            }
+
+            if (data.users) {
+                users = data.users;
+            }
+
+            if (data.projects) {
+                projects = data.projects;
+                renderProjectList();
+            }
+
+            if (!activeProject) {
+                switchToNoProjectMode();
+            }
+        }
+
+        function updateProfileAvatar() {
+            if (currentUser && currentUser.name) {
+                const initials = currentUser.name
+                    .split(' ')
+                    .map(n => n[0])
+                    .join('')
+                    .toUpperCase()
+                    .slice(0, 2);
+                document.getElementById('profileAvatar').textContent = initials;
+            }
+        }
+
+        function setActiveProject(project) {
+            if (!project) {
+                switchToNoProjectMode();
+                return;
+            }
+
+            console.log('Setting active project:', project.name);
+            activeProject = project;
+            switchToActiveProjectMode();
+
+            document.getElementById('currentProjectName').textContent = project.name || 'Unknown Project';
+
+            aiAnalysisData = null;
+            expandedMemberIds.clear();
+            
+            const container = document.getElementById('teamMembersList');
+            container.innerHTML = `
+                <div style="text-align: center; padding: 20px; color: var(--vscode-descriptionForeground);">
+                    <div style="font-size: 24px; margin-bottom: 8px;">⏳</div>
+                    <div style="font-size: 12px;">Loading team members...</div>
+                </div>
+            `;
+            
+            console.log('Requesting AI analysis for project:', project.id);
+            vscode.postMessage({ 
+                type: 'getAIAnalysis', 
+                payload: { projectId: project.id } 
+            });
+        }
+
+        function switchToActiveProjectMode() {
+            document.getElementById('activeProjectMode').classList.remove('hidden');
+            document.getElementById('noProjectMode').classList.add('hidden');
+        }
+
+        function switchToNoProjectMode() {
+            document.getElementById('activeProjectMode').classList.add('hidden');
+            document.getElementById('noProjectMode').classList.remove('hidden');
+            activeProject = null;
+            expandedMemberIds.clear(); // Clear all expanded members
+        }
+
+        function updateActiveMembers(participants) {
+            activeMembers = new Set(participants || []);
+            renderTeamMembers();
+        }
+
+        function renderTeamMembers() {
+            const container = document.getElementById('teamMembersList');
+            
+            if (!activeProject) {
+                container.innerHTML = '<div class="no-projects">No active project</div>';
+                return;
+            }
+
+            const teamMembers = users.filter(user => 
+                activeProject.selectedMemberIds && activeProject.selectedMemberIds.includes(user.id)
+            );
+
+            if (teamMembers.length === 0) {
+                container.innerHTML = '<div class="no-projects">No team members</div>';
+                return;
+            }
+
+            const hasAIAnalysis = aiAnalysisData && aiAnalysisData.hasAnalysis && aiAnalysisData.roleAssignments;
+
+            container.innerHTML = teamMembers.map(member => {
+                const isActive = activeMembers.has(member.id);
+                const isExpanded = expandedMemberIds.has(member.id);
+                const memberTasks = getMemberTasks(member.name);
+
+                return `
+                    <div class="team-member-item">
+                        <div class="member-header" data-member-id="${member.id}">
+                            <span class="member-status-dot ${isActive ? 'active' : ''}"></span>
+                            <div class="member-info">
+                                <div class="member-name">${member.name}</div>
+                                <div class="detail-label">${memberTasks.goal || 'No goals assigned yet'}</div>
+
+                            </div>
+                            <span class="expand-icon ${isExpanded ? 'expanded' : ''}">▼</span>
+                        </div>
+                        <div class="member-details ${isExpanded ? 'expanded' : ''}" id="details-${member.id}">
+                            <div class="member-details-content" style="position: relative;">
+                                <div class="detail-section">
+                                    <div class="detail-label">🎯 Tasks</div>
+                                    ${memberTasks.current.length > 0 
+                                        ? memberTasks.current.map(task => `<div class="task-item">${task}</div>`).join('')
+                                        : '<div class="detail-content">Generate AI analysis in main panel to automatically assign tasks and roles to all team members based on their skills.</div>'
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // Add click handlers
+            document.querySelectorAll('.member-header').forEach(header => {
+                header.addEventListener('click', (e) => {
+                    const memberId = header.dataset.memberId;
+                    toggleMemberDetails(memberId);
+                });
+            });
+
+        }
+
+        function getMemberTasks(memberName) {
+            if (!aiAnalysisData || !aiAnalysisData.roleAssignments) {
+                return { current: [], goal: '' };
+            }
+
+            const assignment = aiAnalysisData.roleAssignments.find(
+                a => a.memberName === memberName
+            );
+
+            if (!assignment) {
+                return { current: [], goal: '' };
+            }
+
+            return {
+                current: assignment.tasks?.immediate || [],
+                goal: assignment.role || 'Team Member'
+            };
+        }
+
+        function toggleMemberDetails(memberId) {
+            if (expandedMemberIds.has(memberId)) {
+                expandedMemberIds.delete(memberId); // Collapse this member
+            } else {
+                expandedMemberIds.add(memberId); // Expand this member
+            }
+            renderTeamMembers();
+        }
+
+        function closeMemberDetails(memberId) {
+            expandedMemberIds.delete(memberId);
+            renderTeamMembers();
+        }
+
+        // Close details when clicking outside
+        document.addEventListener('click', (e) => {
+            if (expandedMemberId && !e.target.closest('.team-member-item')) {
+                closeMemberDetails(expandedMemberId);
+            }
+        });
+
+        function updateLiveShareStatus(status) {
+            liveshareStatus = status.state;
+            liveshareLink = status.link || null;
+
+            const indicator = document.getElementById('projectStatusIndicator');
+            const text = document.getElementById('projectStatusText');
+            
+            if (status.state === 'active') {
+                indicator.classList.add('active');
+                copyBtn.disabled = false;
+            } else {
+                indicator.classList.remove('active');
+                copyBtn.disabled = true;
+            }
+        }
+
+        function renderProjectList() {
+            const list = document.getElementById('projectList');
+            
+            if (projects.length === 0) {
+                list.innerHTML = '<div class="no-projects">No projects yet. Create one in the main panel.</div>';
+                return;
+            }
+
+            list.innerHTML = projects.map(project => {
+                const teamMembers = users.filter(user => 
+                    project.selectedMemberIds && project.selectedMemberIds.includes(user.id)
+                );
+                
+                return `
+                    <div class="project-item" data-project-id="${project.id}">
+                        <div class="project-item-name">${project.name}</div>
+                        <div class="project-item-desc">${truncate(project.description, 80)}</div>
+                        <div class="project-members">
+                            ${teamMembers.map(m => `<span class="member-badge">${m.name}</span>`).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            document.querySelectorAll('.project-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const projectId = item.dataset.projectId;
+                    vscode.postMessage({ 
+                        type: 'setActiveProject', 
+                        payload: { projectId } 
+                    });
+                });
+            });
+        }
+
+        function truncate(str, maxLen) {
+            if (!str) return '';
+            return str.length > maxLen ? str.substring(0, maxLen) + '...' : str;
+        }
+    </script>
+</body>
+</html>
