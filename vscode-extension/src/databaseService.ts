@@ -1,5 +1,6 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { AuthUser } from './authService';
+import { TimelinePoint } from './timelineManager';
 
 // Database types matching your actual schema
 export interface Profile {
@@ -738,5 +739,176 @@ export class DatabaseService {
   // Get Supabase client for direct queries if needed
   getSupabaseClient(): SupabaseClient {
     return this.supabase;
+  }
+
+  // ==================== TIMELINE OPERATIONS ====================
+
+  /**
+   * Save a timeline point to the database
+   */
+  async saveTimelinePoint(point: TimelinePoint): Promise<boolean> {
+    try {
+      console.log(`💾 Saving timeline point to database: ${point.id}`);
+
+      const { data, error } = await this.supabase
+        .from('timeline_points')
+        .insert([
+          {
+            point_id: point.id,
+            file_path: point.filePath,
+            timestamp: point.timestamp,
+            description: point.description,
+            details: point.details,
+            lines_added: point.linesAdded,
+            lines_removed: point.linesRemoved,
+            change_type: point.changeType,
+            trigger_type: point.trigger_type,
+            code_before: point.codeBefore,
+            code_after: point.codeAfter,
+            change_types: point.changeTypes,
+            category: point.category
+          }
+        ]);
+
+      if (error) {
+        console.error('❌ Database save error:', error);
+        console.error('❌ Error code:', error.code);
+        console.error('❌ Error message:', error.message);
+        console.error('❌ Error details:', error.details);
+        console.error('❌ Error hint:', error.hint);
+        return false;
+      }
+
+      console.log('✅ Timeline point saved to database');
+      return true;
+
+    } catch (error) {
+      console.error('❌ Database save exception:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Load all timeline points from the database
+   */
+  async loadAllTimelinePoints(): Promise<Map<string, TimelinePoint[]>> {
+    try {
+      console.log('💾 Loading timeline points from database...');
+
+      const { data, error } = await this.supabase
+        .from('timeline_points')
+        .select('*')
+        .order('timestamp', { ascending: false });
+
+      if (error) {
+        console.error('❌ Database load error:', error);
+        return new Map();
+      }
+
+      if (!data || data.length === 0) {
+        console.log('📭 No timeline points found in database');
+        return new Map();
+      }
+
+      // Group points by file path
+      const timelineMap = new Map<string, TimelinePoint[]>();
+
+      for (const row of data) {
+        const point: TimelinePoint = {
+          id: row.point_id,
+          filePath: row.file_path,
+          timestamp: row.timestamp,
+          description: row.description,
+          details: row.details,
+          linesAdded: row.lines_added,
+          linesRemoved: row.lines_removed,
+          changeType: row.change_type,
+          trigger_type: row.trigger_type,
+          codeBefore: row.code_before || '',
+          codeAfter: row.code_after,
+          changeTypes: row.change_types || [],
+          category: row.category
+        };
+
+        const filePath = point.filePath;
+        if (!timelineMap.has(filePath)) {
+          timelineMap.set(filePath, []);
+        }
+        timelineMap.get(filePath)!.push(point);
+      }
+
+      console.log(`✅ Loaded ${data.length} timeline points from database`);
+      return timelineMap;
+
+    } catch (error) {
+      console.error('❌ Database load exception:', error);
+      return new Map();
+    }
+  }
+
+  /**
+   * Load timeline points for a specific file
+   */
+  async loadTimelineForFile(filePath: string): Promise<TimelinePoint[]> {
+    try {
+      const { data, error } = await this.supabase
+        .from('timeline_points')
+        .select('*')
+        .eq('file_path', filePath)
+        .order('timestamp', { ascending: false });
+
+      if (error) {
+        console.error('❌ Database load error:', error);
+        return [];
+      }
+
+      if (!data) {
+        return [];
+      }
+
+      return data.map(row => ({
+        id: row.point_id,
+        filePath: row.file_path,
+        timestamp: row.timestamp,
+        description: row.description,
+        details: row.details,
+        linesAdded: row.lines_added,
+        linesRemoved: row.lines_removed,
+        changeType: row.change_type,
+        trigger_type: row.trigger_type,
+        codeBefore: row.code_before || '',
+        codeAfter: row.code_after,
+        changeTypes: row.change_types || [],
+        category: row.category
+      }));
+
+    } catch (error) {
+      console.error('❌ Database load exception:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Delete all timeline points (for testing/cleanup)
+   */
+  async clearAllTimelinePoints(): Promise<boolean> {
+    try {
+      const { error } = await this.supabase
+        .from('timeline_points')
+        .delete()
+        .neq('id', 0); // Delete all rows
+
+      if (error) {
+        console.error('❌ Database clear error:', error);
+        return false;
+      }
+
+      console.log('✅ All timeline points cleared from database');
+      return true;
+
+    } catch (error) {
+      console.error('❌ Database clear exception:', error);
+      return false;
+    }
   }
 }
