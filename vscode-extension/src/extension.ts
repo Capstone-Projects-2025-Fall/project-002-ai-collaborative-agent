@@ -1527,7 +1527,6 @@ function updateSidebar(data: any) {
 }
 
 export async function activate(context: vscode.ExtensionContext) {
-  activateCodeReviewer(context);
 
   // Store context globally first
   extensionContext = context;
@@ -3073,17 +3072,14 @@ If you cannot provide JSON, provide the response in the numbered format as befor
               projectId: projectToPrompt.id
             },
           });
-        // Check analysis mode
-        const mode = analysisMode?.mode || 'initial';
-        console.log(`Generating ${mode} analysis for project ${projectId}`);
-
-        // Route to appropriate analyzer based on mode
-        if (mode === 'progress') {
-          // Use agentic AI for progress analysis
-          await handleProgressAnalysis(projectId, panel, analysisMode);
-        } else {
-          // Use original initial planning analysis
-          await handleInitialPlanningAnalysis(projectId, panel);
+        } catch (error: any) {
+          console.error("Error generating AI prompt:", error);
+          vscode.window.showErrorMessage(`Failed to generate AI response: ${error.message}`);
+          panel.webview.postMessage({
+            type: "promptGenerationError",
+            payload: { message: error.message },
+          });
+          addNotification(`Failed to generate AI response: ${error.message}`, 'error', projectToPrompt.id, projectToPrompt.name);
         }
         
         break;
