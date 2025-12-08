@@ -5203,6 +5203,8 @@
                 if (e.target === this) {
                     closeDiffViewer();
                 }
+            });  // ← ADD THIS LINE
+
             // Global error handler to prevent blank screens
             window.addEventListener('error', (event) => {
                 console.error('Global error caught:', event.error, event.message, event.filename, event.lineno);
