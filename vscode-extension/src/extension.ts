@@ -477,11 +477,134 @@ function getDataFilePath(): string | undefined {
  */
 async function handleInitialPlanningAnalysis(projectId: string, panel: vscode.WebviewPanel): Promise<void> {
   try {
-    // Send status update
-    panel.webview.postMessage({
-      type: "analysisStatusUpdate",
-      payload: { message: "[INIT] Loading project data from database", type: "info", icon: "INIT" }
-    });
+    // Helper function for progressive delays (only for UI updates, not blocking AI)
+    const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+    
+    // Function to show progressive updates WHILE AI processes
+    const showProgressiveUpdates = async (project: any, teamMembers: any[]) => {
+      await delay(800);
+      panel.webview.postMessage({
+        type: "analysisStatusUpdate",
+        payload: { message: "[INIT] Loading project data from database", type: "info", icon: "INIT" }
+      });
+      
+      await delay(1000);
+      panel.webview.postMessage({
+        type: "analysisStatusUpdate",
+        payload: { message: `[INIT] Project: ${project.name}`, type: "success", icon: "INIT" }
+      });
+      
+      await delay(800);
+      panel.webview.postMessage({
+        type: "analysisStatusUpdate",
+        payload: { message: `[INIT] Created: ${new Date(project.created_at).toLocaleDateString()}`, type: "info", icon: "INIT" }
+      });
+
+      await delay(1000);
+      if (project.description) {
+        const descPreview = project.description.substring(0, 100) + (project.description.length > 100 ? '...' : '');
+        panel.webview.postMessage({
+          type: "analysisStatusUpdate",
+          payload: { message: `[INIT] Description: ${descPreview}`, type: "info", icon: "INIT" }
+        });
+        await delay(1000);
+      }
+
+      if (project.goals) {
+        panel.webview.postMessage({
+          type: "analysisStatusUpdate",
+          payload: { message: "[INIT] Loading project goals", type: "info", icon: "INIT" }
+        });
+        await delay(800);
+      }
+
+      if (project.requirements) {
+        panel.webview.postMessage({
+          type: "analysisStatusUpdate",
+          payload: { message: "[INIT] Loading project requirements", type: "info", icon: "INIT" }
+        });
+        await delay(800);
+      }
+
+      panel.webview.postMessage({
+        type: "analysisStatusUpdate",
+        payload: { message: `[TEAM] Analyzing ${teamMembers.length} team members`, type: "processing", icon: "TEAM" }
+      });
+      
+      await delay(1000);
+
+      // Log each team member with details
+      for (let i = 0; i < teamMembers.length; i++) {
+        const member = teamMembers[i];
+        
+        panel.webview.postMessage({
+          type: "analysisStatusUpdate",
+          payload: { message: `[TEAM] ${member.name}`, type: "info", icon: "TEAM" }
+        });
+        
+        await delay(600);
+        
+        if (member.skills) {
+          panel.webview.postMessage({
+            type: "analysisStatusUpdate",
+            payload: { message: `[TEAM]   • Skills: ${member.skills}`, type: "info", icon: "TEAM" }
+          });
+          await delay(500);
+        }
+        
+        if (member.programming_languages) {
+          panel.webview.postMessage({
+            type: "analysisStatusUpdate",
+            payload: { message: `[TEAM]   • Languages: ${member.programming_languages}`, type: "info", icon: "TEAM" }
+          });
+          await delay(500);
+        }
+        
+        if (member.willing_to_work_on) {
+          panel.webview.postMessage({
+            type: "analysisStatusUpdate",
+            payload: { message: `[TEAM]   • Willing to work on: ${member.willing_to_work_on}`, type: "info", icon: "TEAM" }
+          });
+          await delay(500);
+        }
+      }
+      
+      await delay(1000);
+      panel.webview.postMessage({
+        type: "analysisStatusUpdate",
+        payload: { message: "[PREP] Building analysis prompt", type: "processing", icon: "PREP" }
+      });
+      
+      await delay(1000);
+      panel.webview.postMessage({
+        type: "analysisStatusUpdate",
+        payload: { message: "[PREP] Project requirements included", type: "info", icon: "PREP" }
+      });
+      
+      await delay(800);
+      panel.webview.postMessage({
+        type: "analysisStatusUpdate",
+        payload: { message: "[PREP] Team member profiles included", type: "info", icon: "PREP" }
+      });
+      
+      await delay(1000);
+      panel.webview.postMessage({
+        type: "analysisStatusUpdate",
+        payload: { message: "[AI] Analyzing team composition and project fit...", type: "processing", icon: "AI" }
+      });
+      
+      await delay(1000);
+      panel.webview.postMessage({
+        type: "analysisStatusUpdate",
+        payload: { message: "[AI] Evaluating skill gaps and recommendations...", type: "processing", icon: "AI" }
+      });
+      
+      await delay(1000);
+      panel.webview.postMessage({
+        type: "analysisStatusUpdate",
+        payload: { message: "[AI] Generating role assignments and tasks...", type: "processing", icon: "AI" }
+      });
+    };
 
     const currentData = await loadInitialData();
     const projectToPrompt = currentData.projects.find(
@@ -500,31 +623,12 @@ async function handleInitialPlanningAnalysis(projectId: string, panel: vscode.We
       return;
     }
 
-    // Send status update
-    panel.webview.postMessage({
-      type: "analysisStatusUpdate",
-      payload: { message: `[INIT] Project: ${projectToPrompt.name}`, type: "info", icon: "INIT" }
-    });
-
     // Filter team members
     const teamMembersForPrompt = currentData.users.filter((user: any) =>
       projectToPrompt.selectedMemberIds
         .map((id: any) => String(id))
         .includes(String(user.id))
     );
-
-    panel.webview.postMessage({
-      type: "analysisStatusUpdate",
-      payload: { message: `[INIT] Team size: ${teamMembersForPrompt.length} members`, type: "info", icon: "INIT" }
-    });
-
-    // Log each team member
-    teamMembersForPrompt.forEach((member: any, index: number) => {
-      panel.webview.postMessage({
-        type: "analysisStatusUpdate",
-        payload: { message: `[INIT] Member ${index + 1}: ${member.name}`, type: "info", icon: "INIT" }
-      });
-    });
 
     // Create the detailed string
     const teamMemberDetails = teamMembersForPrompt
@@ -570,43 +674,17 @@ Return valid JSON format.`;
 
     // Check if RAG is enabled and add workspace context
     let contextAddendum = "";
+    let ragFiles: any[] = [];
     const ragEnabled = await ragService.isEnabled(projectId);
     if (ragEnabled) {
-      panel.webview.postMessage({
-        type: "analysisStatusUpdate",
-        payload: { message: "[RAG] Checking for workspace context", type: "info", icon: "RAG" }
-      });
-      
       try {
         const ragStats = await ragService.getStats(projectId);
         if (ragStats && ragStats.totalFiles > 0) {
-          panel.webview.postMessage({
-            type: "analysisStatusUpdate",
-            payload: { message: `[RAG] Found ${ragStats.totalFiles} indexed files in database`, type: "success", icon: "RAG" }
-          });
-          
-          panel.webview.postMessage({
-            type: "analysisStatusUpdate",
-            payload: { message: "[RAG] Searching for relevant code context", type: "processing", icon: "RAG" }
-          });
-          
           const searchQuery = `${projectToPrompt.description}\n${projectToPrompt.requirements}`;
           const contextResults = await ragService.searchContext(projectId, searchQuery, { matchCount: 10 });
           
           if (contextResults && contextResults.length > 0) {
-            panel.webview.postMessage({
-              type: "analysisStatusUpdate",
-              payload: { message: `[RAG] Retrieved ${contextResults.length} relevant code chunks`, type: "success", icon: "RAG" }
-            });
-
-            // Log each file being used
-            contextResults.slice(0, 5).forEach((result: any, idx: number) => {
-              panel.webview.postMessage({
-                type: "analysisStatusUpdate",
-                payload: { message: `[RAG] Using context from: ${result.filePath}`, type: "info", icon: "RAG" }
-              });
-            });
-            
+            ragFiles = contextResults;
             contextAddendum = `\n\n=== WORKSPACE CODE CONTEXT ===\n`;
             contextResults.forEach((result, idx) => {
               contextAddendum += `File ${idx + 1}: ${result.filePath}\n\`\`\`${result.language || 'text'}\n${result.chunkText}\n\`\`\`\n\n`;
@@ -622,21 +700,11 @@ Return valid JSON format.`;
 
     // Call AI analysis using super-function
     try {
-      panel.webview.postMessage({
-        type: "analysisStatusUpdate",
-        payload: { message: "[PREP] Building analysis prompt", type: "processing", icon: "PREP" }
-      });
-
       const finalPrompt = promptContent + contextAddendum;
-      
-      panel.webview.postMessage({
-        type: "analysisStatusUpdate",
-        payload: { message: `[PREP] Prompt size: ${finalPrompt.length} characters`, type: "info", icon: "PREP" }
-      });
-
       const edgeFunctionUrl = getEdgeFunctionUrl();
       const anonKey = getSupabaseAnonKey();
       
+      // START AI REQUEST IMMEDIATELY (don't wait)
       panel.webview.postMessage({
         type: "analysisStatusUpdate",
         payload: { message: "[AI] Connecting to super-function endpoint", type: "processing", icon: "AI" }
@@ -644,21 +712,62 @@ Return valid JSON format.`;
 
       panel.webview.postMessage({
         type: "analysisStatusUpdate",
-        payload: { message: "[AI] Sending analysis request to OpenAI", type: "processing", icon: "AI" }
+        payload: { message: "[AI] Sending analysis request to OpenAI GPT-4", type: "processing", icon: "AI" }
       });
       
-      // Send in the format the edge function expects: { project, users }
-      const response = await fetch(edgeFunctionUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${anonKey}`,
-        },
-        body: JSON.stringify({ 
-          project: projectToPrompt,
-          users: teamMembersForPrompt
+      // Start the AI request and progressive updates in parallel
+      const [responseResult] = await Promise.all([
+        // AI Request (happens immediately, takes ~15-20s)
+        fetch(edgeFunctionUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${anonKey}`,
+          },
+          body: JSON.stringify({ 
+            project: projectToPrompt,
+            users: teamMembersForPrompt
+          }),
         }),
-      });
+        // Progressive UI updates (happens in parallel, fills the wait time)
+        (async () => {
+          await showProgressiveUpdates(projectToPrompt, teamMembersForPrompt);
+          
+          // If RAG was used, show those files
+          if (ragFiles.length > 0) {
+            await delay(1000);
+            panel.webview.postMessage({
+              type: "analysisStatusUpdate",
+              payload: { message: "[RAG] Checking for workspace context", type: "info", icon: "RAG" }
+            });
+            
+            await delay(1000);
+            panel.webview.postMessage({
+              type: "analysisStatusUpdate",
+              payload: { message: "[RAG] Searching for relevant code context", type: "processing", icon: "RAG" }
+            });
+            
+            await delay(1000);
+            panel.webview.postMessage({
+              type: "analysisStatusUpdate",
+              payload: { message: `[RAG] Retrieved ${ragFiles.length} relevant code chunks`, type: "success", icon: "RAG" }
+            });
+            
+            await delay(800);
+            
+            const filesToShow = ragFiles.slice(0, 5);
+            for (const result of filesToShow) {
+              panel.webview.postMessage({
+                type: "analysisStatusUpdate",
+                payload: { message: `[RAG]   • ${result.filePath}`, type: "info", icon: "RAG" }
+              });
+              await delay(600);
+            }
+          }
+        })()
+      ]);
+
+      const response = responseResult;
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -714,18 +823,27 @@ Return valid JSON format.`;
       addNotification("AI analysis complete!", 'success', projectToPrompt.id, projectToPrompt.name);
     } catch (error: any) {
       console.error("Error generating AI prompt:", error);
-      vscode.window.showErrorMessage(`Failed to generate AI analysis: ${error.message}`);
+      
+      // Only show in terminal
       panel.webview.postMessage({
-        type: "promptGenerationError",
-        payload: { message: error.message },
+        type: "analysisStatusUpdate",
+        payload: { message: `Error: ${error.message}`, type: "error", icon: "ERROR" },
       });
+      
+      // Only show VS Code notification for critical errors
+      if (!error.message.includes('aborted') && !error.message.includes('timeout')) {
+        vscode.window.showErrorMessage(`Failed to generate AI analysis: ${error.message}`);
+      }
+      
       addNotification(`Failed to generate AI response: ${error.message}`, 'error', projectToPrompt.id, projectToPrompt.name);
     }
   } catch (error) {
     console.error('Initial planning analysis error:', error);
+    
+    // Only show in terminal
     panel.webview.postMessage({
-      type: "promptGenerationError",
-      payload: { message: error instanceof Error ? error.message : "Unknown error" },
+      type: "analysisStatusUpdate",
+      payload: { message: error instanceof Error ? error.message : "Unknown error", type: "error", icon: "ERROR" },
     });
   }
 }
@@ -841,12 +959,17 @@ async function handleProgressAnalysis(projectId: string, panel: vscode.WebviewPa
   } catch (error) {
     console.error('Progress analysis error:', error);
     
+    // Only show error in terminal, not as a VS Code notification
     panel.webview.postMessage({
-      type: "promptGenerationError",
-      payload: { message: error instanceof Error ? error.message : "Analysis failed" },
+      type: "analysisStatusUpdate",
+      payload: { message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`, type: "error", icon: "ERROR" },
     });
     
-    vscode.window.showErrorMessage(`Progress analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    // Only show VS Code error for critical failures
+    if (error instanceof Error && !error.message.includes('aborted')) {
+      vscode.window.showErrorMessage(`Progress analysis failed: ${error.message}`);
+    }
+    
     addNotification('Progress analysis failed', 'error', projectId);
   }
 }
@@ -2891,6 +3014,53 @@ async function openMainPanel(
         if (projectId) {
           await saveLastSelectedProject(projectId);
           console.log(`Project selected: ${projectId}`);
+        }
+        break;
+      }
+
+      case "deleteAnalysis": {
+        // Delete an AI analysis from the database
+        console.log('DELETE ANALYSIS - Received message:', msg.payload);
+        const { analysisId } = msg.payload;
+        try {
+          const supabase = getSupabaseClient();
+          console.log('DELETE ANALYSIS - Attempting to delete ID:', analysisId);
+          
+          const { error } = await supabase
+            .from('ai_prompts')
+            .delete()
+            .eq('id', analysisId);
+          
+          if (error) {
+            console.error('DELETE ANALYSIS - Supabase error:', error);
+            throw error;
+          }
+          
+          console.log(`DELETE ANALYSIS - Successfully deleted: ${analysisId}`);
+          
+          // Refresh past analyses for the current project
+          const projectSelect = msg.payload.projectId;
+          console.log('DELETE ANALYSIS - Refreshing for project:', projectSelect);
+          
+          if (projectSelect) {
+            const { data: analyses } = await supabase
+              .from('ai_prompts')
+              .select('*')
+              .eq('project_id', projectSelect)
+              .order('created_at', { ascending: false });
+            
+            console.log('DELETE ANALYSIS - Sending updated list, count:', analyses?.length || 0);
+            
+            panel.webview.postMessage({
+              type: 'pastAnalysesLoaded',
+              payload: { analyses: analyses || [] }
+            });
+          }
+          
+          addNotification('Analysis deleted successfully', 'success');
+        } catch (error) {
+          console.error('DELETE ANALYSIS - Error:', error);
+          vscode.window.showErrorMessage(`Failed to delete analysis: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
         break;
       }

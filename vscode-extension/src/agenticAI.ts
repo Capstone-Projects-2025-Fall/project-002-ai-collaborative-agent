@@ -65,62 +65,132 @@ export async function analyzeProgressWithAgent(
     progressCallback?.(msg);
   };
 
+  // Helper for delays
+  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
   try {
-    log('[INIT] Initializing agentic AI analyzer');
-    log('[INIT] Project: ' + context.projectDetails.name);
-
-    // Step 1: Get workspace context
-    log('[SCAN] Starting workspace scan');
-    log('[SCAN] Workspace path: ' + context.workspacePath);
-    const workspaceContext = await getWorkspaceContext(context.workspacePath, log);
-    log('[SCAN] Found ' + workspaceContext.stats.totalFiles + ' files');
+    // Get workspace context and prepare prompt FIRST (no delays here)
+    const workspaceContext = await getWorkspaceContext(context.workspacePath);
     
-    // Log file type breakdown
-    const fileTypes = Object.entries(workspaceContext.stats.filesByExtension)
-      .sort((a: any, b: any) => b[1] - a[1])
-      .slice(0, 5);
-    fileTypes.forEach(([ext, count]) => {
-      log(`[SCAN] ${ext}: ${count} files`);
-    });
-
-    // Step 2: Get RAG context if enabled
     let ragContext = null;
     if (context.ragEnabled) {
-      log('[RAG] Fetching indexed code context');
-      ragContext = await getRAGContext(context.projectId, log);
-      if (ragContext.indexedFiles > 0) {
-        log('[RAG] Loaded ' + ragContext.indexedFiles + ' code chunks');
-        // Log first few files being analyzed
-        ragContext.codeSnippets?.slice(0, 5).forEach((snippet: any) => {
-          log('[RAG] Analyzing: ' + snippet.path);
-        });
-      } else {
-        log('[RAG] No indexed files found');
-      }
+      ragContext = await getRAGContext(context.projectId);
     }
-
-    // Step 3: Prepare comprehensive context for AI
-    log('[PREP] Building analysis context');
-    log('[PREP] Team size: ' + context.teamMembers.length + ' members');
+    
     const analysisPrompt = buildProgressAnalysisPrompt(
       context,
       workspaceContext,
       ragContext
     );
-    log('[PREP] Context prepared (' + analysisPrompt.length + ' chars)');
 
-    // Step 4: Call Supabase Edge Function with agentic capabilities
-    log('[AI] Connecting to analysis service');
-    log('[AI] Sending request to agentic-progress-analysis');
-    const analysis = await callAgenticEdgeFunction(
-      analysisPrompt,
-      context.projectId,
-      (toolCall: string) => log('[AI] Tool call: ' + toolCall),
-      log
-    );
+    // Function to show progressive updates WHILE AI processes
+    const showProgressiveUpdates = async () => {
+      log('[INIT] Initializing agentic AI analyzer');
+      await delay(800);
+      
+      log('[INIT] Project: ' + context.projectDetails.name);
+      await delay(1000);
+      
+      if (context.projectDetails.description) {
+        const desc = context.projectDetails.description.substring(0, 80);
+        log('[INIT] Description: ' + desc + '...');
+        await delay(800);
+      }
+      
+      if (context.projectDetails.requirements) {
+        log('[INIT] Loading requirements');
+        await delay(800);
+      }
+
+      log('[SCAN] Starting workspace scan');
+      await delay(1000);
+      
+      log('[SCAN] Workspace path: ' + context.workspacePath);
+      await delay(800);
+      
+      log('[SCAN] Found ' + workspaceContext.stats.totalFiles + ' files');
+      await delay(1000);
+      
+      const fileTypes = Object.entries(workspaceContext.stats.filesByExtension)
+        .sort((a: any, b: any) => b[1] - a[1])
+        .slice(0, 5);
+      
+      if (fileTypes.length > 0) {
+        log('[SCAN] File breakdown:');
+        await delay(800);
+        
+        for (const [ext, count] of fileTypes) {
+          log(`[SCAN]   • ${ext}: ${count} files`);
+          await delay(600);
+        }
+      }
+
+      if (context.ragEnabled && ragContext) {
+        log('[RAG] Fetching indexed code context');
+        await delay(1000);
+        
+        if (ragContext.indexedFiles > 0) {
+          log('[RAG] Loaded ' + ragContext.indexedFiles + ' code chunks');
+          await delay(800);
+          
+          const filesToShow = ragContext.codeSnippets?.slice(0, 5) || [];
+          for (const snippet of filesToShow) {
+            log('[RAG]   • ' + snippet.path);
+            await delay(600);
+          }
+        } else {
+          log('[RAG] No indexed files found');
+          await delay(800);
+        }
+      }
+
+      log('[PREP] Building analysis context');
+      await delay(1000);
+      
+      log('[PREP] Team size: ' + context.teamMembers.length + ' members');
+      await delay(800);
+      
+      for (const member of context.teamMembers) {
+        log('[PREP]   • ' + member.name);
+        await delay(600);
+      }
+      
+      log('[PREP] Context prepared (' + analysisPrompt.length + ' chars)');
+      await delay(1000);
+
+      log('[AI] Connecting to analysis service');
+      await delay(1200);
+      
+      log('[AI] Sending request to agentic-progress-analysis');
+      await delay(1000);
+      
+      log('[AI] Analyzing codebase vs project requirements...');
+      await delay(1000);
+      
+      log('[AI] Evaluating team contributions and progress...');
+      await delay(1000);
+      
+      log('[AI] Identifying blockers and next priorities...');
+    };
+
+    // Call AI and show updates in parallel
+    const [analysis] = await Promise.all([
+      // AI call (happens immediately)
+      callAgenticEdgeFunction(
+        analysisPrompt,
+        context.projectId,
+        (toolCall: string) => log('[AI] Tool call: ' + toolCall),
+        log
+      ),
+      // Progressive updates (fills the wait time)
+      showProgressiveUpdates()
+    ]);
 
     log('[DONE] Analysis complete');
+    await delay(800);
+    
     log('[DONE] Completion: ' + analysis.completionStatus.percentComplete + '%');
+    
     return analysis;
   } catch (error) {
     console.error('[Agentic AI] Error:', error);
