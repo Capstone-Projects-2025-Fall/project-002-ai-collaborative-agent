@@ -7,6 +7,7 @@ import { AuthService, AuthUser } from "./authService";
 import { DatabaseService, Profile, Project, ProjectMember, AIPrompt } from "./databaseService";
 import { getSupabaseClient, getEdgeFunctionUrl, getSupabaseAnonKey, getSupabaseUrl } from "./supabaseConfig";
 import { createJiraTasksCmd, JiraTaskOptions } from "./commands/createJiraTasks";
+import { TimelineManager } from './timelineManager';
 import {
   searchIssues,
   createIssue,
@@ -29,6 +30,7 @@ let authService: AuthService;
 let databaseService: DatabaseService;
 let ragService: RAGService;
 let extensionContext: vscode.ExtensionContext;
+let timelineManager: TimelineManager;
 let peerSuggestionService: PeerSuggestionService | undefined;
 
 // Global notification system
@@ -1122,6 +1124,9 @@ export async function activate(context: vscode.ExtensionContext) {
   // Store context globally first
   extensionContext = context;
 
+  // Initialize Timeline Manager
+  timelineManager = new TimelineManager(context);
+  context.subscriptions.push(timelineManager);
   checkLiveShareInstalled()
 
   // Load persisted notifications
@@ -2878,6 +2883,95 @@ async function openMainPanel(
         break;
       }
 
+      case "getWorkspaceFiles": {
+    try {
+        const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+        if (!workspaceFolder) {
+            panel.webview.postMessage({
+                type: "workspaceFilesError",
+                payload: { message: "No workspace folder open" },
+            });
+            break;
+        }
+
+        const files = await getWorkspaceFiles(workspaceFolder.uri.fsPath);
+        
+        panel.webview.postMessage({
+            type: "workspaceFilesLoaded",
+            payload: { files },
+        });
+    } catch (error) {
+        panel.webview.postMessage({
+            type: "workspaceFilesError",
+            payload: {
+                message: error instanceof Error ? error.message : "Failed to load files",
+            },
+        });
+    }
+    break;
+}
+
+case "getFileTimeline": {
+    try {
+        const { filePath } = msg.payload;
+        console.log(`📅 Getting timeline for: ${filePath}`);
+        
+        // Get REAL timeline data instead of mock
+        const timeline = getRealtimeTimeline(filePath);
+        
+        panel.webview.postMessage({
+            type: "timelineDataLoaded",
+            payload: { timeline },
+        });
+        
+        console.log(`✅ Sent ${timeline.length} timeline points to webview`);
+    } catch (error) {
+        console.error('❌ Error getting timeline:', error);
+        panel.webview.postMessage({
+            type: "timelineError",
+            payload: {
+                message: error instanceof Error ? error.message : "Failed to load timeline",
+            },
+        });
+    }
+    break;
+}
+
+case "viewTimelinePoint": {
+    try {
+        const { pointId } = msg.payload;
+        console.log(`👁️ Viewing timeline point: ${pointId}`);
+        
+        // Get the timeline point with code snapshots
+        const point = timelineManager.getTimelinePoint(pointId);
+        
+        if (!point) {
+            panel.webview.postMessage({
+                type: "timelinePointError",
+                payload: { message: "Timeline point not found" }
+            });
+            break;
+        }
+        
+        // Send the full point data including code snapshots
+        panel.webview.postMessage({
+            type: "timelinePointLoaded",
+            payload: { point }
+        });
+        
+        console.log(`✅ Sent timeline point with ${point.codeAfter.length} chars of code`);
+    } catch (error) {
+        console.error('❌ Error viewing timeline point:', error);
+        panel.webview.postMessage({
+            type: "timelinePointError",
+            payload: {
+                message: error instanceof Error ? error.message : "Failed to load timeline point"
+            }
+        });
+    }
+    break;
+}
+
       case "signOut": {
         try {
           await authService.signOut();
@@ -3126,7 +3220,113 @@ export function deactivate() {
   if (ragService) {
     ragService.dispose();
   }
+  // Clean up timeline manager
+  if (timelineManager) {
+    timelineManager.dispose();
+  }
 }
+
+async function getWorkspaceFiles(
+  workspacePath: string
+): Promise<Array<{ path: string; name: string; type: string; size: number }>> {
+  const fs = require("fs").promises;
+  const pathModule = require("path");
+  const files: Array<{
+    path: string;
+    name: string;
+    type: string;
+    size: number;
+  }> = [];
+
+  // File extensions to include
+  const codeExtensions = [
+    ".js",
+    ".ts",
+    ".jsx",
+    ".tsx",
+    ".py",
+    ".java",
+    ".cpp",
+    ".c",
+    ".cs",
+    ".go",
+    ".rb",
+    ".php",
+    ".swift",
+    ".kt",
+    ".rs",
+    ".html",
+    ".css",
+    ".scss",
+    ".json",
+    ".xml",
+    ".yaml",
+    ".yml",
+    ".sql",
+    ".sh",
+    ".md",
+    ".txt",
+  ];
+
+  // Folders to ignore
+  const ignoreFolders = [
+    "node_modules",
+    ".git",
+    "dist",
+    "build",
+    "out",
+    ".vscode",
+    "coverage",
+    ".next",
+    "__pycache__",
+    ".idea",
+    "target",
+    "bin",
+  ];
+
+  async function readDir(dirPath: string, relativePath: string = "") {
+    try {
+      const entries = await fs.readdir(dirPath, { withFileTypes: true });
+
+      for (const entry of entries) {
+        const fullPath = pathModule.join(dirPath, entry.name);
+        const relPath = pathModule.join(relativePath, entry.name);
+
+        if (entry.isDirectory()) {
+          // Skip ignored folders
+          if (!ignoreFolders.includes(entry.name)) {
+            await readDir(fullPath, relPath);
+          }
+        } else if (entry.isFile()) {
+          const ext = pathModule.extname(entry.name).toLowerCase();
+
+          // Only include relevant files
+          if (codeExtensions.includes(ext)) {
+            try {
+              const stats = await fs.stat(fullPath);
+              files.push({
+                path: relPath.replace(/\\/g, "/"), // Normalize path separators
+                name: entry.name,
+                type: ext.substring(1), // Remove the dot
+                size: stats.size,
+              });
+            } catch (err) {
+              console.log(`Could not read file stats: ${fullPath}`);
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.log(`Could not read directory: ${dirPath}`);
+    }
+  }
+
+  await readDir(workspacePath);
+  return files.sort((a, b) => a.path.localeCompare(b.path));
+}
+
+// Add this helper function at the bottom of extension.ts (after getWorkspaceFiles)
+// This generates mock data for now - we'll replace it with real tracking later
 
 async function getLoginHtml(
   webview: vscode.Webview,
@@ -3559,4 +3759,30 @@ function getNonce() {
 }
 function mockAllocate(payload: { [key: string]: any }): any {
 	throw new Error("Function not implemented.");
+}
+
+// ============================================================================
+// TIMELINE FEATURE HELPER FUNCTIONS - ADD THESE
+// ============================================================================
+
+function getRealtimeTimeline(filePath: string): Array<{
+  id: string;
+  timestamp: string;
+  description: string;
+  details: string;
+  linesAdded: number;
+  linesRemoved: number;
+  changeType: string;
+}> {
+  // Get real timeline data from TimelineManager
+  const points = timelineManager.getTimeline(filePath);
+  
+  // If no points yet, return empty array
+  if (points.length === 0) {
+    console.log(`📭 No timeline points yet for: ${filePath}`);
+    return [];
+  }
+  
+  console.log(`📊 Returning ${points.length} timeline points for: ${filePath}`);
+  return points;
 }

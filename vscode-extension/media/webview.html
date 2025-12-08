@@ -1479,6 +1479,215 @@
             }
         }
 
+        .timeline-viewer {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            display: none;
+        }
+
+        .timeline-viewer.active {
+            display: block;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .timeline-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .timeline-header h3 {
+            color: #1e293b;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .timeline-close-btn {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .timeline-close-btn:hover {
+            background: #dc2626;
+        }
+
+        .timeline-container {
+            position: relative;
+            padding: 20px 0;
+        }
+
+        .timeline-line {
+            position: absolute;
+            left: 30px;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: linear-gradient(180deg, #667eea, #764ba2);
+        }
+
+        .timeline-item {
+            position: relative;
+            padding-left: 70px;
+            margin-bottom: 30px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .timeline-item:hover {
+            transform: translateX(5px);
+        }
+
+        .timeline-dot {
+            position: absolute;
+            left: 20px;
+            top: 5px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border: 3px solid white;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+            z-index: 2;
+        }
+
+        .timeline-dot.major {
+            width: 32px;
+            height: 32px;
+            left: 16px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+            }
+            50% {
+                box-shadow: 0 2px 16px rgba(102, 126, 234, 0.6);
+            }
+        }
+
+        .timeline-content {
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 15px;
+            border-left: 3px solid #667eea;
+        }
+
+        .timeline-content:hover {
+            background: #f1f5f9;
+        }
+
+        .timeline-time {
+            color: #667eea;
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+        }
+
+        .timeline-description {
+            color: #1e293b;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .timeline-details {
+            color: #64748b;
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+        }
+
+        .timeline-stats {
+            display: flex;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .timeline-stat {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.8rem;
+            color: #64748b;
+        }
+
+        .timeline-stat.added {
+            color: #16a34a;
+        }
+
+        .timeline-stat.removed {
+            color: #dc2626;
+        }
+
+        .timeline-change-types {
+            margin-top: 10px;
+            padding: 10px;
+            background: #fff;
+            border-radius: 6px;
+            border-left: 3px solid #667eea;
+        }
+
+        .change-type-item {
+            color: #475569;
+            font-size: 0.85rem;
+            margin: 4px 0;
+            line-height: 1.4;
+        }
+
+        .change-type-item:first-child {
+            margin-top: 0;
+        }
+
+        .timeline-badge {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+
+        .timeline-category-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: white;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-right: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+
+        .timeline-empty {
+            text-align: center;
+            padding: 40px;
+            color: #64748b;
+        }
+
+        .timeline-empty-icon {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            opacity: 0.5;
+        }
+
         /* Loading Behavior for AI Prompt button */
         body.ai-loading,
         body.ai-loading * {
@@ -1520,6 +1729,188 @@
         .signout-btn:hover {
             background: rgba(255, 255, 255, 0.3);
             transform: translateY(-1px);
+        }
+
+        /* CODE DIFF VIEWER STYLES */
+        .diff-viewer-modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            animation: fadeIn 0.2s ease;
+        }
+
+        .diff-viewer-modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .diff-viewer-content {
+            background: white;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 1200px;
+            max-height: 85vh;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .diff-viewer-header {
+            padding: 20px 25px;
+            border-bottom: 2px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .diff-viewer-header h2 {
+            margin: 0;
+            color: #1e293b;
+            font-size: 1.3rem;
+        }
+
+        .diff-viewer-close {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .diff-viewer-close:hover {
+            background: #dc2626;
+            transform: scale(1.05);
+        }
+
+        .diff-viewer-body {
+            padding: 25px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .diff-info {
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-left: 4px solid #667eea;
+        }
+
+        .diff-info p {
+            margin: 5px 0;
+            color: #475569;
+        }
+
+        .diff-info strong {
+            color: #1e293b;
+        }
+
+        .diff-comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .diff-panel {
+            background: #1e293b;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .diff-panel-header {
+            padding: 10px 15px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: white;
+        }
+
+        .diff-panel-header.before {
+            background: #dc2626;
+        }
+
+        .diff-panel-header.after {
+            background: #16a34a;
+        }
+
+        .diff-code {
+            padding: 15px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            color: #e2e8f0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .diff-empty {
+            color: #94a3b8;
+            font-style: italic;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .diff-stats {
+            display: flex;
+            gap: 20px;
+            margin-top: 15px;
+            padding: 15px;
+            background: #f1f5f9;
+            border-radius: 8px;
+        }
+
+        .diff-stat {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+        }
+
+        .diff-stat.added {
+            color: #16a34a;
+        }
+
+        .diff-stat.removed {
+            color: #dc2626;
+        }
+
+        .diff-stat-icon {
+            font-size: 1.2rem;
+        }
+
+        @media (max-width: 768px) {
+            .diff-comparison {
+                grid-template-columns: 1fr;
+            }
+            
+            .diff-viewer-content {
+                width: 95%;
+                max-height: 90vh;
+            }
         }
 
         .profile-dropdown-container {
@@ -1697,6 +2088,307 @@
         #projects .project-list::-webkit-scrollbar-thumb:hover {
             background: rgba(148, 163, 184, 0.6);
         }
+
+/* =========================
+   Pallas palette overrides
+   (paste at END of <style>)
+   ========================= */
+:root{
+  --p-bg: #212227;
+  --p-surface-1: #484F57;
+  --p-surface-2: #637074;
+  --p-border: #6F7B87;
+  --p-accent: #FFC82F;
+
+  --p-text: #F4F6F8;
+  --p-text-muted: rgba(244,246,248,0.72);
+  --p-ink: #212227;
+
+  --p-shadow: 0 14px 40px rgba(0,0,0,0.35);
+  --p-radius: 14px;
+  --p-focus: 0 0 0 3px rgba(255, 200, 47, 0.22);
+
+  color-scheme: dark;
+}
+
+body{
+  background:
+    radial-gradient(900px 500px at 18% -10%, rgba(255,200,47,0.10), transparent 60%),
+    linear-gradient(135deg, var(--p-bg) 0%, var(--p-surface-1) 100%);
+  color: var(--p-text);
+}
+
+/* Header stays readable */
+.header{ color: var(--p-text); }
+.header h1{ text-shadow: 0 2px 12px rgba(0,0,0,0.55); }
+
+/* Top-right buttons */
+.profile-button,
+.signout-btn{
+  background: rgba(72,79,87,0.45);
+  border: 1px solid rgba(111,123,135,0.45);
+  color: var(--p-text);
+}
+.profile-button:hover,
+.signout-btn:hover{
+  background: rgba(99,112,116,0.45);
+}
+
+/* Tabs */
+.tab-button{
+  background: rgba(72,79,87,0.35);
+  border: 1px solid rgba(111,123,135,0.35);
+  color: var(--p-text);
+}
+.tab-button:hover{
+  background: rgba(99,112,116,0.45);
+  transform: translateY(-1px);
+}
+.tab-button.active{
+  background: rgba(72,79,87,0.70);
+  border-color: rgba(255,200,47,0.55);
+  box-shadow: 0 0 0 1px rgba(255,200,47,0.12) inset;
+}
+
+/* Main content panels */
+.tab-content{
+  background: rgba(72,79,87,0.92);
+  border: 1px solid rgba(111,123,135,0.30);
+  box-shadow: var(--p-shadow);
+  color: var(--p-text);
+  border-radius: var(--p-radius);
+}
+
+/* Section titles */
+.section-title{ color: var(--p-text); }
+.section-title::before{ background: var(--p-accent); }
+
+/* Forms */
+.form-group label,
+.other-input-group label,
+.profile-dropdown-item label{
+  color: var(--p-text);
+  opacity: 0.92;
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select,
+.other-input-group input{
+  background: rgba(33,34,39,0.55);
+  border-color: rgba(111,123,135,0.45);
+  color: var(--p-text);
+}
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus,
+.other-input-group input:focus{
+  border-color: rgba(255,200,47,0.70);
+  box-shadow: var(--p-focus);
+}
+input::placeholder, textarea::placeholder{
+  color: rgba(244,246,248,0.45);
+}
+
+/* Checkbox/radio accents */
+.radio-option input[type="checkbox"],
+.radio-option input[type="radio"]{
+  accent-color: var(--p-accent);
+}
+.radio-group{
+  background: rgba(33,34,39,0.25);
+  border-color: rgba(111,123,135,0.35);
+}
+.radio-option label{ color: var(--p-text-muted); }
+.radio-option:hover label,
+.radio-option input[type="checkbox"]:checked + label,
+.radio-option input[type="radio"]:checked + label{
+  color: var(--p-accent);
+}
+
+/* Buttons */
+.btn{ border-radius: 10px; }
+.btn-primary{
+  background: var(--p-accent);
+  color: var(--p-ink);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.22);
+}
+.btn-primary:hover{
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(0,0,0,0.28);
+}
+.btn-secondary{
+  background: rgba(33,34,39,0.35);
+  color: var(--p-text);
+  border: 1px solid rgba(111,123,135,0.45);
+}
+.btn-secondary:hover{ background: rgba(99,112,116,0.40); }
+
+/* Cards / lists */
+.profile-card,
+.user-list, .project-list{
+  background: rgba(33,34,39,0.25);
+  border: 1px solid rgba(111,123,135,0.25);
+}
+.profile-card-title{ color: var(--p-text); }
+
+.user-item, .project-item{
+  background: rgba(33,34,39,0.36);
+  border-left: 4px solid var(--p-accent);
+}
+.user-item h3, .project-item h3{ color: var(--p-text); }
+.user-item p,  .project-item p { color: var(--p-text-muted); }
+
+/* Placeholder “No projects yet” etc (inline colors) */
+#projectList > p,
+#currentUserDisplay > p{
+  color: var(--p-text-muted) !important;
+}
+
+/* Team cards */
+.team-member-card{
+  background: rgba(72,79,87,0.55);
+  border-color: rgba(111,123,135,0.30);
+}
+.team-member-card > div:first-child{ color: var(--p-text); }
+
+/* Prompt output */
+.prompt-output{
+  background: rgba(33,34,39,0.70);
+  border: 1px solid rgba(111,123,135,0.25);
+  color: var(--p-text);
+}
+
+/* Analysis sections */
+.analysis-section{
+  background: rgba(33,34,39,0.35);
+  color: var(--p-text);
+  border: 1px solid rgba(111,123,135,0.25);
+}
+.analysis-section h3{ color: var(--p-accent); }
+.analysis-section h3::before{ background: var(--p-accent); }
+
+.member-card{
+  background: rgba(72,79,87,0.45);
+  border-color: rgba(111,123,135,0.28);
+}
+.member-card:hover{
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(0,0,0,0.30);
+}
+.member-header{ border-bottom-color: rgba(111,123,135,0.28); }
+.member-name{ color: var(--p-text); }
+.member-role{
+  background: rgba(255,200,47,0.14);
+  border: 1px solid rgba(255,200,47,0.28);
+  color: var(--p-accent);
+}
+
+.task-section h4{ color: var(--p-text); }
+.task-list li{
+  background: rgba(33,34,39,0.40);
+  border-left-color: var(--p-accent);
+  color: var(--p-text);
+}
+.task-list li::before{ color: var(--p-accent); }
+
+/* Callouts inside analysis */
+.challenge-item,
+.risk-item,
+.recommendation-item{
+  background: rgba(255,200,47,0.12);
+  border-left-color: var(--p-accent);
+  color: var(--p-text);
+}
+.mitigation-item{
+  background: rgba(99,112,116,0.25);
+  border-left-color: rgba(111,123,135,0.70);
+  color: var(--p-text);
+}
+.feasibility-badge.positive{
+  background: rgba(255,200,47,0.16);
+  color: var(--p-accent);
+  border: 1px solid rgba(255,200,47,0.25);
+}
+.feasibility-badge.negative{
+  background: rgba(239,68,68,0.18);
+  color: #fecaca;
+  border: 1px solid rgba(239,68,68,0.25);
+}
+
+/* Deliverables */
+.deliverable-card{
+  background: rgba(33,34,39,0.35);
+  border-color: rgba(111,123,135,0.25);
+}
+.deliverable-name{ color: var(--p-text); }
+.deliverable-meta{ color: var(--p-text-muted); }
+
+/* Status: add missing info style (you use 'info' in JS) */
+.status-info{
+  background: rgba(255,200,47,0.14);
+  color: var(--p-accent);
+  border: 1px solid rgba(255,200,47,0.25);
+}
+
+/* Dropdown + modal (override inline white backgrounds) */
+.profile-dropdown{
+  background: rgba(72,79,87,0.95);
+  border: 1px solid rgba(111,123,135,0.30);
+}
+.profile-dropdown-header h3{ color: var(--p-text); }
+.profile-dropdown-item p{ color: var(--p-text-muted); }
+.edit-profile-link{ color: var(--p-accent); }
+.edit-profile-link:hover{ background: rgba(33,34,39,0.35); color: var(--p-accent); }
+
+.modal-content{
+  background: rgba(72,79,87,0.96) !important;
+  color: var(--p-text);
+  border: 1px solid rgba(111,123,135,0.30);
+  box-shadow: var(--p-shadow);
+}
+#closeEditModal{ color: var(--p-text-muted) !important; }
+
+/* Fix inline title color inside AI visualization header */
+#aiAnalysisVisualization h2{ color: var(--p-text) !important; }
+#aiAnalysisVisualization > div > p{ color: var(--p-text-muted) !important; }
+
+/* Info tooltip icon */
+.info-icon{
+  background: rgba(33,34,39,0.35);
+  border-color: rgba(111,123,135,0.55);
+  color: var(--p-text);
+}
+.info-icon::after,
+.info-icon::before{ background: rgba(33,34,39,0.92); }
+
+/* Scrollbars */
+#projects .project-list{
+  scrollbar-color: rgba(111,123,135,0.45) transparent;
+}
+#projects .project-list::-webkit-scrollbar-thumb{
+  background: rgba(111,123,135,0.35);
+}
+#projects .project-list::-webkit-scrollbar-thumb:hover{
+  background: rgba(111,123,135,0.60);
+}
+
+/* Override inline-colored action buttons inside project HTML */
+.edit-project-btn{
+  background: var(--p-accent) !important;
+  color: var(--p-ink) !important;
+}
+.leave-project-btn{
+  background: rgba(33,34,39,0.35) !important;
+  color: var(--p-text) !important;
+  border: 1px solid rgba(111,123,135,0.45) !important;
+}
+.project-item code{
+  background: rgba(33,34,39,0.55) !important;
+  color: var(--p-text) !important;
+  border: 1px solid rgba(111,123,135,0.25);
+}
+
     </style>
 </head>
 
@@ -1749,6 +2441,7 @@
             <button class="tab-button" data-tab="projects">📋 Projects</button>
             <button class="tab-button" data-tab="prompts">🤖 Workspace</button>
             <button class="tab-button" data-tab="jira">🗂️ Jira Tasks</button>
+            <button class="tab-button" data-tab="timeline">📅 Timeline</button>
         </div>
 
         <div id="users" class="tab-content">
@@ -2242,6 +2935,90 @@
                 </div>
             </div>
         </div>
+
+        <div id="timeline" class="tab-content">
+            <div class="section-title">Project Files Browser</div>
+            
+            <div class="form-group">
+                <label for="timelineSearch">
+                    🔍 Search Files
+                    <span style="color: #64748b; font-weight: normal; font-size: 0.85rem;">
+                        (by name or path)
+                    </span>
+                </label>
+                <input 
+                    type="text" 
+                    id="timelineSearch" 
+                    placeholder="Type to search files..."
+                >
+            </div>
+            
+            <div class="form-group" style="margin-top: 20px;">
+                <label for="timelineFilter">
+                    📂 Filter by File Type
+                </label>
+                <select id="timelineFilter">
+                    <option value="">All File Types</option>
+                    <option value="js">JavaScript</option>
+                    <option value="ts">TypeScript</option>
+                    <option value="py">Python</option>
+                    <option value="html">HTML</option>
+                    <option value="css">CSS</option>
+                    <option value="json">JSON</option>
+                    <option value="md">Markdown</option>
+                </select>
+            </div>
+            
+            <div class="button-group" style="margin-top: 15px;">
+                <button id="refresh-files-btn" class="btn btn-primary">
+                    🔄 Refresh Files
+                </button>
+                <button id="clear-timeline-search-btn" class="btn btn-secondary">
+                    Clear Filters
+                </button>
+            </div>
+            
+            <div id="timelineStatus" class="status-message" style="display: none;"></div>
+            
+            <div class="section-title" style="margin-top: 30px;">
+                Files in Workspace
+                <span id="fileCount" style="margin-left: 10px; font-size: 0.8rem; color: #667eea; font-weight: normal;">
+                    (0 files)
+                </span>
+            </div>
+            <div id="timelineList" class="project-list">
+                <p style="text-align: center; color: #64748b; padding: 15px;">
+                    Loading files from workspace...
+                </p>
+            </div>
+            <!-- This goes in your Timeline tab, after the timelineList div -->
+            <div id="timelineViewer" class="timeline-viewer">
+                <div class="timeline-header">
+                    <h3>
+                        <span id="timelineFileName">📄 File.js</span>
+                        <span class="timeline-badge" id="timelinePointCount">5 points</span>
+                    </h3>
+                    <button class="timeline-close-btn" id="closeTimelineBtn">✕ Close</button>
+                </div>
+                
+                <div class="timeline-container" id="timelinePoints">
+                    <!-- Timeline points will be inserted here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CODE DIFF VIEWER MODAL -->
+    <div id="diffViewerModal" class="diff-viewer-modal">
+        <div class="diff-viewer-content">
+            <div class="diff-viewer-header">
+                <h2 id="diffViewerTitle">📝 Code Changes</h2>
+                <button class="diff-viewer-close" id="closeDiffViewer">✕ Close</button>
+            </div>
+            <div class="diff-viewer-body" id="diffViewerBody">
+                <!-- Content populated by JavaScript -->
+            </div>
+        </div> 
     </div>
 
     <script>
@@ -2280,6 +3057,8 @@
                 this.users = [];
                 this.projects = [];
                 this.promptCount = 0;
+                this.workspaceFiles = [];
+                this.filteredFiles = [];
                 this.aiAnalysisByProject = {};
                 this.latestAiProjectId = null;
                 this.jiraTasks = []; // Tasks pulled from Jira search endpoint
@@ -2295,7 +3074,95 @@
 
                 // Request data from VS Code extension
                 vscode.postMessage({ type: 'loadData' });
+                vscode.postMessage({ type: 'getWorkspaceFiles' });  // ← Is this line there?
             }
+
+            // === TIMELINE FEATURE METHODS - ADD THESE ===
+            
+            loadWorkspaceFiles(files) {
+                this.workspaceFiles = files || [];
+                this.filteredFiles = [...this.workspaceFiles];
+                this.updateTimelineList();
+                this.updateFileCount();
+            }
+
+            searchFiles(query) {
+                const searchTerm = query.toLowerCase();
+                this.filteredFiles = this.workspaceFiles.filter(file => 
+                    file.path.toLowerCase().includes(searchTerm) ||
+                    file.name.toLowerCase().includes(searchTerm)
+                );
+                this.updateTimelineList();
+                this.updateFileCount();
+            }
+
+            filterFilesByType(fileType) {
+                if (!fileType) {
+                    this.filteredFiles = [...this.workspaceFiles];
+                } else {
+                    this.filteredFiles = this.workspaceFiles.filter(file => 
+                        file.type === fileType
+                    );
+                }
+                this.updateTimelineList();
+                this.updateFileCount();
+            }
+
+            updateTimelineList() {
+                const timelineList = document.getElementById('timelineList');
+                
+                if (!this.filteredFiles || this.filteredFiles.length === 0) {
+                    timelineList.innerHTML = '<p style="text-align: center; color: #64748b; padding: 15px;">No files found</p>';
+                    return;
+                }
+
+                let html = '';
+                this.filteredFiles.forEach(file => {
+                    const icon = this.getFileIcon(file.type);
+                    const sizeKB = (file.size / 1024).toFixed(1);
+                    
+                    html += `
+                        <div class="project-item file-item-clickable" 
+                             data-file-path="${file.path}" 
+                             data-file-name="${file.name}"
+                             style="cursor: pointer; transition: all 0.2s;">
+                            <h3>${icon} ${file.name}</h3>
+                            <p><strong>Path:</strong> ${file.path}</p>
+                            <p><strong>Type:</strong> ${file.type.toUpperCase()} | <strong>Size:</strong> ${sizeKB} KB</p>
+                        </div>
+                    `;
+                });
+
+                timelineList.innerHTML = html;
+
+                // Attach click listeners to all file items
+                document.querySelectorAll('.file-item-clickable').forEach(item => {
+                    item.addEventListener('click', function() {
+                        const filePath = this.getAttribute('data-file-path');
+                        const fileName = this.getAttribute('data-file-name');
+                        window.openFileTimeline(filePath, fileName);
+                    });
+                });
+            }
+
+            getFileIcon(type) {
+                const icons = {
+                    'js': '📜', 'ts': '📘', 'jsx': '⚛️', 'tsx': '⚛️',
+                    'py': '🐍', 'java': '☕', 'cpp': '⚙️', 'c': '⚙️',
+                    'html': '🌐', 'css': '🎨', 'json': '📋', 'md': '📝',
+                    'txt': '📄', 'xml': '📰', 'sql': '🗄️', 'sh': '⚡'
+                };
+                return icons[type] || '📄';
+            }
+
+            updateFileCount() {
+                const fileCount = document.getElementById('fileCount');
+                if (fileCount) {
+                    fileCount.textContent = `(${this.filteredFiles.length} files)`;
+                }
+            }
+
+            // === END TIMELINE METHODS ===
 
             // Updated to handle currentUser separately
             loadData(data) {
@@ -3882,6 +4749,279 @@
             }
         }
 
+        // === GLOBAL TIMELINE FUNCTIONS - ADD THESE ===
+        
+        window.openFileTimeline = function(filePath, fileName) {
+            console.log('Opening timeline for:', filePath);
+            
+            const timelineList = document.getElementById('timelineList');
+            const viewer = document.getElementById('timelineViewer');
+            const fileNameDisplay = document.getElementById('timelineFileName');
+            
+            if (!viewer || !timelineList || !fileNameDisplay) {
+                console.error('Timeline elements not found');
+                return;
+            }
+            
+            // Hide file list, show viewer
+            timelineList.style.display = 'none';
+            viewer.style.display = 'block';
+            viewer.classList.add('active');
+            
+            // Update header
+            fileNameDisplay.textContent = `📄 ${fileName}`;
+            
+            // Show loading state
+            const pointsContainer = document.getElementById('timelinePoints');
+            if (pointsContainer) {
+                pointsContainer.innerHTML = '<p style="text-align: center; color: #64748b; padding: 20px;">Loading timeline...</p>';
+            }
+            
+            // Request timeline data from extension
+            vscode.postMessage({ 
+                type: 'getFileTimeline', 
+                payload: { filePath } 
+            });
+        };
+
+        window.closeTimelineViewer = function() {
+            console.log('Closing timeline viewer');
+            
+            const viewer = document.getElementById('timelineViewer');
+            const list = document.getElementById('timelineList');
+            
+            if (!viewer || !list) {
+                console.error('Timeline elements not found');
+                return;
+            }
+            
+            viewer.classList.remove('active');
+            viewer.style.display = 'none';
+            list.style.display = 'block';
+        };
+
+        function displayTimelinePoints(timelineData) {
+            const pointsContainer = document.getElementById('timelinePoints');
+            const pointCountBadge = document.getElementById('timelinePointCount');
+            
+            if (!pointsContainer) {
+                console.error('Timeline points container not found');
+                return;
+            }
+            
+            if (!timelineData || timelineData.length === 0) {
+                pointsContainer.innerHTML = `
+                    <div class="timeline-empty">
+                        <div class="timeline-empty-icon">📭</div>
+                        <p>No timeline history available for this file</p>
+                    </div>
+                `;
+                if (pointCountBadge) {
+                    pointCountBadge.textContent = '0 points';
+                }
+                return;
+            }
+            
+            // Update point count
+            if (pointCountBadge) {
+                pointCountBadge.textContent = `${timelineData.length} points`;
+            }
+            
+            // Create timeline line
+            let html = '<div class="timeline-line"></div>';
+            
+            // Add timeline points
+            timelineData.forEach(point => {
+                const isMajor = point.changeType === 'major';
+                const timeAgo = formatTimeAgo(point.timestamp);
+                
+                // Get category badge info
+                const categoryInfo = {
+                    feature: { label: 'FEATURE', color: '#10b981' },
+                    bugfix: { label: 'BUG FIX', color: '#ef4444' },
+                    refactor: { label: 'REFACTOR', color: '#3b82f6' },
+                    style: { label: 'STYLE', color: '#8b5cf6' },
+                    docs: { label: 'DOCS', color: '#f59e0b' },
+                    test: { label: 'TEST', color: '#06b6d4' }
+                };
+
+                const category = categoryInfo[point.category] || categoryInfo.feature;
+
+                html += `
+                    <div class="timeline-item" data-point-id="${point.id}">
+                        <div class="timeline-dot ${isMajor ? 'major' : ''}"></div>
+                        <div class="timeline-content">
+                            <div class="timeline-time">${timeAgo}</div>
+                            <div class="timeline-description">
+                                <span class="timeline-category-badge" style="background-color: ${category.color}">
+                                    ${category.label}
+                                </span>
+                                ${point.description}
+                                ${isMajor ? '<span class="timeline-badge">MAJOR</span>' : ''}
+                            </div>
+                            ${point.changeTypes && point.changeTypes.length > 0 ? `
+                                <div class="timeline-change-types">
+                                    ${point.changeTypes.map(ct => `
+                                        <div class="change-type-item">• ${ct}</div>
+                                    `).join('')}
+                                </div>
+                            ` : ''}
+                            
+                            <div class="timeline-stats">
+                                <span class="timeline-stat added">+${point.linesAdded} lines</span>
+                                <span class="timeline-stat removed">-${point.linesRemoved} lines</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            pointsContainer.innerHTML = html;
+
+            // Attach click listeners to timeline items
+            document.querySelectorAll('.timeline-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    const pointId = this.getAttribute('data-point-id');
+                    if (pointId) {
+                        viewTimelinePoint(pointId);
+                    }
+                });
+            });
+        }
+
+        function formatTimeAgo(timestamp) {
+            const now = new Date();
+            const then = new Date(timestamp);
+            const diffMs = now - then;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffDays = Math.floor(diffMs / 86400000);
+            
+            if (diffMins < 1) return 'Just now';
+            if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
+            if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+            if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+            
+            return then.toLocaleDateString();
+        }
+
+        function viewTimelinePoint(pointId) {
+            console.log('👁️ Requesting timeline point:', pointId);
+            vscode.postMessage({ 
+                type: 'viewTimelinePoint', 
+                payload: { pointId } 
+            });
+        }
+
+        function showDiffViewer(point) {
+            console.log('📊 Showing diff viewer for point:', point.id);
+            
+            const modal = document.getElementById('diffViewerModal');
+            const title = document.getElementById('diffViewerTitle');
+            const body = document.getElementById('diffViewerBody');
+            
+            if (!modal || !title || !body) {
+                console.error('Diff viewer elements not found');
+                return;
+            }
+            
+            // Update title
+            title.textContent = `📝 ${point.description} - ${point.details}`;
+            
+            // Calculate stats
+            const linesBefore = point.codeBefore.split('\n').length;
+            const linesAfter = point.codeAfter.split('\n').length;
+            const netChange = linesAfter - linesBefore;
+            
+            // Format timestamp
+            const date = new Date(point.timestamp);
+            const timeStr = date.toLocaleString();
+            
+            // Build diff viewer content
+            let html = `
+                <div class="diff-info">
+                    <p><strong>File:</strong> ${point.filePath}</p>
+                    <p><strong>When:</strong> ${timeStr}</p>
+                    <p><strong>Trigger:</strong> ${(point.trigger_type || point.trigger || 'unknown').replace(/_/g, ' ')}</p>
+                </div>
+
+                <div class="diff-stats">
+                    <div class="diff-stat added">
+                        <span class="diff-stat-icon">+</span>
+                        <span>${point.linesAdded} lines added</span>
+                    </div>
+                    <div class="diff-stat removed">
+                        <span class="diff-stat-icon">−</span>
+                        <span>${point.linesRemoved} lines removed</span>
+                    </div>
+                    <div class="diff-stat">
+                        <span class="diff-stat-icon">📊</span>
+                        <span>Net: ${netChange > 0 ? '+' : ''}${netChange} lines</span>
+                    </div>
+                </div>
+
+                <div class="diff-comparison">
+                    <div class="diff-panel">
+                        <div class="diff-panel-header before">❌ Before</div>
+                        <div class="diff-code">
+                            ${point.codeBefore ? escapeHtml(point.codeBefore) : '<div class="diff-empty">File was just created</div>'}
+                        </div>
+                    </div>
+                    
+                    <div class="diff-panel">
+                        <div class="diff-panel-header after">✅ After</div>
+                        <div class="diff-code">
+                            ${point.codeAfter ? escapeHtml(point.codeAfter) : '<div class="diff-empty">No content</div>'}
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            body.innerHTML = html;
+            modal.classList.add('active');
+        }
+
+        function closeDiffViewer() {
+            const modal = document.getElementById('diffViewerModal');
+            if (modal) {
+                modal.classList.remove('active');
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function refreshWorkspaceFiles() {
+            vscode.postMessage({ type: 'getWorkspaceFiles' });
+            const status = document.getElementById('timelineStatus');
+            if (status) {
+                status.textContent = 'Refreshing files...';
+                status.className = 'status-message';
+                status.style.display = 'block';
+                setTimeout(() => { status.style.display = 'none'; }, 2000);
+            }
+        }
+
+        function clearTimelineFilters() {
+            document.getElementById('timelineSearch').value = '';
+            document.getElementById('timelineFilter').value = '';
+            app.filteredFiles = [...app.workspaceFiles];
+            app.updateTimelineList();
+            app.updateFileCount();
+        }
+
+        function updateFileCount() {
+            const fileCount = document.getElementById('fileCount');
+            if (fileCount && app.filteredFiles) {
+                fileCount.textContent = `(${app.filteredFiles.length} files)`;
+            }
+        }
+
+        // === END GLOBAL TIMELINE FUNCTIONS ===
+
         // Global app instance
         const app = new TeamCollaborationApp();
 
@@ -4431,6 +5571,55 @@
                     updateWorkspaceUI();
                     break;
                 
+                case 'workspaceFilesLoaded': {
+                    app.loadWorkspaceFiles(message.payload.files);
+                    const status = document.getElementById('timelineStatus');
+                    if (status) {
+                        status.textContent = `✅ Loaded ${message.payload.files.length} files`;
+                        status.className = 'status-message status-success';
+                        status.style.display = 'block';
+                        setTimeout(() => { status.style.display = 'none'; }, 3000);
+                    }
+                    break;
+                }
+                
+                case 'workspaceFilesError': {
+                    const status = document.getElementById('timelineStatus');
+                    if (status) {
+                        status.textContent = `❌ Error: ${message.payload.message}`;
+                        status.className = 'status-message status-error';
+                        status.style.display = 'block';
+                    }
+                    break;
+                }
+                
+                case 'timelineDataLoaded': {
+                    displayTimelinePoints(message.payload.timeline);
+                    break;
+                }
+                
+                case 'timelineError': {
+                    const pointsContainer = document.getElementById('timelinePoints');
+                    if (pointsContainer) {
+                        pointsContainer.innerHTML = `
+                            <div class="timeline-empty">
+                                <div class="timeline-empty-icon">⚠️</div>
+                                <p>Error loading timeline: ${message.payload.message}</p>
+                            </div>
+                        `;
+                    }
+                    break;
+                }
+
+                case 'timelinePointLoaded': {
+                    showDiffViewer(message.payload.point);
+                    break;
+                }
+
+                case 'timelinePointError': {
+                    vscode.window.showErrorMessage(message.payload.message);
+                    break;
+                }
                 case 'jiraTasksLoaded': {
                     const requestId = message.payload?.requestId;
                     if (requestId && requestId !== app.jiraActiveRequestId) {
@@ -6013,6 +7202,34 @@ ${analysis.ai_response}
                 app.closeEditModal();
             });
 
+            // === TIMELINE EVENT LISTENERS - ADD THESE ===
+            
+            document.getElementById('refresh-files-btn')?.addEventListener('click', refreshWorkspaceFiles);
+            document.getElementById('clear-timeline-search-btn')?.addEventListener('click', clearTimelineFilters);
+            
+            document.getElementById('timelineSearch')?.addEventListener('input', (e) => {
+                app.searchFiles(e.target.value);
+            });
+            
+            document.getElementById('timelineFilter')?.addEventListener('change', (e) => {
+                app.filterFilesByType(e.target.value);
+            });
+
+            // Close button listener
+            const closeBtn = document.getElementById('closeTimelineBtn');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Close button clicked');
+                    window.closeTimelineViewer();
+                });
+                console.log('✅ Close button listener attached');
+            }
+            
+            // === END TIMELINE EVENT LISTENERS ===
+
+            // Close modal when clicking outside
             // Close modal when clicking outside (but not on buttons or interactive elements)
             document.getElementById('editProjectModal')?.addEventListener('click', (e) => {
                 // Don't close if clicking on buttons, inputs, or other interactive elements
@@ -6024,6 +7241,16 @@ ${analysis.ai_response}
                     app.closeEditModal();
                 }
             });
+
+            // Close diff viewer button
+            document.getElementById('closeDiffViewer')?.addEventListener('click', closeDiffViewer);
+
+            // Close diff viewer when clicking outside
+            document.getElementById('diffViewerModal')?.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeDiffViewer();
+                }
+            });  // ← ADD THIS LINE
 
             // Global error handler to prevent blank screens
             window.addEventListener('error', (event) => {
@@ -6064,6 +7291,9 @@ ${analysis.ai_response}
             app.updateUI();
             showTab('projects', document.querySelector('.tab-button[data-tab="projects"]'));
 
+            // Load workspace files on startup
+            vscode.postMessage({ type: 'getWorkspaceFiles' });
+            console.log('🚀 AI Collab Agent - Team Platform initialized!');
             console.log('Pallas AI - Team Platform initialized!');
         });
     </script>
