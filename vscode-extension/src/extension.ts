@@ -21,12 +21,14 @@ import {
   getAssignableUsers,
 } from "./lib/jira";
 import { PeerSuggestionService } from "./peerSuggestionService";
+import { RAGService, RAGStats } from "./ragService";
 
 // No .env loading needed; using hardcoded config in supabaseConfig
 
 // Global variables for OAuth callback handling
 let authService: AuthService;
 let databaseService: DatabaseService;
+let ragService: RAGService;
 let extensionContext: vscode.ExtensionContext;
 let timelineManager: TimelineManager;
 let peerSuggestionService: PeerSuggestionService | undefined;
@@ -45,6 +47,8 @@ let notifications: Array<{
 
 // Constants for storage
 const NOTIFICATIONS_STORAGE_KEY = 'aiCollab.notifications';
+const WORKSPACE_PROJECT_MAP_KEY = 'aiCollab.workspaceProjectMap'; // Maps workspace paths to project IDs
+const LAST_SELECTED_PROJECT_KEY = 'aiCollab.lastSelectedProject'; // Last selected project per workspace
 
 // Load notifications from persistent storage
 async function loadNotifications(): Promise<void> {
@@ -87,6 +91,99 @@ async function saveNotifications(): Promise<void> {
   
   await extensionContext.globalState.update(NOTIFICATIONS_STORAGE_KEY, toStore);
   console.log(`Saved ${notifications.length} notifications to storage`);
+}
+
+// ============================================================================
+// WORKSPACE-PROJECT PERSISTENCE
+// ============================================================================
+
+interface WorkspaceProjectMap {
+  [workspacePath: string]: string; // workspace path -> project ID
+}
+
+/**
+ * Get the current workspace path (first folder)
+ */
+function getCurrentWorkspacePath(): string | null {
+  const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+  return workspaceFolder?.uri.fsPath || null;
+}
+
+/**
+ * Get the project ID linked to the current workspace
+ */
+function getLinkedProjectForWorkspace(): string | null {
+  if (!extensionContext) {
+    return null;
+  }
+  
+  const workspacePath = getCurrentWorkspacePath();
+  if (!workspacePath) {
+    return null;
+  }
+
+  const map = extensionContext.globalState.get<WorkspaceProjectMap>(WORKSPACE_PROJECT_MAP_KEY, {});
+  return map[workspacePath] || null;
+}
+
+/**
+ * Link a project to the current workspace
+ */
+async function linkProjectToWorkspace(projectId: string): Promise<void> {
+  if (!extensionContext) {
+    return;
+  }
+
+  const workspacePath = getCurrentWorkspacePath();
+  if (!workspacePath) {
+    console.warn('No workspace folder open to link project');
+    return;
+  }
+
+  const map = extensionContext.globalState.get<WorkspaceProjectMap>(WORKSPACE_PROJECT_MAP_KEY, {});
+  map[workspacePath] = projectId;
+  await extensionContext.globalState.update(WORKSPACE_PROJECT_MAP_KEY, map);
+  console.log(`Linked workspace "${workspacePath}" to project "${projectId}"`);
+}
+
+/**
+ * Unlink the current workspace from its project
+ */
+async function unlinkWorkspaceFromProject(): Promise<void> {
+  if (!extensionContext) {
+    return;
+  }
+
+  const workspacePath = getCurrentWorkspacePath();
+  if (!workspacePath) {
+    return;
+  }
+
+  const map = extensionContext.globalState.get<WorkspaceProjectMap>(WORKSPACE_PROJECT_MAP_KEY, {});
+  delete map[workspacePath];
+  await extensionContext.globalState.update(WORKSPACE_PROJECT_MAP_KEY, map);
+  console.log(`Unlinked workspace "${workspacePath}" from project`);
+}
+
+/**
+ * Get the last selected project (fallback if no workspace link)
+ */
+function getLastSelectedProject(): string | null {
+  if (!extensionContext) {
+    return null;
+  }
+  return extensionContext.globalState.get<string>(LAST_SELECTED_PROJECT_KEY) || null;
+}
+
+/**
+ * Save the last selected project
+ */
+async function saveLastSelectedProject(projectId: string): Promise<void> {
+  if (!extensionContext) {
+    return;
+  }
+  await extensionContext.globalState.update(LAST_SELECTED_PROJECT_KEY, projectId);
+  console.log(`Saved last selected project: ${projectId}`);
 }
 
 // Notifications Tree Provider for Activity Bar
@@ -371,6 +468,512 @@ function getDataFilePath(): string | undefined {
 	}
 	// We'll store our data in a hidden file in the root of the workspace
 	return path.join(workspaceFolder.uri.fsPath, ".aiCollabData.json");
+}
+
+// ============================================================================
+// ANALYSIS MODE HANDLERS
+// ============================================================================
+
+/**
+ * Handle initial planning analysis (original mode)
+ */
+async function handleInitialPlanningAnalysis(projectId: string, panel: vscode.WebviewPanel): Promise<void> {
+  try {
+    // Helper function for progressive delays (only for UI updates, not blocking AI)
+    const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+    
+    // Function to show progressive updates WHILE AI processes
+    const showProgressiveUpdates = async (project: any, teamMembers: any[]) => {
+      await delay(800);
+      panel.webview.postMessage({
+        type: "analysisStatusUpdate",
+        payload: { message: "[INIT] Loading project data from database", type: "info", icon: "INIT" }
+      });
+      
+      await delay(1000);
+      panel.webview.postMessage({
+        type: "analysisStatusUpdate",
+        payload: { message: `[INIT] Project: ${project.name}`, type: "success", icon: "INIT" }
+      });
+      
+      await delay(800);
+      panel.webview.postMessage({
+        type: "analysisStatusUpdate",
+        payload: { message: `[INIT] Created: ${new Date(project.created_at).toLocaleDateString()}`, type: "info", icon: "INIT" }
+      });
+
+      await delay(1000);
+      if (project.description) {
+        const descPreview = project.description.substring(0, 100) + (project.description.length > 100 ? '...' : '');
+        panel.webview.postMessage({
+          type: "analysisStatusUpdate",
+          payload: { message: `[INIT] Description: ${descPreview}`, type: "info", icon: "INIT" }
+        });
+        await delay(1000);
+      }
+
+      if (project.goals) {
+        panel.webview.postMessage({
+          type: "analysisStatusUpdate",
+          payload: { message: "[INIT] Loading project goals", type: "info", icon: "INIT" }
+        });
+        await delay(800);
+      }
+
+      if (project.requirements) {
+        panel.webview.postMessage({
+          type: "analysisStatusUpdate",
+          payload: { message: "[INIT] Loading project requirements", type: "info", icon: "INIT" }
+        });
+        await delay(800);
+      }
+
+      panel.webview.postMessage({
+        type: "analysisStatusUpdate",
+        payload: { message: `[TEAM] Analyzing ${teamMembers.length} team members`, type: "processing", icon: "TEAM" }
+      });
+      
+      await delay(1000);
+
+      // Log each team member with details
+      for (let i = 0; i < teamMembers.length; i++) {
+        const member = teamMembers[i];
+        
+        panel.webview.postMessage({
+          type: "analysisStatusUpdate",
+          payload: { message: `[TEAM] ${member.name}`, type: "info", icon: "TEAM" }
+        });
+        
+        await delay(600);
+        
+        if (member.skills) {
+          panel.webview.postMessage({
+            type: "analysisStatusUpdate",
+            payload: { message: `[TEAM]   • Skills: ${member.skills}`, type: "info", icon: "TEAM" }
+          });
+          await delay(500);
+        }
+        
+        if (member.programming_languages) {
+          panel.webview.postMessage({
+            type: "analysisStatusUpdate",
+            payload: { message: `[TEAM]   • Languages: ${member.programming_languages}`, type: "info", icon: "TEAM" }
+          });
+          await delay(500);
+        }
+        
+        if (member.willing_to_work_on) {
+          panel.webview.postMessage({
+            type: "analysisStatusUpdate",
+            payload: { message: `[TEAM]   • Willing to work on: ${member.willing_to_work_on}`, type: "info", icon: "TEAM" }
+          });
+          await delay(500);
+        }
+      }
+      
+      await delay(1000);
+      panel.webview.postMessage({
+        type: "analysisStatusUpdate",
+        payload: { message: "[PREP] Building analysis prompt", type: "processing", icon: "PREP" }
+      });
+      
+      await delay(1000);
+      panel.webview.postMessage({
+        type: "analysisStatusUpdate",
+        payload: { message: "[PREP] Project requirements included", type: "info", icon: "PREP" }
+      });
+      
+      await delay(800);
+      panel.webview.postMessage({
+        type: "analysisStatusUpdate",
+        payload: { message: "[PREP] Team member profiles included", type: "info", icon: "PREP" }
+      });
+      
+      await delay(1000);
+      panel.webview.postMessage({
+        type: "analysisStatusUpdate",
+        payload: { message: "[AI] Analyzing team composition and project fit...", type: "processing", icon: "AI" }
+      });
+      
+      await delay(1000);
+      panel.webview.postMessage({
+        type: "analysisStatusUpdate",
+        payload: { message: "[AI] Evaluating skill gaps and recommendations...", type: "processing", icon: "AI" }
+      });
+      
+      await delay(1000);
+      panel.webview.postMessage({
+        type: "analysisStatusUpdate",
+        payload: { message: "[AI] Generating role assignments and tasks...", type: "processing", icon: "AI" }
+      });
+    };
+
+    const currentData = await loadInitialData();
+    const projectToPrompt = currentData.projects.find(
+      (p: any) => p.id == projectId
+    );
+
+    if (!projectToPrompt) {
+      vscode.window.showErrorMessage(
+        "Project not found for AI prompt generation."
+      );
+      panel.webview.postMessage({
+        type: "promptGenerationError",
+        payload: { message: "Project not found." },
+      });
+      addNotification("Project not found for AI prompt generation", 'error');
+      return;
+    }
+
+    // Filter team members
+    const teamMembersForPrompt = currentData.users.filter((user: any) =>
+      projectToPrompt.selectedMemberIds
+        .map((id: any) => String(id))
+        .includes(String(user.id))
+    );
+
+    // Create the detailed string
+    const teamMemberDetails = teamMembersForPrompt
+      .map(
+        (user: any, index: number) =>
+          `Team Member ${index + 1}:
+
+Name: ${user.name}
+Skills: ${user.skills || "Not specified"}
+Programming Languages: ${user.programming_languages || "Not specified"}
+Willing to work on: ${user.willing_to_work_on || "Not specified"}
+
+`
+      )
+      .join("");
+
+    const promptContent = `PROJECT ANALYSIS AND TEAM OPTIMIZATION REQUEST
+
+=== PROJECT INFORMATION ===
+Project Name: ${projectToPrompt.name}
+Created: ${new Date(projectToPrompt.created_at).toLocaleString()}
+
+Project Description:
+${projectToPrompt.description}
+
+Project Goals:
+${projectToPrompt.goals}
+
+Project Requirements:
+${projectToPrompt.requirements}
+
+=== TEAM COMPOSITION ===
+Team Size: ${teamMembersForPrompt.length} members
+
+${teamMemberDetails}
+
+=== AI ANALYSIS REQUEST ===
+
+Please analyze this project and team composition and provide a comprehensive initial planning analysis with:
+1. TEAM ANALYSIS, 2. PROJECT FEASIBILITY, 3. ROLE ASSIGNMENTS, 4. OPTIMIZATION, 5. RISKS, 6. DELIVERABLES
+
+Return valid JSON format.`;
+
+    // Check if RAG is enabled and add workspace context
+    let contextAddendum = "";
+    let ragFiles: any[] = [];
+    const ragEnabled = await ragService.isEnabled(projectId);
+    if (ragEnabled) {
+      try {
+        const ragStats = await ragService.getStats(projectId);
+        if (ragStats && ragStats.totalFiles > 0) {
+          const searchQuery = `${projectToPrompt.description}\n${projectToPrompt.requirements}`;
+          const contextResults = await ragService.searchContext(projectId, searchQuery, { matchCount: 10 });
+          
+          if (contextResults && contextResults.length > 0) {
+            ragFiles = contextResults;
+            contextAddendum = `\n\n=== WORKSPACE CODE CONTEXT ===\n`;
+            contextResults.forEach((result, idx) => {
+              contextAddendum += `File ${idx + 1}: ${result.filePath}\n\`\`\`${result.language || 'text'}\n${result.chunkText}\n\`\`\`\n\n`;
+            });
+            contextAddendum += `=== END WORKSPACE CONTEXT ===\n`;
+            console.log(`Added RAG context: ${contextResults.length} code chunks`);
+          }
+        }
+      } catch (ragError) {
+        console.error("Failed to get RAG context:", ragError);
+      }
+    }
+
+    // Call AI analysis using super-function
+    try {
+      const finalPrompt = promptContent + contextAddendum;
+      const edgeFunctionUrl = getEdgeFunctionUrl();
+      const anonKey = getSupabaseAnonKey();
+      
+      // START AI REQUEST IMMEDIATELY (don't wait)
+      panel.webview.postMessage({
+        type: "analysisStatusUpdate",
+        payload: { message: "[AI] Connecting to super-function endpoint", type: "processing", icon: "AI" }
+      });
+
+      panel.webview.postMessage({
+        type: "analysisStatusUpdate",
+        payload: { message: "[AI] Sending analysis request to OpenAI GPT-4", type: "processing", icon: "AI" }
+      });
+      
+      // Start the AI request and progressive updates in parallel
+      const [responseResult] = await Promise.all([
+        // AI Request (happens immediately, takes ~15-20s)
+        fetch(edgeFunctionUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${anonKey}`,
+          },
+          body: JSON.stringify({ 
+            project: projectToPrompt,
+            users: teamMembersForPrompt
+          }),
+        }),
+        // Progressive UI updates (happens in parallel, fills the wait time)
+        (async () => {
+          await showProgressiveUpdates(projectToPrompt, teamMembersForPrompt);
+          
+          // If RAG was used, show those files
+          if (ragFiles.length > 0) {
+            await delay(1000);
+            panel.webview.postMessage({
+              type: "analysisStatusUpdate",
+              payload: { message: "[RAG] Checking for workspace context", type: "info", icon: "RAG" }
+            });
+            
+            await delay(1000);
+            panel.webview.postMessage({
+              type: "analysisStatusUpdate",
+              payload: { message: "[RAG] Searching for relevant code context", type: "processing", icon: "RAG" }
+            });
+            
+            await delay(1000);
+            panel.webview.postMessage({
+              type: "analysisStatusUpdate",
+              payload: { message: `[RAG] Retrieved ${ragFiles.length} relevant code chunks`, type: "success", icon: "RAG" }
+            });
+            
+            await delay(800);
+            
+            const filesToShow = ragFiles.slice(0, 5);
+            for (const result of filesToShow) {
+              panel.webview.postMessage({
+                type: "analysisStatusUpdate",
+                payload: { message: `[RAG]   • ${result.filePath}`, type: "info", icon: "RAG" }
+              });
+              await delay(600);
+            }
+          }
+        })()
+      ]);
+
+      const response = responseResult;
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Edge Function returned status ${response.status}: ${errorText}`);
+      }
+
+      panel.webview.postMessage({
+        type: "analysisStatusUpdate",
+        payload: { message: "[AI] Received response from OpenAI", type: "success", icon: "AI" }
+      });
+
+      const data = await response.json();
+      
+      if (!data.message) {
+        throw new Error("Invalid response format from edge function");
+      }
+
+      panel.webview.postMessage({
+        type: "analysisStatusUpdate",
+        payload: { message: "[AI] Parsing AI response", type: "processing", icon: "AI" }
+      });
+
+      console.log("AI response received from super-function");
+      const parsedResponse = parseAIResponse(data.message, teamMembersForPrompt);
+
+      panel.webview.postMessage({
+        type: "analysisStatusUpdate",
+        payload: { message: "[DB] Saving analysis to database", type: "info", icon: "DB" }
+      });
+
+      // Save to database
+      const supabase = getSupabaseClient();
+      await supabase.from("ai_prompts").insert({
+        project_id: projectId,
+        prompt_content: finalPrompt,
+        ai_response: JSON.stringify(parsedResponse),
+      });
+
+      panel.webview.postMessage({
+        type: "analysisStatusUpdate",
+        payload: { message: "[DONE] Analysis saved successfully", type: "success", icon: "DONE" }
+      });
+
+      // Send to webview
+      panel.webview.postMessage({
+        type: "aiResponseReceived",
+        payload: {
+          parsed: parsedResponse,
+          projectId: projectToPrompt.id,
+        },
+      });
+      
+      addNotification("AI analysis complete!", 'success', projectToPrompt.id, projectToPrompt.name);
+    } catch (error: any) {
+      console.error("Error generating AI prompt:", error);
+      
+      // Only show in terminal
+      panel.webview.postMessage({
+        type: "analysisStatusUpdate",
+        payload: { message: `Error: ${error.message}`, type: "error", icon: "ERROR" },
+      });
+      
+      // Only show VS Code notification for critical errors
+      if (!error.message.includes('aborted') && !error.message.includes('timeout')) {
+        vscode.window.showErrorMessage(`Failed to generate AI analysis: ${error.message}`);
+      }
+      
+      addNotification(`Failed to generate AI response: ${error.message}`, 'error', projectToPrompt.id, projectToPrompt.name);
+    }
+  } catch (error) {
+    console.error('Initial planning analysis error:', error);
+    
+    // Only show in terminal
+    panel.webview.postMessage({
+      type: "analysisStatusUpdate",
+      payload: { message: error instanceof Error ? error.message : "Unknown error", type: "error", icon: "ERROR" },
+    });
+  }
+}
+
+/**
+ * Handle progress analysis (new agentic mode)
+ */
+async function handleProgressAnalysis(projectId: string, panel: vscode.WebviewPanel, analysisMode: any): Promise<void> {
+  try {
+    console.log('🤖 Starting agentic progress analysis...');
+    
+    // Get workspace path
+    const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+    if (!workspaceFolder) {
+      throw new Error('No workspace folder open');
+    }
+
+    // Load project data
+    const currentData = await loadInitialData();
+    const project = currentData.projects.find((p: any) => p.id === projectId);
+    
+    if (!project) {
+      throw new Error('Project not found');
+    }
+
+    // Get team members
+    const teamMembers = currentData.users.filter((user: any) =>
+      project.selectedMemberIds
+        .map((id: any) => String(id))
+        .includes(String(user.id))
+    );
+
+    // Check if RAG is enabled
+    const ragEnabled = await ragService.isEnabled(projectId);
+    const ragStats = ragEnabled ? await ragService.getStats(projectId) : null;
+
+    // Import and call agentic AI
+    const { analyzeProgressWithAgent } = await import('./agenticAI');
+    
+    const analysis = await analyzeProgressWithAgent(
+      {
+        projectId,
+        projectDetails: project,
+        teamMembers,
+        workspacePath: workspaceFolder.uri.fsPath,
+        ragEnabled: ragEnabled && (ragStats?.totalFiles || 0) > 0
+      },
+      (message: string) => {
+        // Send progress updates to webview with type and icon
+        let type = 'info';
+        let icon = '';
+        
+        // Determine type and icon based on message prefix
+        if (message.startsWith('[INIT]')) {
+          type = 'info';
+          icon = 'INIT';
+        } else if (message.startsWith('[SCAN]')) {
+          type = 'processing';
+          icon = 'SCAN';
+        } else if (message.startsWith('[RAG]')) {
+          type = 'info';
+          icon = 'RAG';
+        } else if (message.startsWith('[PREP]')) {
+          type = 'processing';
+          icon = 'PREP';
+        } else if (message.startsWith('[AI]')) {
+          type = 'processing';
+          icon = 'AI';
+        } else if (message.startsWith('[DONE]')) {
+          type = 'success';
+          icon = 'DONE';
+        } else if (message.includes('Error') || message.includes('error')) {
+          type = 'error';
+          icon = 'ERROR';
+        } else {
+          icon = 'INFO';
+        }
+        
+        panel.webview.postMessage({
+          type: "analysisStatusUpdate",
+          payload: { message, type, icon }
+        });
+      }
+    );
+
+    // Save progress analysis to database
+    try {
+      const supabase = getSupabaseClient();
+      await supabase.from("ai_prompts").insert({
+        project_id: projectId,
+        prompt_content: `Progress Update Analysis - ${new Date().toISOString()}`,
+        ai_response: JSON.stringify(analysis),
+      });
+      console.log('Progress analysis saved to database');
+    } catch (saveError) {
+      console.error('Error saving progress analysis:', saveError);
+      // Don't fail the whole operation if saving fails
+    }
+
+    // Send complete analysis to webview
+    panel.webview.postMessage({
+      type: "aiResponseReceived",
+      payload: {
+        parsed: analysis,
+        projectId,
+        mode: 'progress'
+      }
+    });
+
+    vscode.window.showInformationMessage('Progress analysis complete!');
+    addNotification('Progress analysis complete!', 'success', projectId);
+
+  } catch (error) {
+    console.error('Progress analysis error:', error);
+    
+    // Only show error in terminal, not as a VS Code notification
+    panel.webview.postMessage({
+      type: "analysisStatusUpdate",
+      payload: { message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`, type: "error", icon: "ERROR" },
+    });
+    
+    // Only show VS Code error for critical failures
+    if (error instanceof Error && !error.message.includes('aborted')) {
+      vscode.window.showErrorMessage(`Progress analysis failed: ${error.message}`);
+    }
+    
+    addNotification('Progress analysis failed', 'error', projectId);
+  }
 }
 
 // Helper function to load all data from the database
@@ -803,6 +1406,16 @@ export async function activate(context: vscode.ExtensionContext) {
       }`
     );
     return;
+  }
+
+  // Initialize RAG service
+  try {
+    const supabase = getSupabaseClient();
+    ragService = new RAGService(supabase, () => authService.getCurrentUser()?.id || null);
+    console.log('RAG Service initialized successfully');
+  } catch (error) {
+    console.error('Failed to initialize RAG service:', error);
+    vscode.window.showWarningMessage('RAG features may not be available');
   }
 
   // Initialize peer suggestion service (after auth and database services are ready)
@@ -1767,244 +2380,26 @@ async function openMainPanel(
       }
 
       case "generatePrompt": {
-        const { projectId } = msg.payload;
+        const { projectId, analysisMode } = msg.payload;
         
         // Also set as active project when generating prompt
         if (projectId) {
           await setActiveProject(projectId);
         }
 
-        const currentData = await loadInitialData();
-        const projectToPrompt = currentData.projects.find(
-          (p: any) => p.id == projectId
-        );
+        // Check analysis mode
+        const mode = analysisMode?.mode || 'initial';
+        console.log(`Generating ${mode} analysis for project ${projectId}`);
 
-        if (!projectToPrompt) {
-          vscode.window.showErrorMessage(
-            "Project not found for AI prompt generation."
-          );
-          panel.webview.postMessage({
-            type: "promptGenerationError",
-            payload: { message: "Project not found." },
-          });
-          addNotification("Project not found for AI prompt generation", 'error');
-          break;
+        // Route to appropriate analyzer based on mode
+        if (mode === 'progress') {
+          // Use agentic AI for progress analysis
+          await handleProgressAnalysis(projectId, panel, analysisMode);
+        } else {
+          // Use original initial planning analysis
+          await handleInitialPlanningAnalysis(projectId, panel);
         }
-
-        // --- FIX APPLIED HERE: Robust ID comparison ---
-        const teamMembersForPrompt = currentData.users.filter((user: any) =>
-          // Convert all IDs to string for reliable comparison
-          projectToPrompt.selectedMemberIds
-            .map((id: any) => String(id))
-            .includes(String(user.id))
-        );
-        // --- END FIX ---
-
-        // Create the detailed string ONLY from the filtered members
-        const teamMemberDetails = teamMembersForPrompt
-          .map(
-            (user: any, index: number) =>
-              `Team Member ${index + 1}:
-
-Name: ${user.name}
-Skills: ${user.skills || "Not specified"}
-Programming Languages: ${user.programming_languages || "Not specified"}
-Willing to work on: ${user.willing_to_work_on || "Not specified"}
-
-`
-          )
-          .join("");
-
-        const promptContent = `PROJECT ANALYSIS AND TEAM OPTIMIZATION REQUEST
-
-=== PROJECT INFORMATION ===
-Project Name: ${projectToPrompt.name}
-Created: ${new Date(projectToPrompt.created_at).toLocaleString()}
-
-Project Description:
-${projectToPrompt.description}
-
-Project Goals:
-${projectToPrompt.goals}
-
-Project Requirements:
-${projectToPrompt.requirements}
-
-=== TEAM COMPOSITION ===
-Team Size: ${teamMembersForPrompt.length} members
-
-${teamMemberDetails}
-
-=== AI ANALYSIS REQUEST ===
-
-Please analyze this project and team composition and provide:
-
-1. TEAM ANALYSIS:
-   - Evaluate if the current team has the right skill mix for the project requirements
-   - Identify any skill gaps or redundancies
-   - Assess team member compatibility based on their stated interests
-
-2. PROJECT FEASIBILITY:
-   - Analyze if the project goals are achievable with the current team
-   - Identify potential challenges based on requirements vs. available skills
-   - Suggest timeline considerations
-
-3. ROLE ASSIGNMENTS:
-   - Recommend specific roles for each team member based on their skills
-   - Suggest who should lead different aspects of the project
-   - Identify collaboration opportunities between team members
-
-4. OPTIMIZATION RECOMMENDATIONS:
-   - Suggest additional skills that might be needed
-   - Recommend training or resource allocation
-   - Propose project structure and workflow improvements
-
-5. RISK ASSESSMENT:
-   - Identify potential project risks based on team composition
-   - Suggest mitigation strategies
-   - Highlight critical success factors
-
-6. DELIVERABLES MAPPING:
-   - Break down project requirements into specific deliverables
-   - Map deliverables to team member capabilities
-   - Suggest milestone structure
-
-Give me a specific message for EACH team member, detailing them what they need to do RIGHT NOW and in the FUTURE. Give each user the exact things they need to work on according also to their skills.
-
-IMPORTANT: Please respond in valid JSON format with the following structure:
-{
-  "teamAnalysis": {
-    "summary": "Overall team assessment",
-    "skillMix": "Evaluation of skill mix",
-    "gaps": ["List of skill gaps"],
-    "redundancies": ["List of redundancies"],
-    "compatibility": "Team compatibility assessment"
-  },
-  "feasibility": {
-    "isFeasible": true,
-    "assessment": "Feasibility assessment",
-    "challenges": ["List of challenges"],
-    "timeline": "Timeline considerations"
-  },
-  "roleAssignments": [
-    {
-      "memberName": "Team member name",
-      "role": "Assigned role",
-      "tasks": {
-        "immediate": ["Tasks to do right now"],
-        "future": ["Future tasks"]
-      },
-      "responsibilities": ["List of responsibilities"],
-      "collaboration": "Collaboration opportunities"
-    }
-  ],
-  "optimization": {
-    "recommendations": ["List of recommendations"],
-    "training": ["Training suggestions"],
-    "structure": "Project structure suggestions"
-  },
-  "risks": {
-    "identified": ["List of risks"],
-    "mitigation": ["Mitigation strategies"],
-    "successFactors": ["Critical success factors"]
-  },
-  "deliverables": [
-    {
-      "name": "Deliverable name",
-      "description": "Description",
-      "assignedTo": "Team member name",
-      "milestone": "Milestone name",
-      "timeline": "Timeline"
-    }
-  ]
-}
-
-If you cannot provide JSON, provide the response in the numbered format as before, and I will parse it.`;
-
-        // Call the Supabase Edge Function to get AI response
-        try {
-          vscode.window.showInformationMessage("Generating AI analysis...");
-          addNotification(`Generating AI analysis for project: ${projectToPrompt.name}`, 'info', projectToPrompt.id, projectToPrompt.name);
-          
-          const edgeFunctionUrl = getEdgeFunctionUrl();
-          const anonKey = getSupabaseAnonKey();
-          
-          // Send in the format the edge function expects: { project, users }
-          const response = await fetch(edgeFunctionUrl, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${anonKey}`,
-            },
-            body: JSON.stringify({ 
-              project: projectToPrompt,
-              users: teamMembersForPrompt 
-            }),
-          });
-
-          if (!response.ok) {
-            throw new Error(`Edge function error: ${response.statusText}`);
-          }
-
-          const aiResult = await response.json();
-          const aiResponse = aiResult.message || aiResult.response || "No response received";
-
-          // Parse the AI response (try JSON first, fallback to text parsing)
-          const parsedData = parseAIResponse(aiResponse, teamMembersForPrompt);
-
-          // Save to database
-          const supabase = getSupabaseClient();
-          await supabase.from("ai_prompts").insert([{
-            project_id: projectToPrompt.id,
-            prompt_content: promptContent,
-            ai_response: aiResponse,
-          }]);
-
-          // Save to file
-          const tempFileName = `AI_Response_${projectToPrompt.name.replace(
-            /[^a-zA-Z0-9]/g,
-            "_"
-          )}_${Date.now()}.txt`;
-          const workspaceFolders = vscode.workspace.workspaceFolders;
-          if (workspaceFolders) {
-            const fullContent = `${promptContent}\n\n${"=".repeat(80)}\nAI RESPONSE:\n${"=".repeat(80)}\n\n${aiResponse}`;
-            const filePath = vscode.Uri.joinPath(
-              workspaceFolders[0].uri,
-              tempFileName
-            );
-            await fs.writeFile(filePath.fsPath, fullContent, "utf-8");
-            await vscode.window.showTextDocument(filePath, {
-              viewColumn: vscode.ViewColumn.Beside,
-              preview: false,
-            });
-          }
-
-          // Send response back to webview with parsed structured data
-          panel.webview.postMessage({
-            type: "aiResponseReceived",
-            payload: { 
-              prompt: promptContent,
-              response: aiResponse,
-              parsed: parsedData,
-              projectName: projectToPrompt.name,
-              projectId: projectToPrompt.id
-            },
-          });
-
-          vscode.window.showInformationMessage(
-            `✅ AI analysis complete for project: ${projectToPrompt.name}`
-          );
-          addNotification(`AI analysis complete for project: ${projectToPrompt.name}`, 'success', projectToPrompt.id, projectToPrompt.name);
-        } catch (error: any) {
-          vscode.window.showErrorMessage(
-            `Failed to generate AI response: ${error.message}`
-          );
-          panel.webview.postMessage({
-            type: "promptGenerationError",
-            payload: { message: error.message },
-          });
-          addNotification(`Failed to generate AI response: ${error.message}`, 'error', projectToPrompt.id, projectToPrompt.name);
-        }
+        
         break;
       }
 
@@ -2599,6 +2994,220 @@ case "viewTimelinePoint": {
         break;
       }
 
+      case "toggleRAG": {
+        const { projectId, enabled } = msg.payload;
+        try {
+          await ragService.setEnabled(projectId, enabled);
+          const stats = await ragService.getStats(projectId);
+          panel.webview.postMessage({
+            type: "ragStatsUpdate",
+            payload: stats
+          });
+          vscode.window.showInformationMessage(
+            enabled ? "RAG enabled for this project" : "RAG disabled for this project"
+          );
+        } catch (error) {
+          console.error("Failed to toggle RAG:", error);
+          panel.webview.postMessage({
+            type: "ragIndexingError",
+            payload: { message: error instanceof Error ? error.message : "Failed to toggle RAG" }
+          });
+        }
+        break;
+      }
+
+      case "indexWorkspace": {
+        const { projectId } = msg.payload;
+        try {
+          const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+          if (!workspaceFolder) {
+            throw new Error("No workspace folder open");
+          }
+
+          const userId = authService.getCurrentUser()?.id;
+          if (!userId) {
+            throw new Error("User not authenticated");
+          }
+
+          // Index workspace with progress callback
+          await ragService.indexWorkspace(
+            projectId,
+            workspaceFolder.uri.fsPath,
+            userId,
+            (progress) => {
+              panel.webview.postMessage({
+                type: "ragIndexingProgress",
+                payload: progress
+              });
+            }
+          );
+
+          const stats = await ragService.getStats(projectId);
+          panel.webview.postMessage({
+            type: "ragIndexingComplete",
+            payload: stats
+          });
+          
+          vscode.window.showInformationMessage("Workspace indexed successfully!");
+          addNotification("Workspace indexed successfully!", 'success', projectId);
+        } catch (error) {
+          console.error("Failed to index workspace:", error);
+          panel.webview.postMessage({
+            type: "ragIndexingError",
+            payload: { message: error instanceof Error ? error.message : "Failed to index workspace" }
+          });
+          vscode.window.showErrorMessage(`Failed to index workspace: ${error instanceof Error ? error.message : "Unknown error"}`);
+        }
+        break;
+      }
+
+      case "getRAGStats": {
+        const { projectId } = msg.payload;
+        try {
+          const stats = await ragService.getStats(projectId);
+          panel.webview.postMessage({
+            type: "ragStatsUpdate",
+            payload: stats
+          });
+        } catch (error) {
+          console.error("Failed to get RAG stats:", error);
+        }
+        break;
+      }
+
+      case "loadPastAnalyses": {
+        const { projectId } = msg.payload;
+        try {
+          const supabase = getSupabaseClient();
+          const { data, error } = await supabase
+            .from('ai_prompts')
+            .select('id, prompt_content, ai_response, created_at')
+            .eq('project_id', projectId)
+            .order('created_at', { ascending: false })
+            .limit(20);
+
+          if (error) throw error;
+
+          panel.webview.postMessage({
+            type: "pastAnalysesLoaded",
+            payload: { analyses: data || [] }
+          });
+        } catch (error) {
+          console.error("Failed to load past analyses:", error);
+          panel.webview.postMessage({
+            type: "pastAnalysesError",
+            payload: { message: error instanceof Error ? error.message : "Failed to load past analyses" }
+          });
+        }
+        break;
+      }
+
+      case "projectSelected": {
+        // When user selects a project, save it as the last selected
+        const { projectId } = msg.payload;
+        if (projectId) {
+          await saveLastSelectedProject(projectId);
+          console.log(`Project selected: ${projectId}`);
+        }
+        break;
+      }
+
+      case "deleteAnalysis": {
+        // Delete an AI analysis from the database
+        console.log('DELETE ANALYSIS - Received message:', msg.payload);
+        const { analysisId } = msg.payload;
+        try {
+          const supabase = getSupabaseClient();
+          console.log('DELETE ANALYSIS - Attempting to delete ID:', analysisId);
+          
+          const { error } = await supabase
+            .from('ai_prompts')
+            .delete()
+            .eq('id', analysisId);
+          
+          if (error) {
+            console.error('DELETE ANALYSIS - Supabase error:', error);
+            throw error;
+          }
+          
+          console.log(`DELETE ANALYSIS - Successfully deleted: ${analysisId}`);
+          
+          // Refresh past analyses for the current project
+          const projectSelect = msg.payload.projectId;
+          console.log('DELETE ANALYSIS - Refreshing for project:', projectSelect);
+          
+          if (projectSelect) {
+            const { data: analyses } = await supabase
+              .from('ai_prompts')
+              .select('*')
+              .eq('project_id', projectSelect)
+              .order('created_at', { ascending: false });
+            
+            console.log('DELETE ANALYSIS - Sending updated list, count:', analyses?.length || 0);
+            
+            panel.webview.postMessage({
+              type: 'pastAnalysesLoaded',
+              payload: { analyses: analyses || [] }
+            });
+          }
+          
+          addNotification('Analysis deleted successfully', 'success');
+        } catch (error) {
+          console.error('DELETE ANALYSIS - Error:', error);
+          vscode.window.showErrorMessage(`Failed to delete analysis: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+        break;
+      }
+
+      case "linkProjectToWorkspace": {
+        // Explicitly link a project to the current workspace
+        const { projectId } = msg.payload;
+        if (projectId) {
+          await linkProjectToWorkspace(projectId);
+          vscode.window.showInformationMessage(`Project linked to this workspace`);
+          
+          // Send updated workspace info back to webview
+          panel.webview.postMessage({
+            type: "workspaceLinked",
+            payload: {
+              workspacePath: getCurrentWorkspacePath(),
+              projectId: projectId
+            }
+          });
+        }
+        break;
+      }
+
+      case "unlinkWorkspace": {
+        // Unlink the current workspace
+        await unlinkWorkspaceFromProject();
+        vscode.window.showInformationMessage(`Workspace unlinked from project`);
+        
+        panel.webview.postMessage({
+          type: "workspaceUnlinked",
+          payload: {}
+        });
+        break;
+      }
+
+      case "getWorkspaceInfo": {
+        // Get workspace linking information
+        const workspacePath = getCurrentWorkspacePath();
+        const linkedProjectId = getLinkedProjectForWorkspace();
+        const lastSelected = getLastSelectedProject();
+        
+        panel.webview.postMessage({
+          type: "workspaceInfo",
+          payload: {
+            workspacePath,
+            linkedProjectId,
+            lastSelectedProjectId: lastSelected,
+            hasWorkspace: !!workspacePath
+          }
+        });
+        break;
+      }
+
       default:
         console.warn('Extension: Unknown message type received:', msg.type);
         break;
@@ -2607,6 +3216,10 @@ case "viewTimelinePoint": {
 }
 
 export function deactivate() {
+  // Clean up resources if needed
+  if (ragService) {
+    ragService.dispose();
+  }
   // Clean up timeline manager
   if (timelineManager) {
     timelineManager.dispose();

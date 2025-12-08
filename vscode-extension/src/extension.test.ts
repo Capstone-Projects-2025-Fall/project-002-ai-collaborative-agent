@@ -9,9 +9,9 @@ import * as vscode from 'vscode';
 vi.mock('vscode', () => ({
   window: {
     createWebviewPanel: vi.fn(),
-    showInformationMessage: vi.fn(),
-    showErrorMessage: vi.fn(),
-    showWarningMessage: vi.fn(),
+    showInformationMessage: vi.fn().mockResolvedValue(undefined),
+    showErrorMessage: vi.fn().mockResolvedValue(undefined),
+    showWarningMessage: vi.fn().mockResolvedValue(undefined),
     showInputBox: vi.fn(),
     showOpenDialog: vi.fn(),
     createTreeView: vi.fn(() => ({ badge: undefined })),
@@ -29,6 +29,12 @@ vi.mock('vscode', () => ({
   },
   workspace: {
     workspaceFolders: [],
+  },
+  extensions: {
+    getExtension: vi.fn(() => undefined),
+  },
+  env: {
+    openExternal: vi.fn().mockResolvedValue(true),
   },
   ViewColumn: {
     Active: 1,
@@ -108,6 +114,23 @@ vi.mock('./databaseService', () => ({
 vi.mock('./peerSuggestionService', () => ({
   PeerSuggestionService: vi.fn(() => ({
     dispose: vi.fn(),
+  })),
+}));
+
+// Mock RAGService
+vi.mock('./ragService', () => ({
+  RAGService: vi.fn(() => ({
+    dispose: vi.fn(),
+    isEnabled: vi.fn().mockResolvedValue(false),
+    setEnabled: vi.fn().mockResolvedValue(true),
+    getStats: vi.fn().mockResolvedValue({
+      enabled: false,
+      totalFiles: 0,
+      totalChunks: 0,
+      lastIndexed: null
+    }),
+    searchContext: vi.fn().mockResolvedValue([]),
+    indexWorkspace: vi.fn().mockResolvedValue(undefined),
   })),
 }));
 
