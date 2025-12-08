@@ -1,9 +1,10 @@
 {
-  "name": "ai-collab-agent",
-  "displayName": "AI Collab Agent",
+  "name": "pallas-ai",
+  "displayName": "Pallas AI",
   "description": "AI-powered team collaboration platform with intelligent code assistance. Manage projects, coordinate teams, and get real-time code analysis.",
-  "publisher": "your-publisher-id",
-  "version": "0.0.1",
+  "publisher": "CapstoneFall2025Team2",
+  "icon": "media/logo.png",
+  "version": "1.0.0",
   "engines": {
     "vscode": "^1.80.0"
   },
@@ -19,8 +20,7 @@
       {
         "command": "aiCollab.openPanel",
         "title": "Open Team Platform",
-        "category": "AI Collab Agent",
-        "icon": "$(organization)"
+        "category": "AI Collab Agent"
       },
       {
         "command": "ai.createJiraTasks",
@@ -45,8 +45,7 @@
       {
         "command": "ai-code-reviewer.analyzeCode",
         "title": "Analyze Current Folder",
-        "category": "AI Code Assistant",
-        "icon": "$(lightbulb)"
+        "category": "AI Code Assistant"
       },
       {
         "command": "ai-code-reviewer.configure",
@@ -56,20 +55,42 @@
       {
         "command": "ai-code-reviewer.showResults",
         "title": "Show Analysis Results",
-        "category": "AI Code Assistant",
-        "icon": "$(output)"
+        "category": "AI Code Assistant"
       },
       {
         "command": "ai-code-reviewer.showChangeLog",
         "title": "Show Change Log",
-        "category": "AI Code Assistant",
-        "icon": "$(history)"
+        "category": "AI Code Assistant"
       },
       {
         "command": "ai-code-reviewer.toggleAutoAnalyze",
         "title": "Toggle Auto-Analysis",
-        "category": "AI Code Assistant",
-        "icon": "$(debug-pause)"
+        "category": "AI Code Assistant"
+      },
+      {
+        "command": "aiCollab.showNotifications",
+        "title": "Show Notifications",
+        "category": "AI Collab Agent"
+      },
+      {
+        "command": "aiCollab.markAllNotificationsRead",
+        "title": "Mark All as Read",
+        "category": "AI Collab Agent"
+      },
+      {
+        "command": "aiCollab.clearAllNotifications",
+        "title": "Clear All Notifications",
+        "category": "AI Collab Agent"
+      },
+      {
+        "command": "aiCollab.deleteNotification",
+        "title": "Delete Notification",
+        "category": "AI Collab Agent"
+      },
+      {
+        "command": "aiCollab.notificationClicked",
+        "title": "View Notification",
+        "category": "AI Collab Agent"
       }
     ],
     "menus": {
@@ -82,6 +103,10 @@
       ],
       "commandPalette": [
         {
+          "command": "ai.createJiraTasks",
+          "when": "true"
+        },
+        {
           "command": "ai-code-reviewer.analyzeCode",
           "when": "workspaceFolderCount > 0"
         },
@@ -90,6 +115,30 @@
         },
         {
           "command": "ai-code-reviewer.toggleAutoAnalyze"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "aiCollab.clearAllNotifications",
+          "when": "view == aiCollabNotificationsView",
+          "group": "navigation@1"
+        },
+        {
+          "command": "aiCollab.markAllNotificationsRead",
+          "when": "view == aiCollabNotificationsView",
+          "group": "navigation@2"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "aiCollab.deleteNotification",
+          "when": "view == aiCollabNotificationsView && viewItem == unreadNotification",
+          "group": "inline@1"
+        },
+        {
+          "command": "aiCollab.deleteNotification",
+          "when": "view == aiCollabNotificationsView && viewItem == readNotification",
+          "group": "inline@1"
         }
       ]
     },
@@ -154,6 +203,11 @@
           "id": "aiCollab-sidebar",
           "title": "AI Collab",
           "icon": "media/collaboration.svg"
+        },
+        {
+          "id": "aiCollab-notifications",
+          "title": "AI Collab Notifications",
+          "icon": "media/collaboration.svg"
         }
       ]
     },
@@ -163,25 +217,14 @@
           "id": "aiCollabView",
           "name": "Team Panel"
         }
+      ],
+      "aiCollab-notifications": [
+        {
+          "id": "aiCollabNotificationsView",
+          "name": "Notifications"
+        }
       ]
     }
-  },
-  "viewsContainers": {
-    "activitybar": [
-      {
-        "id": "aiCollab-sidebar",
-        "title": "AI Collab",
-        "icon": "media/collaboration.svg"
-      }
-    ]
-  },
-  "views": {
-    "aiCollab-sidebar": [
-      {
-        "id": "aiCollabView",
-        "name": "Team Panel"
-      }
-    ]
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
@@ -190,10 +233,11 @@
     "package": "vsce package",
     "test": "vitest",
     "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "lint": "eslint src --ext ts"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.39.8",
+    "@supabase/supabase-js": "^2.86.2",
     "axios": "^1.6.5",
     "dotenv": "^16.4.5",
     "node-fetch": "^2.7.0",
@@ -214,7 +258,6 @@
   "bugs": {
     "url": "https://github.com/your-username/ai-collab-agent/issues"
   },
-  "icon": "media/icon.png",
   "author": "",
   "license": "ISC"
 }
