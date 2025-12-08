@@ -729,41 +729,6 @@
         }
 
 
-        .header-top{
-        display: grid;
-        grid-template-columns: minmax(0,1fr) auto minmax(0,1fr);
-        align-items: center;
-        gap: 12px;
-        min-height: clamp(44px, 7vw, 90px); /* gives room for the logo */
-        }
-
-        .header-top .brand{
-        justify-self: center;
-        position: relative;
-        display: inline-block; /* width equals text only */
-        margin: 0;
-        text-align: center;
-        line-height: 1.1;
-        font-size: clamp(1.35rem, 2.2vw + 0.9rem, 2.3rem);
-        max-width: 100%;
-        }
-
-        .header-top .brand-text{
-        display: inline-block;
-        }
-
-        /* logo sits left of the centered text, without affecting centering */
-        .header-top .brand .app-logo{
-        position: absolute;
-        right: 100%;
-        top: 50%;
-        transform: translateY(-50%);
-        margin-right: 8px; /* smaller = closer to title */
-        height: clamp(44px, 7vw, 90px);
-        width: auto;
-        }
-
-
         .header-top h1 {
         position: static;
         left: auto;
@@ -928,14 +893,6 @@
         .edit-profile-link:hover {
             background: #f8fafc;
             color: #764ba2;
-        }
-
-        .app-logo {
-            height: 120px;
-            width: auto;
-            margin-right: 0;
-            padding: 0;
-            vertical-align: middle;
         }
 
         .projects-layout {
@@ -1287,7 +1244,7 @@
         .header-spacer{ justify-self: end; min-width: 0; }
 
         /* logo scales with window */
-        .app-logo{ height: clamp(44px, 7vw, 90px); }
+        /* .app-logo{ height: clamp(44px, 7vw, 90px); } */
 
         /* prevent long names from colliding with title */
         .profile-button{ max-width: min(320px, 48vw); }
@@ -1385,6 +1342,81 @@
         .analysis-subtitle{ margin: 0; color: var(--p-text-muted); font-size: 0.95rem; }
 
 
+        :root{
+        --brand-logo-size: clamp(54px, 8vw, 104px);
+        --brand-logo-gap: 10px;
+        }
+
+        .header-top{
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+        align-items: center;
+        gap: 12px;
+        min-height: calc(var(--brand-logo-size) + 8px);
+        }
+
+        .profile-dropdown-container{
+        justify-self: start;
+        min-width: 0;
+        align-self: stretch;
+        }
+
+        .header-spacer{
+        justify-self: end;
+        min-width: 0;
+        }
+
+        .header-top .brand{
+        justify-self: center;
+        margin: 0;
+        line-height: 1;
+        font-size: clamp(1.35rem, 2.2vw + 0.9rem, 2.3rem);
+        max-width: 100%;
+
+        display: grid;
+        grid-template-columns: var(--brand-logo-size) auto var(--brand-logo-size);
+        align-items: center;
+        column-gap: var(--brand-logo-gap);
+        }
+
+        .header-top .brand .brand-text{
+        grid-column: 2;
+        white-space: nowrap;
+        }
+
+        .header-top .brand .app-logo{
+        grid-column: 1;
+        width: var(--brand-logo-size);
+        height: var(--brand-logo-size);
+        object-fit: contain;
+        position: static;
+        transform: none;
+        margin: 0;
+        display: block;
+        }
+
+        /* balances the left logo so the text stays centered */
+        .header-top .brand::after{
+        content: "";
+        grid-column: 3;
+        width: var(--brand-logo-size);
+        height: var(--brand-logo-size);
+        visibility: hidden;
+        }
+
+        @media (max-width: 640px){
+        .header-top{
+            grid-template-columns: 1fr;
+            row-gap: 10px;
+            min-height: unset;
+        }
+        .header-spacer{ display: none; }
+        .profile-dropdown-container{ justify-self: center; }
+        .profile-dropdown{ left: 50%; translate: -50% 0; }
+        .header-top .brand .brand-text{ white-space: normal; text-align: center; }
+        }
+
+
 
 
     </style>
@@ -1429,8 +1461,9 @@
 
 
                 <h1 class="brand">
-                <span class="brand-text">Pallas AI</span>
                 <img src="{{logoUri}}" alt="AI Collab Agent logo" class="app-logo">
+                <span class="brand-text">Pallas AI</span>
+
                 </h1>
                 <div class="header-spacer" aria-hidden="true"></div>
             </div>
