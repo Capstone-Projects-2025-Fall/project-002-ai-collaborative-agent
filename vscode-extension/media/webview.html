@@ -120,7 +120,7 @@
 
         .jira-hero-card {
             background: linear-gradient(135deg, #eef2ff, #e0f2fe);
-            color: #0f172a;
+            color: #000000;
             border-radius: 16px;
             padding: 18px 20px;
             box-shadow: 0 20px 45px rgba(15, 23, 42, 0.35);
@@ -132,13 +132,13 @@
         .jira-hero-card h3 {
             font-size: 1.2rem;
             margin: 0;
-            color: #4338ca;
+            color: #000000;
         }
 
         .jira-hero-card p {
             margin: 0;
             line-height: 1.6;
-            color: #334155;
+            color: #000000;
         }
 
         .jira-hero-steps {
@@ -153,7 +153,7 @@
             padding: 8px 12px;
             border-radius: 999px;
             background: rgba(99, 102, 241, 0.12);
-            color: #4338ca;
+            color: #000000;
             font-weight: 600;
             font-size: 0.9rem;
         }
@@ -170,6 +170,24 @@
             border-radius: 16px;
             padding: 18px 20px;
             box-shadow: 0 15px 35px rgba(15, 23, 42, 0.12);
+        }
+
+        .jira-credentials-card input,
+        .jira-credentials-card textarea,
+        .jira-credentials-card select {
+            color: #000000 !important;
+            font-weight: 500;
+        }
+
+        .jira-credentials-card input::placeholder,
+        .jira-credentials-card textarea::placeholder {
+            color: #94a3b8 !important;
+            opacity: 1;
+        }
+
+        .jira-credentials-card label {
+            color: #000000 !important;
+            font-weight: 600;
         }
 
         #jiraAssignableCard,
@@ -218,7 +236,7 @@
             padding: 4px 10px;
             margin: 0 0 6px auto;
             background: linear-gradient(135deg, #eef2ff, #fff);
-            color: #1f2937;
+            color: #000000;
             border-radius: 14px;
             box-shadow: 0 10px 24px rgba(99, 102, 241, 0.12);
             border: 1px solid rgba(99, 102, 241, 0.25);
@@ -244,6 +262,31 @@
 
         .jira-header .section-title {
             margin-bottom: 0;
+            color: #000000 !important;
+        }
+
+        /* Override CSS variables for Jira section headings */
+        #jira .section-title,
+        #jira .profile-card-title {
+            color: #000000 !important;
+        }
+
+        #jira .jira-credentials-card .profile-card-title {
+            color: #000000 !important;
+        }
+
+        /* Fix paragraph text in Jira sections */
+        #jira p {
+            color: #1e293b !important;
+        }
+
+        #jira .jira-credentials-card p {
+            color: #1e293b !important;
+        }
+
+        /* Override inline styles for Jira paragraph text */
+        #jiraAssignableCard p[style*="color"] {
+            color: #1e293b !important;
         }
 
         .jira-quick-actions .quick-label {
@@ -372,7 +415,7 @@
 
         .jira-task-summary {
             font-weight: 600;
-            color: #0f172a;
+            color: #000000;
             line-height: 1.4;
             word-break: break-word;
         }
@@ -383,27 +426,27 @@
             margin-right: 8px;
             border-radius: 999px;
             background: rgba(99, 102, 241, 0.12);
-            color: #4338ca;
+            color: #000000;
             font-size: 0.78rem;
             font-weight: 700;
         }
 
         .jira-task-purpose {
             font-size: 0.85rem;
-            color: #475569;
+            color: #000000;
             margin-top: 8px;
             line-height: 1.4;
         }
 
         .jira-task-meta {
             font-size: 0.8rem;
-            color: #64748b;
+            color: #000000;
             margin-top: 6px;
         }
 
         .jira-status-chip {
             background: linear-gradient(135deg, #f0f9ff, #dbeafe);
-            color: #0f172a;
+            color: #000000;
             padding: 6px 14px;
             border-radius: 999px;
             font-size: 0.78rem;
@@ -433,6 +476,17 @@
             border-radius: 10px;
             border: 1px solid #e2e8f0;
             background: white;
+            color: #000000 !important;
+            font-weight: 500;
+        }
+
+        .jira-controls select {
+            color: #000000 !important;
+        }
+
+        .jira-controls input::placeholder {
+            color: #94a3b8 !important;
+            opacity: 1;
         }
 
         .jira-detail {
@@ -461,11 +515,25 @@
             border: 1px solid #e2e8f0;
             background: white;
             overflow: hidden;
+            color: #000000 !important;
+            font-weight: 500;
+        }
+
+        .jira-detail input::placeholder,
+        .jira-detail textarea::placeholder {
+            color: #94a3b8 !important;
+            opacity: 1;
         }
 
         .jira-detail select {
             white-space: nowrap;
             text-overflow: ellipsis;
+        }
+
+        .jira-detail select option,
+        .jira-controls select option {
+            color: #000000;
+            background: white;
         }
 
         .jira-detail textarea {
@@ -477,18 +545,19 @@
             min-height: 90px;
             line-height: 1.45;
             font-weight: 600;
+            color: #000000;
         }
 
         .jira-detail-title {
             font-size: 1.1rem;
             font-weight: 700;
-            color: #0f172a;
+            color: #000000;
             line-height: 1.5;
         }
 
         .jira-summary-hint {
             font-size: 0.78rem;
-            color: #94a3b8;
+            color: #000000;
             margin-top: 6px;
         }
 
@@ -503,21 +572,21 @@
         .jira-purpose-card label {
             font-size: 0.85rem;
             font-weight: 600;
-            color: #475569;
+            color: #000000;
             display: block;
             margin-bottom: 6px;
         }
 
         .jira-purpose-card p {
             margin: 0;
-            color: #1e293b;
+            color: #000000;
             line-height: 1.5;
         }
 
         .jira-empty-state {
             text-align: center;
             padding: 30px;
-            color: #94a3b8;
+            color: #000000;
         }
 
         .modal {
@@ -772,20 +841,37 @@
         .btn-primary {
             background: linear-gradient(135deg, #667eea, #764ba2);
             color: white;
+            font-weight: 600;
         }
 
         .btn-primary:hover {
             transform: translateY(-1px);
             box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+            color: white;
         }
 
         .btn-secondary {
             background: #f1f5f9;
-            color: #475569;
+            color: #000000 !important;
+            font-weight: 600;
         }
 
         .btn-secondary:hover {
             background: #e2e8f0;
+            color: #000000 !important;
+        }
+
+        /* Ensure all buttons in Jira section have good contrast */
+        #jira .btn {
+            font-weight: 600;
+        }
+
+        #jira .btn-primary {
+            color: white !important;
+        }
+
+        #jira .btn-secondary {
+            color: #000000 !important;
         }
 
         .user-list,
