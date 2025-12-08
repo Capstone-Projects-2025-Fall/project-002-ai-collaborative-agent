@@ -728,25 +728,58 @@
             pointer-events: none;
         }
 
-        .header-top {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+
+        .header-top{
+        display: grid;
+        grid-template-columns: minmax(0,1fr) auto minmax(0,1fr);
+        align-items: center;
+        gap: 12px;
+        min-height: clamp(44px, 7vw, 90px); /* gives room for the logo */
         }
+
+        .header-top .brand{
+        justify-self: center;
+        position: relative;
+        display: inline-block; /* width equals text only */
+        margin: 0;
+        text-align: center;
+        line-height: 1.1;
+        font-size: clamp(1.35rem, 2.2vw + 0.9rem, 2.3rem);
+        max-width: 100%;
+        }
+
+        .header-top .brand-text{
+        display: inline-block;
+        }
+
+        /* logo sits left of the centered text, without affecting centering */
+        .header-top .brand .app-logo{
+        position: absolute;
+        right: 100%;
+        top: 50%;
+        transform: translateY(-50%);
+        margin-right: 8px; /* smaller = closer to title */
+        height: clamp(44px, 7vw, 90px);
+        width: auto;
+        }
+
 
         .header-top h1 {
-            font-size: 2.5rem;
-            font-weight: 700;
-            position: absolute;
-            left: 50%;
-            transform: translateX(-50%);
-            margin: 0;
-            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        position: static;
+        left: auto;
+        transform: none;
+        margin: 0;
+        justify-self: center;
 
-            display: inline-flex;
-            align-items: center;
-            gap: 2px;
+        text-align: center;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+
+        font-size: clamp(1.35rem, 2.2vw + 0.9rem, 2.3rem);
+        max-width: 100%;
         }
+
 
         .signout-btn {
             padding: 8px 16px;
@@ -764,10 +797,15 @@
             transform: translateY(-1px);
         }
 
-        .profile-dropdown-container {
-            position: relative;
-            display: inline-block;
+        .profile-dropdown-container{
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-self: start;
+        align-self: stretch; /* key: makes dropdown top start below the whole header row */
+        min-width: 0;
         }
+
 
         .profile-button {
             display: flex;
@@ -782,6 +820,7 @@
             cursor: pointer;
             transition: all 0.2s ease;
             font-weight: 600;
+            min-width: 0;
         }
 
         .profile-button:hover {
@@ -940,305 +979,413 @@
             background: rgba(148, 163, 184, 0.6);
         }
 
-/* =========================
-   Pallas palette overrides
-   (paste at END of <style>)
-   ========================= */
-:root{
-  --p-bg: #212227;
-  --p-surface-1: #484F57;
-  --p-surface-2: #637074;
-  --p-border: #6F7B87;
-  --p-accent: #FFC82F;
+        /* =========================
+        Pallas palette overrides
+        (paste at END of <style>)
+        ========================= */
+        :root{
+        --p-bg: #212227;
+        --p-surface-1: #484F57;
+        --p-surface-2: #637074;
+        --p-border: #6F7B87;
+        --p-accent: #FFC82F;
 
-  --p-text: #F4F6F8;
-  --p-text-muted: rgba(244,246,248,0.72);
-  --p-ink: #212227;
+        --p-text: #F4F6F8;
+        --p-text-muted: rgba(244,246,248,0.72);
+        --p-ink: #212227;
 
-  --p-shadow: 0 14px 40px rgba(0,0,0,0.35);
-  --p-radius: 14px;
-  --p-focus: 0 0 0 3px rgba(255, 200, 47, 0.22);
+        --p-shadow: 0 14px 40px rgba(0,0,0,0.35);
+        --p-radius: 14px;
+        --p-focus: 0 0 0 3px rgba(255, 200, 47, 0.22);
 
-  color-scheme: dark;
-}
+        color-scheme: dark;
+        }
 
-body{
-  background:
-    radial-gradient(900px 500px at 18% -10%, rgba(255,200,47,0.10), transparent 60%),
-    linear-gradient(135deg, var(--p-bg) 0%, var(--p-surface-1) 100%);
-  color: var(--p-text);
-}
+        body{
+        background:
+            radial-gradient(900px 500px at 18% -10%, rgba(255,200,47,0.10), transparent 60%),
+            linear-gradient(135deg, var(--p-bg) 0%, var(--p-surface-1) 100%);
+        color: var(--p-text);
+        }
 
-/* Header stays readable */
-.header{ color: var(--p-text); }
-.header h1{ text-shadow: 0 2px 12px rgba(0,0,0,0.55); }
+        /* Header stays readable */
+        .header{ color: var(--p-text); }
+        .header h1{ text-shadow: 0 2px 12px rgba(0,0,0,0.55); }
 
-/* Top-right buttons */
-.profile-button,
-.signout-btn{
-  background: rgba(72,79,87,0.45);
-  border: 1px solid rgba(111,123,135,0.45);
-  color: var(--p-text);
-}
-.profile-button:hover,
-.signout-btn:hover{
-  background: rgba(99,112,116,0.45);
-}
+        /* Top-right buttons */
+        .profile-button,
+        .signout-btn{
+        background: rgba(72,79,87,0.45);
+        border: 1px solid rgba(111,123,135,0.45);
+        color: var(--p-text);
+        }
+        .profile-button:hover,
+        .signout-btn:hover{
+        background: rgba(99,112,116,0.45);
+        }
 
-/* Tabs */
-.tab-button{
-  background: rgba(72,79,87,0.35);
-  border: 1px solid rgba(111,123,135,0.35);
-  color: var(--p-text);
-}
-.tab-button:hover{
-  background: rgba(99,112,116,0.45);
-  transform: translateY(-1px);
-}
-.tab-button.active{
-  background: rgba(72,79,87,0.70);
-  border-color: rgba(255,200,47,0.55);
-  box-shadow: 0 0 0 1px rgba(255,200,47,0.12) inset;
-}
+        /* Tabs */
+        .tab-button{
+        background: rgba(72,79,87,0.35);
+        border: 1px solid rgba(111,123,135,0.35);
+        color: var(--p-text);
+        }
+        .tab-button:hover{
+        background: rgba(99,112,116,0.45);
+        transform: translateY(-1px);
+        }
+        .tab-button.active{
+        background: rgba(72,79,87,0.70);
+        border-color: rgba(255,200,47,0.55);
+        box-shadow: 0 0 0 1px rgba(255,200,47,0.12) inset;
+        }
 
-/* Main content panels */
-.tab-content{
-  background: rgba(72,79,87,0.92);
-  border: 1px solid rgba(111,123,135,0.30);
-  box-shadow: var(--p-shadow);
-  color: var(--p-text);
-  border-radius: var(--p-radius);
-}
+        /* Main content panels */
+        .tab-content{
+        background: rgba(72,79,87,0.92);
+        border: 1px solid rgba(111,123,135,0.30);
+        box-shadow: var(--p-shadow);
+        color: var(--p-text);
+        border-radius: var(--p-radius);
+        }
 
-/* Section titles */
-.section-title{ color: var(--p-text); }
-.section-title::before{ background: var(--p-accent); }
+        /* Section titles */
+        .section-title{ color: var(--p-text); }
+        .section-title::before{ background: var(--p-accent); }
 
-/* Forms */
-.form-group label,
-.other-input-group label,
-.profile-dropdown-item label{
-  color: var(--p-text);
-  opacity: 0.92;
-}
+        /* Forms */
+        .form-group label,
+        .other-input-group label,
+        .profile-dropdown-item label{
+        color: var(--p-text);
+        opacity: 0.92;
+        }
 
-.form-group input,
-.form-group textarea,
-.form-group select,
-.other-input-group input{
-  background: rgba(33,34,39,0.55);
-  border-color: rgba(111,123,135,0.45);
-  color: var(--p-text);
-}
-.form-group input:focus,
-.form-group textarea:focus,
-.form-group select:focus,
-.other-input-group input:focus{
-  border-color: rgba(255,200,47,0.70);
-  box-shadow: var(--p-focus);
-}
-input::placeholder, textarea::placeholder{
-  color: rgba(244,246,248,0.45);
-}
+        .form-group input,
+        .form-group textarea,
+        .form-group select,
+        .other-input-group input{
+        background: rgba(33,34,39,0.55);
+        border-color: rgba(111,123,135,0.45);
+        color: var(--p-text);
+        }
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus,
+        .other-input-group input:focus{
+        border-color: rgba(255,200,47,0.70);
+        box-shadow: var(--p-focus);
+        }
+        input::placeholder, textarea::placeholder{
+        color: rgba(244,246,248,0.45);
+        }
 
-/* Checkbox/radio accents */
-.radio-option input[type="checkbox"],
-.radio-option input[type="radio"]{
-  accent-color: var(--p-accent);
-}
-.radio-group{
-  background: rgba(33,34,39,0.25);
-  border-color: rgba(111,123,135,0.35);
-}
-.radio-option label{ color: var(--p-text-muted); }
-.radio-option:hover label,
-.radio-option input[type="checkbox"]:checked + label,
-.radio-option input[type="radio"]:checked + label{
-  color: var(--p-accent);
-}
+        /* Checkbox/radio accents */
+        .radio-option input[type="checkbox"],
+        .radio-option input[type="radio"]{
+        accent-color: var(--p-accent);
+        }
+        .radio-group{
+        background: rgba(33,34,39,0.25);
+        border-color: rgba(111,123,135,0.35);
+        }
+        .radio-option label{ color: var(--p-text-muted); }
+        .radio-option:hover label,
+        .radio-option input[type="checkbox"]:checked + label,
+        .radio-option input[type="radio"]:checked + label{
+        color: var(--p-accent);
+        }
 
-/* Buttons */
-.btn{ border-radius: 10px; }
-.btn-primary{
-  background: var(--p-accent);
-  color: var(--p-ink);
-  box-shadow: 0 6px 16px rgba(0,0,0,0.22);
-}
-.btn-primary:hover{
-  transform: translateY(-1px);
-  box-shadow: 0 10px 24px rgba(0,0,0,0.28);
-}
-.btn-secondary{
-  background: rgba(33,34,39,0.35);
-  color: var(--p-text);
-  border: 1px solid rgba(111,123,135,0.45);
-}
-.btn-secondary:hover{ background: rgba(99,112,116,0.40); }
+        /* Buttons */
+        .btn{ border-radius: 10px; }
+        .btn-primary{
+        background: var(--p-accent);
+        color: var(--p-ink);
+        box-shadow: 0 6px 16px rgba(0,0,0,0.22);
+        }
+        .btn-primary:hover{
+        transform: translateY(-1px);
+        box-shadow: 0 10px 24px rgba(0,0,0,0.28);
+        }
+        .btn-secondary{
+        background: rgba(33,34,39,0.35);
+        color: var(--p-text);
+        border: 1px solid rgba(111,123,135,0.45);
+        }
+        .btn-secondary:hover{ background: rgba(99,112,116,0.40); }
 
-/* Cards / lists */
-.profile-card,
-.user-list, .project-list{
-  background: rgba(33,34,39,0.25);
-  border: 1px solid rgba(111,123,135,0.25);
-}
-.profile-card-title{ color: var(--p-text); }
+        /* Cards / lists */
+        .profile-card,
+        .user-list, .project-list{
+        background: rgba(33,34,39,0.25);
+        border: 1px solid rgba(111,123,135,0.25);
+        }
+        .profile-card-title{ color: var(--p-text); }
 
-.user-item, .project-item{
-  background: rgba(33,34,39,0.36);
-  border-left: 4px solid var(--p-accent);
-}
-.user-item h3, .project-item h3{ color: var(--p-text); }
-.user-item p,  .project-item p { color: var(--p-text-muted); }
+        .user-item, .project-item{
+        background: rgba(33,34,39,0.36);
+        border-left: 4px solid var(--p-accent);
+        }
+        .user-item h3, .project-item h3{ color: var(--p-text); }
+        .user-item p,  .project-item p { color: var(--p-text-muted); }
 
-/* Placeholder “No projects yet” etc (inline colors) */
-#projectList > p,
-#currentUserDisplay > p{
-  color: var(--p-text-muted) !important;
-}
+        /* Placeholder “No projects yet” etc (inline colors) */
+        #projectList > p,
+        #currentUserDisplay > p{
+        color: var(--p-text-muted) !important;
+        }
 
-/* Team cards */
-.team-member-card{
-  background: rgba(72,79,87,0.55);
-  border-color: rgba(111,123,135,0.30);
-}
-.team-member-card > div:first-child{ color: var(--p-text); }
+        /* Team cards */
+        .team-member-card{
+        background: rgba(72,79,87,0.55);
+        border-color: rgba(111,123,135,0.30);
+        }
+        .team-member-card > div:first-child{ color: var(--p-text); }
 
-/* Prompt output */
-.prompt-output{
-  background: rgba(33,34,39,0.70);
-  border: 1px solid rgba(111,123,135,0.25);
-  color: var(--p-text);
-}
+        /* Prompt output */
+        .prompt-output{
+        background: rgba(33,34,39,0.70);
+        border: 1px solid rgba(111,123,135,0.25);
+        color: var(--p-text);
+        }
 
-/* Analysis sections */
-.analysis-section{
-  background: rgba(33,34,39,0.35);
-  color: var(--p-text);
-  border: 1px solid rgba(111,123,135,0.25);
-}
-.analysis-section h3{ color: var(--p-accent); }
-.analysis-section h3::before{ background: var(--p-accent); }
+        /* Analysis sections */
+        .analysis-section{
+        background: rgba(33,34,39,0.35);
+        color: var(--p-text);
+        border: 1px solid rgba(111,123,135,0.25);
+        }
+        .analysis-section h3{ color: var(--p-accent); }
+        .analysis-section h3::before{ background: var(--p-accent); }
 
-.member-card{
-  background: rgba(72,79,87,0.45);
-  border-color: rgba(111,123,135,0.28);
-}
-.member-card:hover{
-  transform: translateY(-2px);
-  box-shadow: 0 10px 24px rgba(0,0,0,0.30);
-}
-.member-header{ border-bottom-color: rgba(111,123,135,0.28); }
-.member-name{ color: var(--p-text); }
-.member-role{
-  background: rgba(255,200,47,0.14);
-  border: 1px solid rgba(255,200,47,0.28);
-  color: var(--p-accent);
-}
+        .member-card{
+        background: rgba(72,79,87,0.45);
+        border-color: rgba(111,123,135,0.28);
+        }
+        .member-card:hover{
+        transform: translateY(-2px);
+        box-shadow: 0 10px 24px rgba(0,0,0,0.30);
+        }
+        .member-header{ border-bottom-color: rgba(111,123,135,0.28); }
+        .member-name{ color: var(--p-text); }
+        .member-role{
+        background: rgba(255,200,47,0.14);
+        border: 1px solid rgba(255,200,47,0.28);
+        color: var(--p-accent);
+        }
 
-.task-section h4{ color: var(--p-text); }
-.task-list li{
-  background: rgba(33,34,39,0.40);
-  border-left-color: var(--p-accent);
-  color: var(--p-text);
-}
-.task-list li::before{ color: var(--p-accent); }
+        .task-section h4{ color: var(--p-text); }
+        .task-list li{
+        background: rgba(33,34,39,0.40);
+        border-left-color: var(--p-accent);
+        color: var(--p-text);
+        }
+        .task-list li::before{ color: var(--p-accent); }
 
-/* Callouts inside analysis */
-.challenge-item,
-.risk-item,
-.recommendation-item{
-  background: rgba(255,200,47,0.12);
-  border-left-color: var(--p-accent);
-  color: var(--p-text);
-}
-.mitigation-item{
-  background: rgba(99,112,116,0.25);
-  border-left-color: rgba(111,123,135,0.70);
-  color: var(--p-text);
-}
-.feasibility-badge.positive{
-  background: rgba(255,200,47,0.16);
-  color: var(--p-accent);
-  border: 1px solid rgba(255,200,47,0.25);
-}
-.feasibility-badge.negative{
-  background: rgba(239,68,68,0.18);
-  color: #fecaca;
-  border: 1px solid rgba(239,68,68,0.25);
-}
+        /* Callouts inside analysis */
+        .challenge-item,
+        .risk-item,
+        .recommendation-item{
+        background: rgba(255,200,47,0.12);
+        border-left-color: var(--p-accent);
+        color: var(--p-text);
+        }
+        .mitigation-item{
+        background: rgba(99,112,116,0.25);
+        border-left-color: rgba(111,123,135,0.70);
+        color: var(--p-text);
+        }
+        .feasibility-badge.positive{
+        background: rgba(255,200,47,0.16);
+        color: var(--p-accent);
+        border: 1px solid rgba(255,200,47,0.25);
+        }
+        .feasibility-badge.negative{
+        background: rgba(239,68,68,0.18);
+        color: #fecaca;
+        border: 1px solid rgba(239,68,68,0.25);
+        }
 
-/* Deliverables */
-.deliverable-card{
-  background: rgba(33,34,39,0.35);
-  border-color: rgba(111,123,135,0.25);
-}
-.deliverable-name{ color: var(--p-text); }
-.deliverable-meta{ color: var(--p-text-muted); }
+        /* Deliverables */
+        .deliverable-card{
+        background: rgba(33,34,39,0.35);
+        border-color: rgba(111,123,135,0.25);
+        }
+        .deliverable-name{ color: var(--p-text); }
+        .deliverable-meta{ color: var(--p-text-muted); }
 
-/* Status: add missing info style (you use 'info' in JS) */
-.status-info{
-  background: rgba(255,200,47,0.14);
-  color: var(--p-accent);
-  border: 1px solid rgba(255,200,47,0.25);
-}
+        /* Status: add missing info style (you use 'info' in JS) */
+        .status-info{
+        background: rgba(255,200,47,0.14);
+        color: var(--p-accent);
+        border: 1px solid rgba(255,200,47,0.25);
+        }
 
-/* Dropdown + modal (override inline white backgrounds) */
-.profile-dropdown{
-  background: rgba(72,79,87,0.95);
-  border: 1px solid rgba(111,123,135,0.30);
-}
-.profile-dropdown-header h3{ color: var(--p-text); }
-.profile-dropdown-item p{ color: var(--p-text-muted); }
-.edit-profile-link{ color: var(--p-accent); }
-.edit-profile-link:hover{ background: rgba(33,34,39,0.35); color: var(--p-accent); }
+        /* Dropdown + modal (override inline white backgrounds) */
+        .profile-dropdown{
+        background: rgba(72,79,87,0.95);
+        border: 1px solid rgba(111,123,135,0.30);
+        }
+        .profile-dropdown-header h3{ color: var(--p-text); }
+        .profile-dropdown-item p{ color: var(--p-text-muted); }
+        .edit-profile-link{ color: var(--p-accent); }
+        .edit-profile-link:hover{ background: rgba(33,34,39,0.35); color: var(--p-accent); }
 
-.modal-content{
-  background: rgba(72,79,87,0.96) !important;
-  color: var(--p-text);
-  border: 1px solid rgba(111,123,135,0.30);
-  box-shadow: var(--p-shadow);
-}
-#closeEditModal{ color: var(--p-text-muted) !important; }
+        .modal-content{
+        background: rgba(72,79,87,0.96) !important;
+        color: var(--p-text);
+        border: 1px solid rgba(111,123,135,0.30);
+        box-shadow: var(--p-shadow);
+        }
+        #closeEditModal{ color: var(--p-text-muted) !important; }
 
-/* Fix inline title color inside AI visualization header */
-#aiAnalysisVisualization h2{ color: var(--p-text) !important; }
-#aiAnalysisVisualization > div > p{ color: var(--p-text-muted) !important; }
+        /* Fix inline title color inside AI visualization header */
+        #aiAnalysisVisualization h2{ color: var(--p-text) !important; }
+        #aiAnalysisVisualization > div > p{ color: var(--p-text-muted) !important; }
 
-/* Info tooltip icon */
-.info-icon{
-  background: rgba(33,34,39,0.35);
-  border-color: rgba(111,123,135,0.55);
-  color: var(--p-text);
-}
-.info-icon::after,
-.info-icon::before{ background: rgba(33,34,39,0.92); }
+        /* Info tooltip icon */
+        .info-icon{
+        background: rgba(33,34,39,0.35);
+        border-color: rgba(111,123,135,0.55);
+        color: var(--p-text);
+        }
+        .info-icon::after,
+        .info-icon::before{ background: rgba(33,34,39,0.92); }
 
-/* Scrollbars */
-#projects .project-list{
-  scrollbar-color: rgba(111,123,135,0.45) transparent;
-}
-#projects .project-list::-webkit-scrollbar-thumb{
-  background: rgba(111,123,135,0.35);
-}
-#projects .project-list::-webkit-scrollbar-thumb:hover{
-  background: rgba(111,123,135,0.60);
-}
+        /* Scrollbars */
+        #projects .project-list{
+        scrollbar-color: rgba(111,123,135,0.45) transparent;
+        }
+        #projects .project-list::-webkit-scrollbar-thumb{
+        background: rgba(111,123,135,0.35);
+        }
+        #projects .project-list::-webkit-scrollbar-thumb:hover{
+        background: rgba(111,123,135,0.60);
+        }
 
-/* Override inline-colored action buttons inside project HTML */
-.edit-project-btn{
-  background: var(--p-accent) !important;
-  color: var(--p-ink) !important;
-}
-.leave-project-btn{
-  background: rgba(33,34,39,0.35) !important;
-  color: var(--p-text) !important;
-  border: 1px solid rgba(111,123,135,0.45) !important;
-}
-.project-item code{
-  background: rgba(33,34,39,0.55) !important;
-  color: var(--p-text) !important;
-  border: 1px solid rgba(111,123,135,0.25);
-}
+        /* Override inline-colored action buttons inside project HTML */
+        .edit-project-btn{
+        background: var(--p-accent) !important;
+        color: var(--p-ink) !important;
+        }
+        .leave-project-btn{
+        background: rgba(33,34,39,0.35) !important;
+        color: var(--p-text) !important;
+        border: 1px solid rgba(111,123,135,0.45) !important;
+        }
+        .project-item code{
+        background: rgba(33,34,39,0.55) !important;
+        color: var(--p-text) !important;
+        border: 1px solid rgba(111,123,135,0.25);
+        }
+
+        html, body { height: 100%; }
+        body { min-height: 100dvh; }
+
+        /* keep left + right sides shrinkable in the header grid */
+        .profile-dropdown-container{ justify-self: start; min-width: 0; }
+        .header-spacer{ justify-self: end; min-width: 0; }
+
+        /* logo scales with window */
+        .app-logo{ height: clamp(44px, 7vw, 90px); }
+
+        /* prevent long names from colliding with title */
+        .profile-button{ max-width: min(320px, 48vw); }
+        #profileBtnName{
+        display: inline-block;
+        max-width: 18ch;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        }
+
+        /* dropdown fits inside small webview widths */
+        .profile-dropdown{
+        width: min(360px, calc(100vw - 24px));
+        max-width: calc(100vw - 24px);
+        min-width: 0;
+        }
+
+        /* modal fits and scrolls on small heights */
+        .modal-content{
+        width: min(600px, calc(100vw - 24px));
+        max-height: calc(100dvh - 48px) !important;
+        overflow: auto;
+        margin: 24px auto !important;
+        }
+
+        /* prevent grid overflow in projects */
+        .projects-layout > *{ min-width: 0; }
+        .project-item, .analysis-section, .prompt-output{ overflow-wrap: anywhere; }
+
+        /* reusable helpers */
+        .placeholder{
+        text-align: center;
+        color: var(--p-text-muted);
+        padding: 15px;
+        }
+        .muted{ color: var(--p-text-muted) !important; }
+        .xsmall{ font-size: 0.85rem; }
+
+        .row-between{
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        }
+
+        .badge{
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        }
+        .badge-owner{
+        background: rgba(16,185,129,0.18);
+        border: 1px solid rgba(16,185,129,0.28);
+        color: #a7f3d0;
+        margin-left: 8px;
+        }
+
+        .btn-compact{
+        padding: 6px 12px;
+        font-size: 0.85rem;
+        }
+
+        .btn-danger{
+        background: rgba(239,68,68,0.20);
+        border: 1px solid rgba(239,68,68,0.35);
+        color: #fecaca;
+        }
+        .btn-danger:hover{ background: rgba(239,68,68,0.28); }
+
+        .code-badge{
+        background: rgba(33,34,39,0.55);
+        color: var(--p-text);
+        border: 1px solid rgba(111,123,135,0.25);
+        padding: 2px 6px;
+        border-radius: 6px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+        font-size: 0.85em;
+        }
+
+        .member-row{
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px;
+        margin: 6px 0;
+        background: rgba(33,34,39,0.35);
+        border: 1px solid rgba(111,123,135,0.25);
+        border-radius: 10px;
+        }
+
+        .analysis-title{ font-size: 1.6rem; margin: 0 0 6px 0; }
+        .analysis-subtitle{ margin: 0; color: var(--p-text-muted); font-size: 0.95rem; }
+
+
+
 
     </style>
 </head>
@@ -1281,8 +1428,11 @@ input::placeholder, textarea::placeholder{
                 </div>
 
 
-                <h1><img src="{{logoUri}}" alt="AI Collab Agent logo" class="app-logo">Pallas AI</h1>
-                <div style="width: 140px;"></div> <!-- Spacer -->
+                <h1 class="brand">
+                <span class="brand-text">Pallas AI</span>
+                <img src="{{logoUri}}" alt="AI Collab Agent logo" class="app-logo">
+                </h1>
+                <div class="header-spacer" aria-hidden="true"></div>
             </div>
             <p>Team Collaboration & AI-Powered Project Management</p>
 
@@ -1439,6 +1589,10 @@ input::placeholder, textarea::placeholder{
 
             <div id="userStatus" class="status-message" style="display: none;"></div>
 
+            <div id="jiraStatus" class="status-message" style="display: none;"></div>
+
+
+
         </div>
 
         <div id="projects" class="tab-content active">
@@ -1505,8 +1659,9 @@ input::placeholder, textarea::placeholder{
                     </div>
 
                     <div id="projectList" class="project-list">
-                        <p style="text-align: center; color: #64748b; padding: 15px;">No projects yet</p>
+                    <p class="placeholder">No projects yet</p>
                     </div>
+
                     <div id="projectRefreshStatus" class="status-message" style="display: none;"></div>
                 </div>
             </div>
@@ -1644,61 +1799,62 @@ input::placeholder, textarea::placeholder{
                 vscode.postMessage({ type: 'loadData' });
             }
 
-            // Updated to handle currentUser separately
+                        // Updated to handle currentUser separately
             loadData(data) {
-                // Load current user's profile
-                if (data.currentUser) {
-                    this.currentUser = {
-                        id: data.currentUser.id,
-                        name: data.currentUser.name,
-                        skills: data.currentUser.skills || '',
-                        programmingLanguages: data.currentUser.programming_languages || '',
-                        willingToWorkOn: data.currentUser.willing_to_work_on || '',
-                        jiraBaseUrl: data.currentUser.jira_base_url || '',
-                        jiraProjectKey: data.currentUser.jira_project_key || '',
-                        jiraEmail: data.currentUser.jira_email || '',
-                        jiraApiToken: data.currentUser.jira_api_token || '',
-                        jiraProjectPrompt: data.currentUser.jira_project_prompt || '',
-                        createdAt: data.currentUser.created_at
-                    };
-                    this.loadCurrentUserProfile();
-                }
-
-                if (data.users) {
-                    this.users = data.users.map(userData => {
-                        const user = new TeamMember(userData.name, userData.skills, userData.programming_languages, userData.willing_to_work_on);
-                        user.id = userData.id;
-                        user.createdAt = userData.created_at;
-                        return user;
-                    });
-                }
-
-                if (data.projects) {
-                    this.projects = data.projects.map(projectData => {
-                        // Ensure selectedMemberIds is an array
-                        const memberIds = Array.isArray(projectData.selectedMemberIds) ? projectData.selectedMemberIds : [];
-                        const project = new Project(
-                            projectData.name,
-                            projectData.description,
-                            projectData.goals,
-                            projectData.requirements,
-                            memberIds,
-                            projectData.invite_code || ''
-                        );
-                        project.id = projectData.id;
-                        project.createdAt = projectData.created_at;
-                        // CRITICAL: Copy owner_id to project object for ownership checks
-                        project.owner_id = projectData.owner_id;
-                        return project;
-                    });
-                }
-
-                if (data.promptCount !== undefined) { // Check for undefined, not just falsy
-                    this.promptCount = data.promptCount;
-                }
-
-                this.updateUI();
+            if (data.currentUser) {
+                this.currentUser = {
+                id: String(data.currentUser.id),
+                name: data.currentUser.name,
+                skills: data.currentUser.skills || '',
+                programmingLanguages: data.currentUser.programming_languages || '',
+                willingToWorkOn: data.currentUser.willing_to_work_on || '',
+                jiraBaseUrl: data.currentUser.jira_base_url || '',
+                jiraProjectKey: data.currentUser.jira_project_key || '',
+                jiraEmail: data.currentUser.jira_email || '',
+                jiraApiToken: data.currentUser.jira_api_token || '',
+                jiraProjectPrompt: data.currentUser.jira_project_prompt || '',
+                createdAt: data.currentUser.created_at
+                };
+                this.loadCurrentUserProfile();
             }
+
+            if (data.users) {
+                this.users = data.users.map(userData => {
+                const user = new TeamMember(userData.name, userData.skills, userData.programming_languages, userData.willing_to_work_on);
+                user.id = String(userData.id);
+                user.createdAt = userData.created_at;
+                return user;
+                });
+            }
+
+            if (data.projects) {
+                this.projects = data.projects.map(projectData => {
+                const rawIds =
+                    Array.isArray(projectData.selectedMemberIds) ? projectData.selectedMemberIds :
+                    Array.isArray(projectData.selected_member_ids) ? projectData.selected_member_ids :
+                    [];
+                const memberIds = rawIds.map(String);
+
+                const project = new Project(
+                    projectData.name,
+                    projectData.description,
+                    projectData.goals,
+                    projectData.requirements,
+                    memberIds,
+                    projectData.invite_code || ''
+                );
+
+                project.id = String(projectData.id);
+                project.createdAt = projectData.created_at;
+                project.owner_id = projectData.owner_id != null ? String(projectData.owner_id) : null;
+                return project;
+                });
+            }
+
+            if (data.promptCount !== undefined) this.promptCount = data.promptCount;
+            this.updateUI();
+            }
+
 
             loadCurrentUserProfile() {
                 if (!this.currentUser) return;
@@ -2053,60 +2209,67 @@ input::placeholder, textarea::placeholder{
             }
 
             updateProjectList() {
-                const projectList = document.getElementById('projectList');
-                if (this.projects.length === 0) {
-                    projectList.innerHTML = '<p style="text-align: center; color: #64748b; padding: 15px;">No projects yet</p>';
-                    return;
-                }
+            const projectList = document.getElementById('projectList');
+            if (!projectList) return;
 
-                projectList.innerHTML = this.projects.map(project => {
-                    // Filter this.users by IDs stored in project.selectedMemberIds
-                    const teamMembers = this.users.filter(user => project.selectedMemberIds.includes(user.id));
+            if (this.projects.length === 0) {
+                projectList.innerHTML = '<p class="placeholder">No projects yet</p>';
+                return;
+            }
 
-                    // Create detailed team member cards
-                    const teamMemberCards = teamMembers.length > 0 ? teamMembers.map(member => `
-                        <div class="team-member-card">
-                            <div style="font-weight: 600; margin-bottom: 4px;">👤 ${member.name}</div>
-                            <div style="font-size: 0.85rem; color: #64748b;">
-                                <div><strong>Skills:</strong> ${member.skills || 'Not specified'}</div>
-                                <div><strong>Languages:</strong> ${member.programmingLanguages || 'Not specified'}</div>
-                            </div>
+            projectList.innerHTML = this.projects.map(project => {
+                const memberIds = (project.selectedMemberIds || []).map(String);
+                const teamMembers = this.users.filter(user => memberIds.includes(String(user.id)));
+
+                const currentUserId = this.currentUser ? String(this.currentUser.id) : null;
+                const projectOwnerId = project.owner_id ? String(project.owner_id) : null;
+                const isOwner = currentUserId && projectOwnerId && currentUserId === projectOwnerId;
+                const isMember = this.currentUser && memberIds.includes(String(this.currentUser.id));
+                const canEdit = isOwner || isMember;
+
+                const teamMemberCards = teamMembers.length > 0
+                ? teamMembers.map(member => `
+                    <div class="team-member-card">
+                        <div>👤 ${member.name}</div>
+                        <div class="muted xsmall">
+                        <div><strong>Skills:</strong> ${member.skills || 'Not specified'}</div>
+                        <div><strong>Languages:</strong> ${member.programmingLanguages || 'Not specified'}</div>
                         </div>
-                    `).join('') : '<p style="color: #64748b; font-size: 0.9rem;">No members yet</p>';
+                    </div>
+                    `).join('')
+                : '<p class="muted">No members yet</p>';
 
-                    // Ensure both values are strings for comparison (handle UUID type mismatches)
-                    const currentUserId = this.currentUser ? String(this.currentUser.id) : null;
-                    const projectOwnerId = project.owner_id ? String(project.owner_id) : null;
-                    const isOwner = currentUserId && projectOwnerId && currentUserId === projectOwnerId;
-                    const isMember = this.currentUser && (project.selectedMemberIds || []).includes(String(this.currentUser.id));
-                    const ownerBadge = isOwner ? '<span style="background: #10b981; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; margin-left: 8px;">Owner</span>' : '';
-                    const canEdit = isOwner || isMember;
+                const ownerBadge = isOwner ? '<span class="badge badge-owner">Owner</span>' : '';
 
-                    return `
-                        <div class="project-item">
-                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
-                                <h3 style="margin: 0;">📋 ${project.name}${ownerBadge}</h3>
-                                ${canEdit ? `<button class="btn edit-project-btn" data-project-id="${project.id}" style="padding: 4px 8px; font-size: 0.8rem; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer;">✏️ Edit</button>` : ''}
-                            </div>
-                            <p><strong>Description:</strong> ${project.description}</p>
-                            <p><strong>Goals:</strong> ${project.goals || 'Not specified'}</p>
-                            <p><strong>Requirements:</strong> ${project.requirements || 'Not specified'}</p>
-                            <p><strong>Invite Code:</strong> <code style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-family: monospace;">${project.invite_code || 'N/A'}</code></p>
-                            <div class="team-members-section" style="margin-top: 15px;">
-                                <strong>Team Members:</strong>
-                                <div class="team-member-cards" style="margin-top: 8px;">
-                                    ${teamMemberCards}
-                                </div>
-                                ${isOwner ? '<p style="margin-top: 8px; font-size: 0.85rem; color: #64748b;">As owner, you can remove members by editing the project.</p>' : ''}
-                            </div>
-                            <p style="margin-top: 10px;"><strong>Created:</strong> ${new Date(project.createdAt).toLocaleString()}</p>
-                            ${isOwner
-                            ? `<button class="btn btn-danger delete-project-btn" data-project-id="${project.id}" style='margin-top: 8px; padding: 6px 12px; font-size: 0.8rem; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer;'>Delete Project</button>`
-                            : `<button class="btn btn-secondary leave-project-btn" data-project-id="${project.id}" style='margin-top: 8px; padding: 6px 12px; font-size: 0.8rem; border: none; border-radius: 4px; cursor: pointer;'>Leave Project</button>`
-                        }
-                        </div>
-                    `;
-                }).join('');
+                return `
+                <div class="project-item">
+                    <div class="row-between" style="margin-bottom:10px;">
+                    <h3 style="margin:0;">📋 ${project.name}${ownerBadge}</h3>
+                    ${canEdit ? `<button class="btn btn-compact edit-project-btn" data-project-id="${project.id}">✏️ Edit</button>` : ''}
+                    </div>
+
+                    <p><strong>Description:</strong> ${project.description}</p>
+                    <p><strong>Goals:</strong> ${project.goals || 'Not specified'}</p>
+                    <p><strong>Requirements:</strong> ${project.requirements || 'Not specified'}</p>
+                    <p><strong>Invite Code:</strong> <code class="code-badge">${project.invite_code || 'N/A'}</code></p>
+
+                    <div class="team-members-section">
+                    <strong>Team Members:</strong>
+                    <div class="team-member-cards" style="margin-top:8px;">
+                        ${teamMemberCards}
+                    </div>
+                    ${isOwner ? '<p class="muted xsmall" style="margin-top:8px;">As owner, you can remove members by editing the project.</p>' : ''}
+                    </div>
+
+                    <p class="muted xsmall" style="margin-top:10px;"><strong>Created:</strong> ${new Date(project.createdAt).toLocaleString()}</p>
+
+                    ${isOwner
+                    ? `<button class="btn btn-danger btn-compact delete-project-btn" data-project-id="${project.id}" style="margin-top:8px;">Delete Project</button>`
+                    : `<button class="btn btn-secondary btn-compact leave-project-btn" data-project-id="${project.id}" style="margin-top:8px;">Leave Project</button>`
+                    }
+                </div>
+                `;
+            }).join('');
             }
 
             updateUserSelection() {
@@ -2207,16 +2370,21 @@ input::placeholder, textarea::placeholder{
 
                 if (isOwner) {
                     membersSection.style.display = 'block';
-                    const teamMembers = this.users.filter(user => project.selectedMemberIds && project.selectedMemberIds.includes(user.id));
+                    const memberIds = (project.selectedMemberIds || []).map(String);
+                    const teamMembers = this.users.filter(user => memberIds.includes(String(user.id)));
                     membersContainer.innerHTML = teamMembers.map(member => `
-                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; margin: 5px 0; background: #f1f5f9; border-radius: 8px;">
+                        <div class="member-row">
                             <div>
-                                <strong>${member.name}</strong>
-                                ${String(member.id) === String(project.owner_id) ? '<span style="background: #10b981; color: white; padding: 2px 6px; border-radius: 12px; font-size: 0.7rem; margin-left: 8px;">Owner</span>' : ''}
+                            <strong>${member.name}</strong>
+                            ${String(member.id) === String(project.owner_id) ? '<span class="badge badge-owner">Owner</span>' : ''}
                             </div>
-                            ${String(member.id) !== String(project.owner_id) ? `<button class="btn remove-member-btn" data-project-id="${project.id}" data-member-id="${member.id}" style="padding: 4px 8px; font-size: 0.75rem; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer;">Remove</button>` : ''}
+                            ${String(member.id) !== String(project.owner_id)
+                            ? `<button class="btn btn-danger btn-compact remove-member-btn" data-project-id="${project.id}" data-member-id="${member.id}">Remove</button>`
+                            : ''
+                            }
                         </div>
-                    `).join('');
+                        `).join('');
+
                 } else {
                     membersSection.style.display = 'none';
                 }
@@ -2479,23 +2647,25 @@ input::placeholder, textarea::placeholder{
         }
 
         function showStatus(elementId, message, type = 'success') {
-            const statusElement = document.getElementById(elementId);
+        const statusElement = document.getElementById(elementId);
 
-            if (statusElement) {
-                statusElement.textContent = message;
-                statusElement.className = 'status-message status-' + type;
-                statusElement.style.display = 'block';
-            }
+        if (statusElement) {
+            statusElement.textContent = message;
+            statusElement.className = 'status-message status-' + type;
+            statusElement.style.display = 'block';
 
-            setTimeout(() => {
-                statusElement.style.display = 'none';
+            window.clearTimeout(statusElement.__hideTimer);
+            statusElement.__hideTimer = window.setTimeout(() => {
+            statusElement.style.display = 'none';
             }, 5000);
+        }
 
-            if (type === 'success') {
-                vscode.postMessage({ type: 'showSuccess', payload: { message } });
-            } else {
-                vscode.postMessage({ type: 'showError', payload: { message } });
-            }
+        // don't treat "info" as error
+        if (type === 'error') {
+            vscode.postMessage({ type: 'showError', payload: { message } });
+        } else {
+            vscode.postMessage({ type: 'showSuccess', payload: { message } });
+        }
         }
 
         function addUser() {
