@@ -198,6 +198,27 @@
         "mac": "cmd+shift+r"
       }
     ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "ai-code-reviewer.analyzeCode",
+          "group": "aiCollab@1",
+          "when": "editorTextFocus"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "ai-code-reviewer.analyzeCode",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "command": "ai-code-reviewer.showResults"
+        },
+        {
+          "command": "ai-code-reviewer.toggleAutoAnalyze"
+        }
+      ]
+    },
     "viewsContainers": {
       "activitybar": [
         {
@@ -226,7 +247,23 @@
           "name": "Notifications"
         }
       ]
-    }
+    },   
+    "viewsContainers": {
+    "activitybar": [
+      {
+        "id": "aiCollab-sidebar",
+        "title": "AI Collab",
+        "icon": "media/collaboration.svg"
+      }
+    ]
+  },
+  "views": {
+    "aiCollab-sidebar": [
+      {
+        "id": "aiCollabView",
+        "name": "Team Panel"
+      }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
