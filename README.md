@@ -1,6 +1,6 @@
 <div align="center">
 
-# AI Collab Agent
+# Pallas AI
 
 [![Report Issue on Jira](https://img.shields.io/badge/Report%20Issues-Jira-0052CC?style=flat&logo=jira-software)](https://temple-cis-projects-in-cs.atlassian.net/jira/software/c/projects/DT/issues)
 [![Deploy Docs](https://github.com/ApplebaumIan/tu-cis-4398-docs-template/actions/workflows/deploy.yml/badge.svg)](https://github.com/ApplebaumIan/tu-cis-4398-docs-template/actions/workflows/deploy.yml)
@@ -122,6 +122,14 @@ If you want to join an existing project from the UI using an invite code:
 - **Live Share Integration**: Start collaborative coding sessions
 - **Code Analysis**: Automated code review and suggestions
 - **Jira Backlog Sync**: Turn AI analysis output into Jira tasks, create/update issues, and refresh board status from Jira
+- **AI Suggestion**: Triggers due to a manual call or if certain criteria is met, and suggests a team member in team that has the skills to help fix the issue
+
+### Bugs
+
+- Jira feature didn't work with final merges
+- AI Suggestion bugged due to final merges as well
+- Sidebar didn't work properly on final main
+
 
 ### Testing
 
